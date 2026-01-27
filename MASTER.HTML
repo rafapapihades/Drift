@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER CONTROL V8.5</title>
+    <title>MASTER CONTROL V8.7</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -17,7 +17,10 @@
         .big-db { font-size: 3.5em; color: red; text-align: center; font-weight: bold; font-family: monospace; min-height: 1.2em; }
         .btn-pulsado { background: #fff !important; color: #000 !important; opacity: 1 !important; }
         .mini-rank-box { background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-top: 10px; font-size: 0.85em; }
-        .rank-line { border-bottom: 1px solid #222; padding: 4px 0; display: flex; justify-content: space-between; }
+        .rank-line { border-bottom: 1px solid #222; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; }
+        .rank-info { display: flex; flex-direction: column; gap: 2px; }
+        .rank-name { font-weight: bold; color: #fff; }
+        .rank-car { font-size: 0.8em; color: #aaa; }
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
         .btn-reset { background: #666; opacity: 1; font-size: 0.7em; margin-top: 15px; }
     </style>
@@ -79,15 +82,11 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Variables Globales
         let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false;
         let inscritosD={}, inscritosE={};
         let currentDorsalString = "";
         let acAp = 0, acUp = 0, acDw = 0;
-
-        // --- AUDIO REAL ---
-        let audioCtx, analyser, microphone, dataArray;
-        let streamActivo = false;
+        let audioCtx, analyser, microphone, dataArray, streamActivo = false;
 
         async function iniciarMicrofono() {
             if (streamActivo) return;
@@ -101,7 +100,7 @@
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
                 streamActivo = true;
                 procesarAudio();
-            } catch (err) { alert("Permite el acceso al micrófono para medir."); }
+            } catch (err) { alert("Permite el acceso al micrófono."); }
         }
 
         function procesarAudio() {
@@ -109,8 +108,6 @@
             let sum = 0;
             for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
             let average = sum / dataArray.length;
-            
-            // Valor de dB (Calibración base)
             vDb = average > 0 ? (average * 1.5) + 30 : 0;
             document.getElementById('db-live').innerText = vDb.toFixed(1);
 
@@ -138,16 +135,13 @@
             event.currentTarget.classList.toggle('btn-pulsado', !!a);
         };
 
-        // --- NAVEGACIÓN ---
         window.cambiarTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(tabId).style.display = 'block';
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(tabId === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
-            set(ref(db, 'modo_actual'), tabId);
         };
 
-        // --- LÓGICA DRIFT ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
@@ -155,7 +149,7 @@
                 let d = {};
                 lines.forEach(l => {
                     const c = l.split(',');
-                    if(c[0]) d[c[0].trim()] = { piloto:c[1]?.trim(), coche:c[2]?.trim() };
+                    if(c[0]) d[c[0].trim()] = { piloto:c[1]?.trim() || "", coche:c[2]?.trim() || "" };
                 });
                 if(t==='drift'){ 
                     inscritosD=d; document.getElementById('cnt-drift').innerText=Object.keys(d).length; 
@@ -165,20 +159,6 @@
             };
             reader.readAsText(e.target.files[0]);
         };
-
-        onValue(ref(db, 'votacion_activa'), (snap) => {
-            const data = snap.val();
-            document.getElementById('m-ap').innerText = (data && data.activa) ? data.aplausos || 0 : 0;
-            document.getElementById('m-up').innerText = (data && data.activa) ? data.up || 0 : 0;
-            document.getElementById('m-dw').innerText = (data && data.activa) ? data.down || 0 : 0;
-            document.getElementById('info-pista-drift').innerText = (data && data.activa) ? data.info || "" : "";
-        });
-
-        onValue(ref(db, 'estado_pista'), s => {
-            const e = s.val();
-            document.querySelectorAll('.btn').forEach(b => { if(b.id && b.id.startsWith('btn-')) b.classList.remove('pista-activa'); });
-            if(e && e.id) { const btn = document.getElementById(e.id); if(btn) btn.classList.add('pista-activa'); }
-        });
 
         window.abrirVoto = async () => {
             const inputVal = document.getElementById('d-show').value.trim();
@@ -191,7 +171,7 @@
             const historial = snap.exists() ? Object.values(snap.val()) : [];
             dorsalesArr.forEach(d => {
                 historial.forEach(v => { if(v.dorsal.includes(d)) { acAp += (v.ap_tanda || 0); acUp += (v.up_tanda || 0); acDw += (v.dw_tanda || 0); } });
-                const p = inscritosD[d] || { piloto: "Dorsal "+d, coche: "" };
+                const p = inscritosD[d] || { piloto: "Piloto "+d, coche: "" };
                 nombresArr.push(`${p.piloto} ${p.coche}`);
             });
             set(ref(db, 'votacion_activa'), { dorsal: inputVal, info: nombresArr.join(' / '), aplausos: acAp, up: acUp, down: acDw, activa: true, timer: 0 });
@@ -212,18 +192,6 @@
             }
         };
 
-        window.exportarVotos = async () => {
-            if(!confirm("¿Exportar y borrar historial?")) return;
-            const s = await get(ref(db, 'historial_votos'));
-            if(!s.exists()) return alert("Sin datos");
-            let csv = "Dorsal,Aplausos,Likes,Dislikes\n";
-            Object.values(s.val()).forEach(v => { csv += `${v.dorsal},${v.ap_tanda},${v.up_tanda},${v.dw_tanda}\n`; });
-            const b = new Blob([csv], {type:'text/csv'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "DRIFT_FINAL.csv"; a.click();
-            await remove(ref(db, 'historial_votos'));
-        };
-
-        // --- LÓGICA ESCAPES ---
         window.publicarEscape = async () => {
             const d = document.getElementById('d-esc').value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
@@ -239,7 +207,15 @@
             const render = (target, list, unit, sortFn) => {
                 let html = `<b>🏆 TOP 3 ${unit}:</b>`;
                 list.sort(sortFn).slice(0,3).forEach((p, i) => {
-                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal}</span><b>${unit==='dB'?p.db:p.hz}${unit}</b></div>`;
+                    const valor = unit === 'dB' ? p.db : p.hz;
+                    html += `
+                    <div class="rank-line">
+                        <div class="rank-info">
+                            <span class="rank-name">${i+1}. ${p.dorsal} ${p.piloto}</span>
+                            <span class="rank-car">${p.coche}</span>
+                        </div>
+                        <b style="color:#ffcc00">${valor}${unit}</b>
+                    </div>`;
                 });
                 document.getElementById(target).innerHTML = html;
             };
@@ -247,18 +223,42 @@
             render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
         });
 
+        onValue(ref(db, 'votacion_activa'), snap => {
+            const data = snap.val();
+            document.getElementById('m-ap').innerText = (data && data.activa) ? data.aplausos || 0 : 0;
+            document.getElementById('m-up').innerText = (data && data.activa) ? data.up || 0 : 0;
+            document.getElementById('m-dw').innerText = (data && data.activa) ? data.down || 0 : 0;
+            document.getElementById('info-pista-drift').innerText = (data && data.activa) ? data.info || "" : "";
+        });
+
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            document.querySelectorAll('.btn').forEach(b => { if(b.id && b.id.startsWith('btn-')) b.classList.remove('pista-activa'); });
+            if(e && e.id) { const btn = document.getElementById(e.id); if(btn) btn.classList.add('pista-activa'); }
+        });
+
+        window.exportarVotos = async () => {
+            if(!confirm("¿Exportar y borrar historial?")) return;
+            const s = await get(ref(db, 'historial_votos'));
+            if(!s.exists()) return alert("Sin datos");
+            let csv = "Dorsal,Info,Aplausos,Likes,Dislikes\n";
+            Object.values(s.val()).forEach(v => { csv += `"${v.dorsal}","${v.info}",${v.ap_tanda},${v.up_tanda},${v.dw_tanda}\n`; });
+            const b = new Blob([csv], {type:'text/csv'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "DRIFT_FINAL.csv"; a.click();
+            await remove(ref(db, 'historial_votos'));
+        };
+
         window.exportarEscapes = async () => {
             if(!confirm("¿Exportar y reiniciar escapes?")) return;
             const s = await get(ref(db, 'ranking_escapes'));
             if(!s.exists()) return alert("Sin datos");
-            let csv = "Dorsal,dB,Hz\n";
-            Object.values(s.val()).forEach(p => { csv += `${p.dorsal},${p.db},${p.hz}\n`; });
+            let csv = "Dorsal,Piloto,Coche,dB,Hz\n";
+            Object.values(s.val()).forEach(p => { csv += `"${p.dorsal}","${p.piloto}","${p.coche}",${p.db},${p.hz}\n`; });
             const b = new Blob([csv], {type:'text/csv'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "ESCAPES_FINAL.csv"; a.click();
             await remove(ref(db, 'ranking_escapes'));
         };
 
-        // Inicialización
         set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
         set(ref(db, 'votacion_activa'), { activa: false });
     </script>

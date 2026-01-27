@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER CONTROL V8.2 (AUDIO REAL)</title>
+    <title>MASTER CONTROL V8.3 (AUDIO REAL LIMPIO)</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -34,6 +34,265 @@
             <p style="font-size:0.7em; color:#ffcc00">Inscritos Drift: <span id="cnt-drift">0</span></p>
             <button class="btn" style="background:#444; opacity:1; padding:8px" onclick="document.getElementById('xl-d').click()">📂 Cargar Drift.csv</button>
             <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
+        </div>
+        
+        <div class="card">
+            <button id="btn-coche" class="btn" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
+            <div id="info-pista-drift" class="info-pista"></div>
+            <div class="vote-stats">
+                <span>👏 <b id="m-ap">0</b></span> <span>👍 <b id="m-up">0</b></span> <span>👎 <b id="m-dw">0</b></span>
+            </div>
+            <button id="btn-libre" class="btn" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
+            <button id="btn-obs" class="btn" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
+            <button id="btn-acc" class="btn" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
+            <button class="btn btn-reset" onclick="exportarVotos()">💾 GUARDAR VOTOS Y REINICIAR</button>
+        </div>
+    </div>
+
+    <div id="tab-esc" class="tab-content" style="display:none">
+        <div class="card">
+            <input type="text" id="d-esc" placeholder="DORSAL ESCAPE">
+            <p style="font-size:0.7em; color:#ffcc00">Inscritos: <span id="cnt-esc">0</span></p>
+            <button class="btn" style="background:#444; opacity:1; padding:8px" onclick="document.getElementById('xl-e').click()">📂 Cargar Escapes.csv</button>
+            <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
+        </div>
+        <div class="card">
+            <div id="db-live" class="big-db">0.0</div>
+            <button class="btn" style="background:red; opacity:0.6" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)">MANTENER dB</button>
+            <button class="btn" style="background:orange; opacity:0.6" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)">MANTENER TONO</button>
+            <div style="display:flex; justify-content:space-around; margin:10px 0; font-family:monospace">
+                <span>MAX: <b id="res-pico">0.0</b></span>
+                <span>Hz: <b id="res-tono">0</b></span>
+            </div>
+            <button class="btn" style="background:green; opacity:1" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
+            <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 dB:</b></div>
+            <div class="mini-rank-box" id="m-rank-hz"><b>🎸 TOP 3 GRAVES:</b></div>
+            <button class="btn btn-reset" onclick="exportarEscapes()">💾 GUARDAR RANKING Y REINICIAR</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, get, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false;
+        let inscritosD={}, inscritosE={};
+        let currentDorsalString = "";
+        let acAp = 0, acUp = 0, acDw = 0;
+
+        // --- LÓGICA DE MICROFONO REAL (SIN SIMULACIÓN) ---
+        let audioCtx, analyser, microphone, dataArray;
+        let streamActivo = false;
+
+        async function iniciarMicrofono() {
+            if (streamActivo) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                microphone = audioCtx.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.fftSize = 256; // Tamaño menor para respuesta más rápida en móviles
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                streamActivo = true;
+                procesarAudio();
+            } catch (err) {
+                console.error("Acceso al micro denegado.");
+            }
+        }
+
+        function procesarAudio() {
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Cálculo de volumen real basado en la amplitud del micro
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; }
+            let average = sum / dataArray.length;
+            
+            // vDb será 0 si hay silencio absoluto
+            vDb = average > 0 ? (average * 1.2) + 20 : 0; 
+            document.getElementById('db-live').innerText = vDb.toFixed(1);
+
+            // Frecuencia dominante
+            let maxVal = -1;
+            let maxIndex = -1;
+            for (let i = 0; i < dataArray.length; i++) {
+                if (dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIndex = i; }
+            }
+            let nyquist = audioCtx.sampleRate / 2;
+            let hzActual = maxIndex * nyquist / analyser.frequencyBinCount;
+
+            if(pPico && vDb > recDb) { 
+                recDb = vDb; 
+                document.getElementById('res-pico').innerText = recDb.toFixed(1); 
+            }
+            
+            if(pTono && maxVal > 30) { 
+                sHz += hzActual; lHz++;
+                document.getElementById('res-tono').innerText = Math.round(sHz/lHz);
+            }
+            requestAnimationFrame(procesarAudio);
+        }
+
+        window.medir = (t, a) => {
+            if(a) iniciarMicrofono(); // El micro se activa al pulsar el botón
+            if(t==='pico') pPico=!!a; 
+            if(t==='tono'){ pTono=!!a; if(a){sHz=0; lHz=0;} }
+            event.currentTarget.classList.toggle('btn-pulsado', !!a);
+        };
+
+        // --- RESTO DE FUNCIONES (CSV, VOTOS, FIREBASE) ---
+        window.cargarCSV = (e, t) => {
+            const reader = new FileReader();
+            reader.onload = (ex) => {
+                const lines = ex.target.result.split('\n').slice(1);
+                let d = {};
+                lines.forEach(l => {
+                    const c = l.split(',');
+                    if(c[0]) d[c[0].trim()] = { piloto:c[1]?.trim(), coche:c[2]?.trim() };
+                });
+                if(t==='drift'){ inscritosD=d; document.getElementById('cnt-drift').innerText=Object.keys(d).length; }
+                else { inscritosE=d; document.getElementById('cnt-esc').innerText=Object.keys(d).length; syncEscRanking(); }
+            };
+            reader.readAsText(e.target.files[0]);
+        };
+
+        onValue(ref(db, 'votacion_activa'), (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.activa) {
+                document.getElementById('m-ap').innerText = data.aplausos || 0;
+                document.getElementById('m-up').innerText = data.up || 0;
+                document.getElementById('m-dw').innerText = data.down || 0;
+                document.getElementById('info-pista-drift').innerText = data.info || "";
+            } else {
+                document.getElementById('m-ap').innerText = 0;
+                document.getElementById('m-up').innerText = 0;
+                document.getElementById('m-dw').innerText = 0;
+                document.getElementById('info-pista-drift').innerText = "";
+            }
+        });
+
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            document.querySelectorAll('.btn').forEach(b => { if(b.id && b.id.startsWith('btn-')) b.classList.remove('pista-activa'); });
+            if(e && e.id) { const btnActivo = document.getElementById(e.id); if(btnActivo) btnActivo.classList.add('pista-activa'); }
+        });
+
+        window.abrirVoto = async () => {
+            const inputVal = document.getElementById('d-show').value.trim();
+            if(!inputVal) return alert("Introduce dorsal(es)");
+            currentDorsalString = inputVal;
+            const dorsalesArr = inputVal.split(/\s+/);
+            acAp = 0; acUp = 0; acDw = 0;
+            let nombresArr = [];
+            const snap = await get(ref(db, 'historial_votos'));
+            const historial = snap.exists() ? Object.values(snap.val()) : [];
+            dorsalesArr.forEach(d => {
+                historial.forEach(v => { if(v.dorsal.includes(d)) { acAp += (v.ap_tanda || 0); acUp += (v.up_tanda || 0); acDw += (v.dw_tanda || 0); } });
+                const p = inscritosD[d] || { piloto: "Dorsal "+d, coche: "S/M" };
+                nombresArr.push(`${p.piloto} (${p.coche})`);
+            });
+            set(ref(db, 'votacion_activa'), { dorsal: inputVal, info: nombresArr.join(' / '), aplausos: acAp, up: acUp, down: acDw, activa: true, timer: 0 });
+            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
+        };
+
+        window.setEstado = async (m, c, id) => {
+            set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
+            if(id === 'btn-libre' && currentDorsalString !== "") {
+                const snap = await get(ref(db, 'votacion_activa'));
+                const data = snap.val();
+                if(data && data.activa) {
+                    push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap_tanda: (data.aplausos || 0) - acAp, up_tanda: (data.up || 0) - acUp, dw_tanda: (data.down || 0) - acDw, timestamp: Date.now() });
+                    let count = 5;
+                    update(ref(db, 'votacion_activa'), { timer: count });
+                    let interval = setInterval(() => {
+                        count--;
+                        if(count <= 0) { clearInterval(interval); update(ref(db, 'votacion_activa'), { activa: false, timer: 0 }); }
+                        else { update(ref(db, 'votacion_activa'), { timer: count }); }
+                    }, 1000);
+                }
+                document.getElementById('d-show').value = ""; currentDorsalString = "";
+            }
+        };
+
+        window.exportarVotos = async () => {
+            if(!confirm("¿Exportar resultados y reiniciar votos?")) return;
+            const s = await get(ref(db, 'historial_votos'));
+            if(!s.exists()) return alert("Sin datos");
+            const resumen = {};
+            Object.values(s.val()).forEach(v => {
+                const ds = v.dorsal.split(/\s+/);
+                ds.forEach(d => {
+                    if(!resumen[d]) resumen[d] = { ap:0, up:0, dw:0 };
+                    resumen[d].ap += v.ap_tanda; resumen[d].up += v.up_tanda; resumen[d].dw += v.dw_tanda;
+                });
+            });
+            let csv = "Dorsal,Aplausos,Likes,Dislikes\n";
+            for(const d in resumen) csv += `${d},${resumen[d].ap},${resumen[d].up},${resumen[d].dw}\n`;
+            descargarCSV(csv, "VOTOS_FINAL.csv");
+            await remove(ref(db, 'historial_votos'));
+        };
+
+        window.exportarEscapes = async () => {
+            if(!confirm("¿Exportar y reiniciar ranking?")) return;
+            const s = await get(ref(db, 'ranking_escapes'));
+            if(!s.exists()) return alert("Sin datos");
+            let csv = "Dorsal,Piloto,Coche,dB,Hz\n";
+            Object.values(s.val()).sort((a,b)=>b.db-a.db).forEach(p => { csv += `${p.dorsal},${p.piloto},${p.coche},${p.db},${p.hz}\n`; });
+            descargarCSV(csv, "RANKING_ESCAPES.csv");
+            await remove(ref(db, 'ranking_escapes'));
+            document.getElementById('m-rank-db').innerHTML = "<b>🏆 TOP 3 dB:</b>";
+            document.getElementById('m-rank-hz').innerHTML = "<b>🎸 TOP 3 GRAVES:</b>";
+        };
+
+        function descargarCSV(contenido, nombre) {
+            const b = new Blob([contenido], {type:'text/csv'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = nombre; a.click();
+        }
+
+        window.cambiarModo = (m) => set(ref(db, 'modo_actual'), m);
+        
+        onValue(ref(db, 'modo_actual'), s => {
+            const m = s.val() || 'tab-show';
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display='none');
+            document.getElementById(m).style.display='block';
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active-nav', b.id === (m==='tab-show'?'nav-show':'nav-esc')));
+        });
+        
+        window.publicarEscape = async () => {
+            const d = document.getElementById('d-esc').value.trim();
+            const dbV = parseFloat(document.getElementById('res-pico').innerText);
+            const hzV = parseInt(document.getElementById('res-tono').innerText);
+            if(!d || dbV <= 0) return alert("Faltan datos");
+            const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "S/M" };
+            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
+            document.getElementById('res-pico').innerText="0.0"; document.getElementById('res-tono').innerText="0";
+            recDb=0; sHz=0; lHz=0;
+        };
+
+        const syncEscRanking = () => onValue(ref(db, 'ranking_escapes'), s => {
+            const data = s.exists() ? Object.values(s.val()) : [];
+            const render = (list, targetId, unit, sortFn) => {
+                let html = `<b>🏆 TOP 3 ${unit}:</b>`;
+                list.sort(sortFn).slice(0,3).forEach((p, i) => {
+                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal} ${p.piloto}</span><b>${p[unit.toLowerCase() === 'db' ? 'db' : 'hz']}${unit}</b></div>`;
+                });
+                document.getElementById(targetId).innerHTML = html;
+            };
+            render([...data], 'm-rank-db', 'dB', (a,b)=>b.db-a.db);
+            render([...data], 'm-rank-hz', 'Hz', (a,b)=>a.hz-b.hz);
+        });
+
+        // Inicio limpio de estado
+        set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
+        set(ref(db, 'votacion_activa'), { activa: false });
+    </script>
+</body>
+</html>
         </div>
         
         <div class="card">
@@ -538,3 +797,4 @@ set(ref(db, 'votacion_activa'), { activa: false });
 </body>
 
 </html>
+

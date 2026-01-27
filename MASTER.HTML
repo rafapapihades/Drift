@@ -3,24 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER CONTROL V8.6</title>
+    <title>MASTER CONTROL V8.5</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
         .nav-btn { flex: 1; padding: 15px; background: #222; border: none; color: #555; font-weight: bold; border-radius: 8px; }
         .active-nav { background: #ffcc00 !important; color: #000 !important; }
         .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; }
-        .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; opacity: 0.3; transition: 0.3s; color: white; }
-        .pista-activa { opacity: 1 !important; outline: 3px solid #fff; }
+        .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; opacity: 0.25; transition: 0.3s; color: white; }
+        .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
         input { width: 100%; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; box-sizing: border-box; }
-        .big-db { font-size: 4em; color: red; text-align: center; font-weight: bold; font-family: monospace; height: 1.2em; }
+        .vote-stats { display: flex; justify-content: space-around; font-size: 1.2em; margin: 10px 0; background: #222; padding: 10px; border-radius: 8px; color: #ffcc00; }
+        .big-db { font-size: 3.5em; color: red; text-align: center; font-weight: bold; font-family: monospace; min-height: 1.2em; }
         .btn-pulsado { background: #fff !important; color: #000 !important; opacity: 1 !important; }
         .mini-rank-box { background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-top: 10px; font-size: 0.85em; }
         .rank-line { border-bottom: 1px solid #222; padding: 4px 0; display: flex; justify-content: space-between; }
+        .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
+        .btn-reset { background: #666; opacity: 1; font-size: 0.7em; margin-top: 15px; }
     </style>
 </head>
 <body>
-
     <div class="nav-header">
         <button id="nav-show" class="nav-btn active-nav" onclick="cambiarTab('tab-show')">SHOW</button>
         <button id="nav-esc" class="nav-btn" onclick="cambiarTab('tab-esc')">ESCAPES</button>
@@ -28,35 +30,44 @@
 
     <div id="tab-show" class="tab-content">
         <div class="card">
-            <input type="text" id="d-show" placeholder="DORSALES DRIFT">
-            <button class="btn" style="background:#444; opacity:1; margin-top:10px" onclick="document.getElementById('xl-d').click()">📂 Cargar Drift.csv</button>
-            <input type="file" id="xl-d" style="display:none" onchange="cargarCSV(event, 'drift')">
+            <input type="text" id="d-show" placeholder="DORSALES (EJ: 501 502)">
+            <p style="font-size:0.7em; color:#ffcc00">Inscritos Drift: <span id="cnt-drift">0</span></p>
+            <button class="btn" style="background:#444; opacity:1; padding:8px" onclick="document.getElementById('xl-d').click()">📂 Cargar Drift.csv</button>
+            <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
         </div>
+        
         <div class="card">
             <button id="btn-coche" class="btn" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
-            <div id="info-pista-drift" style="text-align:center; color:#007bff; margin:10px 0; font-weight:bold"></div>
+            <div id="info-pista-drift" class="info-pista"></div>
+            <div class="vote-stats">
+                <span>👏 <b id="m-ap">0</b></span> <span>👍 <b id="m-up">0</b></span> <span>👎 <b id="m-dw">0</b></span>
+            </div>
             <button id="btn-libre" class="btn" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
             <button id="btn-obs" class="btn" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
             <button id="btn-acc" class="btn" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
+            <button class="btn btn-reset" onclick="exportarVotos()">💾 GUARDAR VOTOS Y REINICIAR</button>
         </div>
     </div>
 
     <div id="tab-esc" class="tab-content" style="display:none">
         <div class="card">
             <input type="text" id="d-esc" placeholder="DORSAL ESCAPE">
-            <button class="btn" style="background:#444; opacity:1; margin-top:10px" onclick="document.getElementById('xl-e').click()">📂 Cargar Escapes.csv</button>
-            <input type="file" id="xl-e" style="display:none" onchange="cargarCSV(event, 'esc')">
+            <p style="font-size:0.7em; color:#ffcc00">Inscritos: <span id="cnt-esc">0</span></p>
+            <button class="btn" style="background:#444; opacity:1; padding:8px" onclick="document.getElementById('xl-e').click()">📂 Cargar Escapes.csv</button>
+            <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
         </div>
         <div class="card">
             <div id="db-live" class="big-db">0.0</div>
-            <button class="btn" style="background:red; opacity:0.6" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)">MANTENER dB</button>
-            <button class="btn" style="background:orange; opacity:0.6" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)">MANTENER TONO</button>
-            <div style="display:flex; justify-content:space-around; margin:10px 0;">
+            <button class="btn" style="background:red; opacity:0.6" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)">MANTENER dB</button>
+            <button class="btn" style="background:orange; opacity:0.6" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)">MANTENER TONO</button>
+            <div style="display:flex; justify-content:space-around; margin:10px 0; font-family:monospace">
                 <span>MAX: <b id="res-pico">0.0</b></span>
                 <span>Hz: <b id="res-tono">0</b></span>
             </div>
             <button class="btn" style="background:green; opacity:1" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
             <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 dB:</b></div>
+            <div class="mini-rank-box" id="m-rank-hz"><b>🎸 TOP 3 GRAVES:</b></div>
+            <button class="btn btn-reset" onclick="exportarEscapes()">💾 GUARDAR RANKING Y REINICIAR</button>
         </div>
     </div>
 
@@ -68,33 +79,39 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // Variables Globales
         let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false;
         let inscritosD={}, inscritosE={};
-        let audioCtx, analyser, dataArray, streamActivo = false;
+        let currentDorsalString = "";
+        let acAp = 0, acUp = 0, acDw = 0;
 
-        // --- AUDIO ---
-        async function iniciarAudio() {
+        // --- AUDIO REAL ---
+        let audioCtx, analyser, microphone, dataArray;
+        let streamActivo = false;
+
+        async function iniciarMicrofono() {
             if (streamActivo) return;
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                audioCtx = new AudioContext();
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioCtx.createAnalyser();
-                audioCtx.createMediaStreamSource(stream).connect(analyser);
-                analyser.fftSize = 256;
+                microphone = audioCtx.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.fftSize = 512;
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
                 streamActivo = true;
-                loop();
-            } catch (e) { alert("Error micro: " + e); }
+                procesarAudio();
+            } catch (err) { alert("Permite el acceso al micrófono para medir."); }
         }
 
-        function loop() {
+        function procesarAudio() {
             analyser.getByteFrequencyData(dataArray);
             let sum = 0;
-            for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
-            let avg = sum / dataArray.length;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            let average = sum / dataArray.length;
             
-            // LECTURA REAL: Si no hay ruido, vDb será muy bajo
-            vDb = avg > 0 ? (avg * 1.5) + 30 : 0;
+            // Valor de dB (Calibración base)
+            vDb = average > 0 ? (average * 1.5) + 30 : 0;
             document.getElementById('db-live').innerText = vDb.toFixed(1);
 
             if(pPico && vDb > recDb) {
@@ -102,81 +119,148 @@
                 document.getElementById('res-pico').innerText = recDb.toFixed(1);
             }
 
-            if(pTono && avg > 5) {
-                let maxV = -1, maxI = -1;
-                for(let i=0; i<dataArray.length; i++) { if(dataArray[i]>maxV){maxV=dataArray[i]; maxI=i;} }
-                let hz = maxI * (audioCtx.sampleRate / analyser.fftSize);
-                sHz += hz; lHz++;
+            if(pTono && average > 10) {
+                let maxVal = -1, maxIndex = -1;
+                for (let i = 0; i < dataArray.length; i++) {
+                    if (dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIndex = i; }
+                }
+                let hzActual = maxIndex * (audioCtx.sampleRate / analyser.fftSize);
+                sHz += hzActual; lHz++;
                 document.getElementById('res-tono').innerText = Math.round(sHz/lHz);
             }
-            requestAnimationFrame(loop);
+            requestAnimationFrame(procesarAudio);
         }
 
         window.medir = (t, a) => {
-            if(a) iniciarAudio();
+            if(a) iniciarMicrofono();
             if(t==='pico') pPico=!!a;
             if(t==='tono'){ pTono=!!a; if(a){sHz=0; lHz=0;} }
             event.currentTarget.classList.toggle('btn-pulsado', !!a);
         };
 
-        // --- TABS ---
-        window.cambiarTab = (id) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.style.display='none');
-            document.getElementById(id).style.display='block';
+        // --- NAVEGACIÓN ---
+        window.cambiarTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
-            document.getElementById(id === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
+            document.getElementById(tabId === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
+            set(ref(db, 'modo_actual'), tabId);
         };
 
-        // --- DRIFT ---
-        window.abrirVoto = async () => {
-            const d = document.getElementById('d-show').value.trim();
-            if(!d) return;
-            const info = inscritosD[d] ? `${inscritosD[d].piloto} ${inscritosD[d].coche}` : "Dorsal " + d;
-            document.getElementById('info-pista-drift').innerText = info;
-            set(ref(db, 'votacion_activa'), { dorsal: d, info: info, aplausos: 0, up: 0, down: 0, activa: true });
-            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + d, color: '#007bff', id: 'btn-coche' });
-        };
-
-        window.setEstado = (m, c, id) => {
-            set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
-            if(id === 'btn-libre') set(ref(db, 'votacion_activa'), { activa: false });
-        };
-
+        // --- LÓGICA DRIFT ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
                 const lines = ex.target.result.split('\n').slice(1);
+                let d = {};
                 lines.forEach(l => {
                     const c = l.split(',');
-                    if(c[0]) {
-                        let obj = { piloto: c[1]?.trim(), coche: c[2]?.trim() };
-                        if(t==='drift') inscritosD[c[0].trim()] = obj;
-                        else inscritosE[c[0].trim()] = obj;
-                    }
+                    if(c[0]) d[c[0].trim()] = { piloto:c[1]?.trim(), coche:c[2]?.trim() };
                 });
-                alert("CSV cargado");
+                if(t==='drift'){ 
+                    inscritosD=d; document.getElementById('cnt-drift').innerText=Object.keys(d).length; 
+                } else { 
+                    inscritosE=d; document.getElementById('cnt-esc').innerText=Object.keys(d).length; 
+                }
             };
             reader.readAsText(e.target.files[0]);
         };
 
-        // --- RANKING ---
-        window.publicarEscape = () => {
-            const d = document.getElementById('d-esc').value;
-            const dbVal = parseFloat(document.getElementById('res-pico').innerText);
-            if(!d || dbVal <= 0) return;
-            set(ref(db, 'ranking_escapes/'+d), { dorsal:d, db:dbVal, hz: parseInt(document.getElementById('res-tono').innerText) });
-            recDb = 0; document.getElementById('res-pico').innerText = "0.0";
-        };
-
-        onValue(ref(db, 'ranking_escapes'), s => {
-            const data = s.exists() ? Object.values(s.val()) : [];
-            let html = "<b>🏆 TOP 3 dB:</b>";
-            data.sort((a,b)=>b.db-a.db).slice(0,3).forEach((p,i)=>{
-                html += `<div class="rank-line"><span>${i+1}. ${p.dorsal}</span><b>${p.db}dB</b></div>`;
-            });
-            document.getElementById('m-rank-db').innerHTML = html;
+        onValue(ref(db, 'votacion_activa'), (snap) => {
+            const data = snap.val();
+            document.getElementById('m-ap').innerText = (data && data.activa) ? data.aplausos || 0 : 0;
+            document.getElementById('m-up').innerText = (data && data.activa) ? data.up || 0 : 0;
+            document.getElementById('m-dw').innerText = (data && data.activa) ? data.down || 0 : 0;
+            document.getElementById('info-pista-drift').innerText = (data && data.activa) ? data.info || "" : "";
         });
 
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            document.querySelectorAll('.btn').forEach(b => { if(b.id && b.id.startsWith('btn-')) b.classList.remove('pista-activa'); });
+            if(e && e.id) { const btn = document.getElementById(e.id); if(btn) btn.classList.add('pista-activa'); }
+        });
+
+        window.abrirVoto = async () => {
+            const inputVal = document.getElementById('d-show').value.trim();
+            if(!inputVal) return alert("Dorsal vacío");
+            currentDorsalString = inputVal;
+            const dorsalesArr = inputVal.split(/\s+/);
+            acAp = 0; acUp = 0; acDw = 0;
+            let nombresArr = [];
+            const snap = await get(ref(db, 'historial_votos'));
+            const historial = snap.exists() ? Object.values(snap.val()) : [];
+            dorsalesArr.forEach(d => {
+                historial.forEach(v => { if(v.dorsal.includes(d)) { acAp += (v.ap_tanda || 0); acUp += (v.up_tanda || 0); acDw += (v.dw_tanda || 0); } });
+                const p = inscritosD[d] || { piloto: "Dorsal "+d, coche: "" };
+                nombresArr.push(`${p.piloto} ${p.coche}`);
+            });
+            set(ref(db, 'votacion_activa'), { dorsal: inputVal, info: nombresArr.join(' / '), aplausos: acAp, up: acUp, down: acDw, activa: true, timer: 0 });
+            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
+        };
+
+        window.setEstado = async (m, c, id) => {
+            set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
+            if(id === 'btn-libre' && currentDorsalString !== "") {
+                const snap = await get(ref(db, 'votacion_activa'));
+                const data = snap.val();
+                if(data && data.activa) {
+                    push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap_tanda: data.aplausos - acAp, up_tanda: data.up - acUp, dw_tanda: data.down - acDw, timestamp: Date.now() });
+                    update(ref(db, 'votacion_activa'), { timer: 5 });
+                    setTimeout(() => update(ref(db, 'votacion_activa'), { activa: false, timer: 0 }), 5000);
+                }
+                document.getElementById('d-show').value = ""; currentDorsalString = "";
+            }
+        };
+
+        window.exportarVotos = async () => {
+            if(!confirm("¿Exportar y borrar historial?")) return;
+            const s = await get(ref(db, 'historial_votos'));
+            if(!s.exists()) return alert("Sin datos");
+            let csv = "Dorsal,Aplausos,Likes,Dislikes\n";
+            Object.values(s.val()).forEach(v => { csv += `${v.dorsal},${v.ap_tanda},${v.up_tanda},${v.dw_tanda}\n`; });
+            const b = new Blob([csv], {type:'text/csv'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "DRIFT_FINAL.csv"; a.click();
+            await remove(ref(db, 'historial_votos'));
+        };
+
+        // --- LÓGICA ESCAPES ---
+        window.publicarEscape = async () => {
+            const d = document.getElementById('d-esc').value.trim();
+            const dbV = parseFloat(document.getElementById('res-pico').innerText);
+            if(!d || dbV <= 0) return alert("Faltan datos");
+            const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
+            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:parseInt(document.getElementById('res-tono').innerText) });
+            document.getElementById('res-pico').innerText="0.0"; document.getElementById('res-tono').innerText="0";
+            recDb=0; sHz=0; lHz=0;
+        };
+
+        onValue(ref(db, 'ranking_escapes'), snap => {
+            const data = snap.exists() ? Object.values(snap.val()) : [];
+            const render = (target, list, unit, sortFn) => {
+                let html = `<b>🏆 TOP 3 ${unit}:</b>`;
+                list.sort(sortFn).slice(0,3).forEach((p, i) => {
+                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal}</span><b>${unit==='dB'?p.db:p.hz}${unit}</b></div>`;
+                });
+                document.getElementById(target).innerHTML = html;
+            };
+            render('m-rank-db', [...data], 'dB', (a,b)=>b.db-a.db);
+            render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
+        });
+
+        window.exportarEscapes = async () => {
+            if(!confirm("¿Exportar y reiniciar escapes?")) return;
+            const s = await get(ref(db, 'ranking_escapes'));
+            if(!s.exists()) return alert("Sin datos");
+            let csv = "Dorsal,dB,Hz\n";
+            Object.values(s.val()).forEach(p => { csv += `${p.dorsal},${p.db},${p.hz}\n`; });
+            const b = new Blob([csv], {type:'text/csv'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "ESCAPES_FINAL.csv"; a.click();
+            await remove(ref(db, 'ranking_escapes'));
+        };
+
+        // Inicialización
+        set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
+        set(ref(db, 'votacion_activa'), { activa: false });
     </script>
 </body>
 </html>

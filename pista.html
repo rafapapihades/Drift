@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PISTA CONTROL V8.0</title>
+    <style>
+        body { background: #000; margin: 0; padding: 2vh; display: flex; flex-direction: column; height: 96vh; font-family: sans-serif; }
+        .btn { flex: 1; margin-bottom: 2vh; border-radius: 15px; border: none; font-size: 2em; font-weight: bold; color: #fff; cursor: pointer; opacity: 0.2; transition: 0.3s; }
+        .btn-act { opacity: 1 !important; outline: 6px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        
+        /* Estado desactivado para Escapes */
+        .modo-bloqueado { opacity: 0.05 !important; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <button id="btn-coche" class="btn" style="background:#007bff" onclick="enviar('🏎️ EN PISTA', '#007bff', 'btn-coche')">COCHE EN PISTA</button>
+    <button id="btn-libre" class="btn" style="background:green" onclick="enviar('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
+    <button id="btn-obs" class="btn" style="background:#ffcc00; color:black" onclick="enviar('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
+    <button id="btn-acc" class="btn" style="background:red" onclick="enviar('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, get, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let modoActual = "tab-show";
+
+        // 1. Escuchar el modo para bloquear/desbloquear panel
+        onValue(ref(db, 'modo_actual'), s => {
+            modoActual = s.val() || "tab-show";
+            const botones = document.querySelectorAll('.btn');
+            botones.forEach(b => {
+                if(modoActual === 'tab-esc') {
+                    b.classList.add('modo-bloqueado');
+                } else {
+                    b.classList.remove('modo-bloqueado');
+                }
+            });
+        });
+
+        window.enviar = async (m, c, id) => {
+            // Seguridad: Si intentamos abrir votación, chequear si hay dorsal
+            if (id === 'btn-coche') {
+                const vSnap = await get(ref(db, 'votacion_activa'));
+                const vData = vSnap.val();
+                if (!vData || !vData.dorsal || vData.dorsal.trim() === "") {
+                    alert("⚠️ ESPERA: El Master aún no ha puesto un dorsal.");
+                    return;
+                }
+            }
+
+            // Actualizar estado de pista
+            set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
+
+            // Lógica Pista Libre (Cierre de votación)
+            if (id === 'btn-libre') {
+                const snap = await get(ref(db, 'votacion_activa'));
+                const data = snap.val();
+
+                if (data && data.activa) {
+                    let acAp = 0, acUp = 0, acDw = 0;
+                    const histSnap = await get(ref(db, 'historial_votos'));
+                    if(histSnap.exists()){
+                        Object.values(histSnap.val()).forEach(v => {
+                            if(v.dorsal === data.dorsal) {
+                                acAp += (v.ap_tanda || 0); acUp += (v.up_tanda || 0); acDw += (v.dw_tanda || 0);
+                            }
+                        });
+                    }
+
+                    push(ref(db, 'historial_votos'), {
+                        dorsal: data.dorsal,
+                        info: data.info,
+                        ap_tanda: (data.aplausos || 0) - acAp,
+                        up_tanda: (data.up || 0) - acUp,
+                        dw_tanda: (data.down || 0) - acDw,
+                        timestamp: Date.now()
+                    });
+
+                    let count = 5;
+                    update(ref(db, 'votacion_activa'), { timer: count });
+                    let interval = setInterval(() => {
+                        count--;
+                        if (count <= 0) {
+                            clearInterval(interval);
+                            update(ref(db, 'votacion_activa'), { activa: false, timer: 0 });
+                        } else {
+                            update(ref(db, 'votacion_activa'), { timer: count });
+                        }
+                    }, 1000);
+                }
+            }
+        };
+
+        // Resaltado de botones
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-act'));
+            if(e?.id) {
+                const target = document.getElementById(e.id);
+                if(target) target.classList.add('btn-act');
+            }
+        });
+    </script>
+</body>
+</html>

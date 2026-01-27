@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOTACIÓN PÚBLICO</title>
+    <style>
+        body { 
+            background-image: url('logo.jpg'); 
+            background-repeat: repeat; 
+            background-size: 900px; 
+            background-color: #000; 
+            color: #fff; 
+            font-family: sans-serif; 
+            margin: 0; 
+            text-align: center; 
+        }
+        .overlay { 
+            min-height: 100vh; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            background: rgba(0, 0, 0, 0.4); /* Capa base muy sutil */
+            box-sizing: border-box;
+        }
+
+        /* EL RECUADRO QUE OPACA EL FONDO */
+        .glass-panel {
+            background: rgba(0, 0, 0, 0.8); /* Fondo negro bastante opaco */
+            backdrop-filter: blur(10px);    /* Efecto de desenfoque para el mosaico */
+            -webkit-backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 95%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .v-btn { font-size: 4.5em; filter: grayscale(1); margin: 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
+        .v-act { filter: grayscale(0) !important; transform: scale(1.2); }
+        #timer-box { color: #ff0000; font-weight: bold; font-size: 1.5em; margin-top: 15px; height: 25px; }
+        
+        .rank-card { 
+            background: rgba(255, 255, 255, 0.05); 
+            padding: 12px; 
+            border-radius: 8px; 
+            width: 100%; 
+            margin: 8px 0; 
+            border-left: 4px solid #ffcc00; 
+            display: flex; 
+            justify-content: space-between; 
+            text-align: left;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <div class="glass-panel">
+            
+            <div id="ui-show" style="display:none; width: 100%;">
+                <h1 id="s-mensaje" style="font-size: 2.8em; margin: 0; text-shadow: 2px 2px 4px #000;"></h1>
+                <h2 id="s-info" style="color:#007bff; margin: 15px 0; min-height: 1.2em; font-size: 1.8em;"></h2>
+                
+                <div id="voto-box" style="display:none;">
+                    <span id="v-ap" class="v-btn" onclick="votar('aplausos')">👏</span>
+                    <span id="v-up" class="v-btn" onclick="votar('up')">👍</span>
+                    <span id="v-down" class="v-btn" onclick="votar('down')">👎</span>
+                    <div id="timer-box"></div>
+                </div>
+            </div>
+
+            <div id="ui-esc" style="display:none; width: 100%">
+                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">🔊 RANKING dB</h2>
+                <div id="l-db"></div>
+                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 20px;">🎸 RANKING GRAVES</h2>
+                <div id="l-hz"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        
+        const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
+
+        let miVoto = "";
+
+        onValue(ref(db, 'modo_actual'), s => {
+            const m = s.val() || 'tab-show';
+            document.getElementById('ui-show').style.display = m==='tab-show'?'block':'none';
+            document.getElementById('ui-esc').style.display = m==='tab-esc'?'block':'none';
+        });
+
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            const msg = document.getElementById('s-mensaje');
+            msg.innerText = e?.mensaje || "";
+            msg.style.color = e?.color || "white";
+        });
+
+        onValue(ref(db, 'votacion_activa'), s => {
+            const v = s.val();
+            const box = document.getElementById('voto-box');
+            const timerDisplay = document.getElementById('timer-box');
+
+            if(v?.activa) {
+                box.style.display = 'block';
+                document.getElementById('s-info').innerText = v.info || "";
+                if(v.timer !== undefined && v.timer > 0) {
+                    timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
+                } else {
+                    timerDisplay.innerText = "";
+                }
+            } else {
+                box.style.display = 'none';
+                document.getElementById('s-info').innerText = "";
+                miVoto = "";
+                resetIconos();
+            }
+        });
+
+        window.votar = (tipo) => {
+            if(miVoto) {
+                update(ref(db, 'votacion_activa'), { [miVoto]: increment(-1) });
+            }
+            update(ref(db, 'votacion_activa'), { [tipo]: increment(1) });
+            miVoto = tipo;
+            resetIconos();
+            const idMapeo = { 'aplausos': 'v-ap', 'up': 'v-up', 'down': 'v-down' };
+            document.getElementById(idMapeo[tipo]).classList.add('v-act');
+        };
+
+        function resetIconos() {
+            document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
+        }
+
+        onValue(ref(db, 'ranking_escapes'), s => {
+            if(!s.exists()) return;
+            const data = Object.values(s.val());
+            const render = (arr, tId, sFn, u) => {
+                document.getElementById(tId).innerHTML = arr.sort(sFn).slice(0,10).map(p => 
+                    `<div class="rank-card"><span><b>${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[u.toLowerCase()==='db'?'db':'hz']}${u}</b></div>`).join('');
+            };
+            render([...data], 'l-db', (a,b)=>b.db-a.db, 'dB');
+            render([...data], 'l-hz', (a,b)=>a.hz-b.hz, 'Hz');
+        });
+    </script>
+</body>
+</html>

@@ -66,8 +66,8 @@
                 <span>Hz: <b id="res-tono" style="color:orange">0</b></span>
             </div>
             <button class="btn" style="background:green; opacity:1" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
-            <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 dB:</b></div>
-            <div class="mini-rank-box" id="m-rank-hz"><b>🎸 TOP 3 GRAVES:</b></div>
+            <div class="mini-rank-box" id="m-rank-db"><b>TOP 3 ESCAPES:</b></div>
+            <div class="mini-rank-box" id="m-rank-hz"><b>TOP 3 SONORIDAD:</b></div>
             <button class="btn btn-reset" onclick="exportarEscapes()">💾 EXPORTAR RANKING Y LIMPIAR</button>
         </div>
     </div>
@@ -178,7 +178,7 @@
                 activa: true, 
                 timer: 0 
             });
-            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
+            set(ref(db, 'estado_pista'), { mensaje: 'EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
         };
 
         window.setEstado = async (m, c, id) => {
@@ -283,5 +283,6 @@
     </script>
 </body>
 </html>
+
 
 

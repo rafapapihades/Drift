@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MI ESTADO - MASTER ESCAPES</title>
+    <style>
+        body { background: #000; color: #fff; font-family: sans-serif; padding: 15px; text-align: center; }
+        .card { background: #111; border-radius: 15px; padding: 20px; border: 1px solid #333; margin-top: 10px; }
+        input { width: 100%; padding: 15px; background: #000; border: 2px solid #ffcc00; color: #ffcc00; border-radius: 10px; font-size: 1.5em; text-align: center; margin-bottom: 10px; }
+        
+        /* Estados del Podio */
+        .status-box { padding: 20px; border-radius: 12px; margin-top: 20px; display: none; }
+        .en-podio { background: #1a4d1a; border: 2px solid #00ff00; color: #0ff000; animation: pulse 2s infinite; }
+        .fuera-podio { background: #4d1a1a; border: 2px solid #ff0000; color: #ff4444; }
+        .pendiente { background: #222; border: 2px solid #555; color: #888; }
+
+        .big-pos { font-size: 4em; font-weight: bold; margin: 10px 0; }
+        .data-grid { display: flex; justify-content: space-around; margin-top: 15px; font-size: 1.1em; }
+        .data-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; flex: 1; margin: 0 5px; }
+        
+        h2 { color: #ffcc00; margin-bottom: 5px; }
+        p { margin: 5px 0; color: #aaa; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(0, 255, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>CONTROL DE PARTICIPANTE</h2>
+    <p>Introduce tu dorsal para ver tu posición en vivo</p>
+    
+    <div class="card">
+        <input type="number" id="mi-dorsal" placeholder="DORSAL" oninput="seguirEstado()">
+    </div>
+
+    <div id="pantalla-estado">
+        <div class="status-box pendiente" style="display:block">
+            <p>Introduce tu dorsal para conectar con el ranking</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let rankingData = [];
+
+        // Escuchar cambios en el ranking global
+        onValue(ref(db, 'ranking_escapes'), snap => {
+            rankingData = snap.exists() ? Object.values(snap.val()) : [];
+            seguirEstado(); // Refrescar si hay cambios en el ranking mientras mira
+        });
+
+        window.seguirEstado = () => {
+            const dorsal = document.getElementById('mi-dorsal').value;
+            const screen = document.getElementById('pantalla-estado');
+            
+            if (!dorsal) {
+                screen.innerHTML = '<div class="status-box pendiente" style="display:block"><p>Esperando dorsal...</p></div>';
+                return;
+            }
+
+            // Encontrar al piloto en el ranking
+            const yo = rankingData.find(p => p.dorsal == dorsal);
+            
+            // Calcular posiciones
+            const rankingDB = [...rankingData].sort((a,b) => b.db - a.db);
+            const rankingHZ = [...rankingData].sort((a,b) => a.hz - b.hz);
+            
+            const posDB = rankingDB.findIndex(p => p.dorsal == dorsal) + 1;
+            const posHZ = rankingHZ.findIndex(p => p.dorsal == dorsal) + 1;
+
+            if (!yo) {
+                screen.innerHTML = `
+                    <div class="status-box pendiente" style="display:block">
+                        <h3>DORSAL ${dorsal}</h3>
+                        <p>Aún no has participado o no estás en el ranking.</p>
+                        <p style="font-size:0.8em">Dirígete a la zona de medición.</p>
+                    </div>`;
+                return;
+            }
+
+            const esPodio = (posDB <= 3 || posHZ <= 3);
+            const clase = esPodio ? 'en-podio' : 'fuera-podio';
+            const mensaje = esPodio ? '🏆 ¡ESTÁS EN EL PODIO!' : '❌ FUERA DEL PODIO';
+            const subMensaje = esPodio ? 'Mantén tu coche en la zona de ganadores.' : 'Debes desplazar tu coche fuera de la zona de podio.';
+
+            screen.innerHTML = `
+                <div class="status-box ${clase}" style="display:block">
+                    <h3>${yo.piloto}</h3>
+                    <p>${yo.coche}</p>
+                    <div class="big-pos">${posDB}º</div>
+                    <p>PUESTO EN dB</p>
+                    <hr style="opacity:0.2">
+                    <div class="data-grid">
+                        <div class="data-item"><b>${yo.db}</b><br>dB</div>
+                        <div class="data-item"><b>${yo.hz}</b><br>Hz (${posHZ}º)</div>
+                    </div>
+                    <div style="margin-top:20px; font-weight:bold; border-top:1px solid rgba(255,255,255,0.2); padding-top:15px">
+                        ${mensaje}<br>
+                        <span style="font-size:0.8em; font-weight:normal">${subMensaje}</span>
+                    </div>
+                </div>
+            `;
+        };
+    </script>
+</body>
+</html>

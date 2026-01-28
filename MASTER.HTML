@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V9.9</title>
+    <title>MASTER DRIFT SHOW V10.0</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -33,9 +33,9 @@
     <div id="tab-show" class="tab-content">
         <div class="card">
             <input type="text" id="d-show" placeholder="DORSALES (EJ: 501 502)" oninput="buscarPilotoShow(this.value)">
-            <div id="preview-show" class="info-preview">Introduce dorsal para verificar...</div>
-            <p style="font-size:0.7em; color:#ffcc00; text-align:center">Drift cargados: <span id="cnt-drift">0</span></p>
-            <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
+            <div id="preview-show" class="info-preview">Introduce dorsal...</div>
+            <p style="font-size:0.7em; color:#ffcc00; text-align:center">Inscritos Drift: <span id="cnt-drift">0</span></p>
+            <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-d').click()">📂 SINCRONIZAR DRIFT.CSV</button>
             <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
         </div>
         
@@ -55,8 +55,8 @@
     <div id="tab-esc" class="tab-content" style="display:none">
         <div class="card">
             <input type="number" id="d-esc" placeholder="DORSAL ESCAPE" oninput="buscarPilotoEscape(this.value)">
-            <p style="font-size:0.7em; color:#ffcc00; text-align:center">Escapes cargados: <span id="cnt-esc">0</span></p>
-            <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-e').click()">📂 CARGAR ESCAPES.CSV</button>
+            <p style="font-size:0.7em; color:#ffcc00; text-align:center">Inscritos Escapes: <span id="cnt-esc">0</span></p>
+            <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-e').click()">📂 SINCRONIZAR ESCAPES.CSV</button>
             <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
         </div>
         <div class="card">
@@ -70,7 +70,7 @@
             </div>
             <button class="btn" style="background:green; opacity:1" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
             <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 dB:</b></div>
-            <div class="mini-rank-box" id="m-rank-hz"><b>🎸 TOP 3 GRAVES:</b></div>
+            <div class="mini-rank-box" id="m-rank-hz"><b>🏆 TOP 3 GRAVES:</b></div>
             <button class="btn btn-reset" onclick="exportarEscapes()">💾 EXPORTAR RANKING Y LIMPIAR</button>
         </div>
     </div>
@@ -129,7 +129,7 @@
             event.currentTarget.classList.toggle('btn-pulsado', !!a);
         };
 
-        // --- NAVEGACIÓN Y BUSQUEDA ---
+        // --- NAVEGACIÓN ---
         window.cambiarTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(tabId).style.display = 'block';
@@ -138,9 +138,38 @@
             set(ref(db, 'modo_actual'), tabId);
         };
 
-        // --- BUSCADORES AUTOMÁTICOS ---
+        // --- SINCRONIZACIÓN CSV -> FIREBASE ---
+        window.cargarCSV = (e, t) => {
+            const reader = new FileReader();
+            reader.onload = (ex) => {
+                const content = ex.target.result;
+                const lines = content.split(/\r?\n/).slice(1);
+                let d = {};
+                lines.forEach(l => {
+                    const c = l.split(l.includes(';') ? ';' : ',');
+                    if(c[0] && c[0].trim()!=='') d[c[0].trim()] = { piloto:c[1]?.trim()||"", coche:c[2]?.trim()||"" };
+                });
+                // Guardamos en Firebase para que todos los dispositivos lo vean
+                set(ref(db, 'inscritos_' + t), d);
+                alert(`✓ Sincronizados ${Object.keys(d).length} pilotos en la nube.`);
+            };
+            reader.readAsText(e.target.files[0], "UTF-8");
+        };
+
+        // Escuchamos los inscritos de la nube (Realtime)
+        onValue(ref(db, 'inscritos_drift'), snap => {
+            inscritosD = snap.val() || {};
+            document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
+        });
+
+        onValue(ref(db, 'inscritos_esc'), snap => {
+            inscritosE = snap.val() || {};
+            document.getElementById('cnt-esc').innerText = Object.keys(inscritosE).length;
+        });
+
+        // --- BUSCADORES ---
         window.buscarPilotoShow = (val) => {
-            if(!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal para verificar..."; return; }
+            if(!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
             const dorsales = val.trim().split(/\s+/);
             const encontrados = dorsales.map(d => {
                 const p = inscritosD[d];
@@ -152,22 +181,6 @@
         window.buscarPilotoEscape = (d) => {
             const p = inscritosE[d];
             document.getElementById('info-piloto-esc').innerText = p ? `${p.piloto} - ${p.coche}` : (d ? "No encontrado" : "Introduce un dorsal...");
-        };
-
-        window.cargarCSV = (e, t) => {
-            const reader = new FileReader();
-            reader.onload = (ex) => {
-                const content = ex.target.result;
-                const lines = content.split(/\r?\n/).slice(1);
-                let d = {};
-                lines.forEach(l => {
-                    const c = l.split(l.includes(';') ? ';' : ',');
-                    if(c[0] && c[0].trim()!=='') d[c[0].trim()] = { piloto:c[1]?.trim()||"", coche:c[2]?.trim()||"" };
-                });
-                if(t==='drift'){ inscritosD=d; document.getElementById('cnt-drift').innerText=Object.keys(d).length; }
-                else { inscritosE=d; document.getElementById('cnt-esc').innerText=Object.keys(d).length; }
-            };
-            reader.readAsText(e.target.files[0], "UTF-8");
         };
 
         // --- DRIFT / VOTOS ---
@@ -236,7 +249,7 @@
             const data = Object.values(snap.val());
             const posDB = data.sort((a,b) => b.db - a.db).findIndex(p => p.dorsal == d) + 1;
             const posHZ = data.sort((a,b) => a.hz - b.hz).findIndex(p => p.dorsal == d) + 1;
-            let msg = `✅ PUBLICADO\nPiloto: ${info.piloto}\n----------------------\n🏆 Posición dB: ${posDB}º\n🎸 Posición Graves: ${posHZ}º`;
+            let msg = `✅ PUBLICADO\nPiloto: ${info.piloto}\n----------------------\n🏆 Posición dB: ${posDB}º\n🏆 Posición Graves: ${posHZ}º`;
             if(posDB <= 3 || posHZ <= 3) msg = "🔥 ¡PODIO DETECTADO! 🔥\n" + msg;
             alert(msg);
             document.getElementById('res-pico').innerText="0.0"; recDb=0;
@@ -265,7 +278,7 @@
                 document.getElementById('m-ap').innerText = "0"; document.getElementById('m-up').innerText = "0";
                 document.getElementById('m-dw').innerText = "0"; document.getElementById('info-pista-drift').innerText = "";
                 document.getElementById('d-show').value = ""; 
-                document.getElementById('preview-show').innerText = "Introduce dorsal para verificar...";
+                document.getElementById('preview-show').innerText = "Introduce dorsal...";
                 return;
             }
             document.getElementById('m-ap').innerText = v.aplausos || 0;
@@ -305,6 +318,7 @@
     </script>
 </body>
 </html>
+
 
 
 

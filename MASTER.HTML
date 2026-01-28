@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW</title>
+    <title>MASTER DRIFT SHOW V9.6</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -46,7 +46,7 @@
             <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
             <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
             <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
-            <button class="btn btn-reset" onclick="exportarVotos()">💾 EXPORTAR Y LIMPIAR TODO</button>
+            <button class="btn btn-reset" onclick="exportarVotos()">💾 EXPORTAR VOTOS Y LIMPIAR</button>
         </div>
     </div>
 
@@ -66,9 +66,9 @@
                 <span>Hz: <b id="res-tono" style="color:orange">0</b></span>
             </div>
             <button class="btn" style="background:green; opacity:1" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
-            <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 ESCAPES:</b></div>
-            <div class="mini-rank-box" id="m-rank-hz"><b>🏆 TOP 3 SONORIDAD:</b></div>
-            <button class="btn btn-reset" onclick="exportarEscapes()">💾 EXPORTAR Y LIMPIAR RANKING</button>
+            <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 dB:</b></div>
+            <div class="mini-rank-box" id="m-rank-hz"><b>🎸 TOP 3 GRAVES:</b></div>
+            <button class="btn btn-reset" onclick="exportarEscapes()">💾 EXPORTAR RANKING Y LIMPIAR</button>
         </div>
     </div>
 
@@ -85,6 +85,7 @@
         let audioCtx, analyser, dataArray, streamActivo = false;
         let acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
 
+        // --- MICROFONO ---
         async function iniciarMicrofono() {
             if (streamActivo) return;
             try {
@@ -131,6 +132,7 @@
             event.currentTarget.classList.toggle('btn-pulsado', !!a);
         };
 
+        // --- NAVEGACIÓN Y CSV ---
         window.cambiarTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(tabId).style.display = 'block';
@@ -143,11 +145,10 @@
             const reader = new FileReader();
             reader.onload = (ex) => {
                 const content = ex.target.result;
-                const sep = content.includes(';') ? ';' : ',';
                 const lines = content.split(/\r?\n/).slice(1);
                 let d = {};
                 lines.forEach(l => {
-                    const c = l.split(sep);
+                    const c = l.split(l.includes(';') ? ';' : ',');
                     if(c[0] && c[0].trim()!=='') d[c[0].trim()] = { piloto:c[1]?.trim()||"", coche:c[2]?.trim()||"" };
                 });
                 if(t==='drift'){ inscritosD=d; document.getElementById('cnt-drift').innerText=Object.keys(d).length; }
@@ -156,6 +157,7 @@
             reader.readAsText(e.target.files[0], "UTF-8");
         };
 
+        // --- DRIFT / VOTOS ---
         window.abrirVoto = async () => {
             const inputVal = document.getElementById('d-show').value.trim();
             if(!inputVal) return alert("Pon un dorsal");
@@ -197,10 +199,12 @@
                     const nuevosAp = (data.aplausos || 0) - acumuladoInicial.ap;
                     const nuevosUp = (data.up || 0) - acumuladoInicial.up;
                     const nuevosDw = (data.down || 0) - acumuladoInicial.dw;
+                    
                     push(ref(db, 'historial_votos'), { 
                         dorsal: data.dorsal, info: data.info, 
                         ap: nuevosAp, up: nuevosUp, dw: nuevosDw, ts: Date.now() 
                     });
+
                     let t = 5;
                     update(ref(db, 'votacion_activa'), { timer: t });
                     const interval = setInterval(() => {
@@ -216,6 +220,7 @@
             }
         };
 
+        // --- ESCAPES ---
         window.publicarEscape = async () => {
             const d = document.getElementById('d-esc').value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
@@ -240,6 +245,7 @@
             render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
         });
 
+        // --- REALTIME LISTENERS ---
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
             document.getElementById('m-ap').innerText = v?.aplausos || 0;
@@ -254,6 +260,7 @@
             if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
 
+        // --- EXPORTAR ---
         window.exportarVotos = async () => {
             const s = await get(ref(db, 'historial_votos'));
             if(!s.exists()) return alert("No hay datos");
@@ -261,7 +268,7 @@
             Object.values(s.val()).forEach(v => csv += `"${v.dorsal}","${v.info}",${v.ap},${v.up},${v.dw}\n`);
             const blob = new Blob([csv], {type:'text/csv'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download="VOTOS.csv"; a.click();
-            if(confirm("¿Limpiar historial de votos de la base de datos?")) remove(ref(db, 'historial_votos'));
+            if(confirm("¿Limpiar historial de votos?")) remove(ref(db, 'historial_votos'));
         };
 
         window.exportarEscapes = async () => {
@@ -274,74 +281,7 @@
             if(confirm("¿Limpiar ranking de escapes?")) remove(ref(db, 'ranking_escapes'));
         };
 
-        set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
-        set(ref(db, 'modo_actual'), 'tab-show');
-    </script>
-</body>
-</html>                        }
-                    }, 1000);
-                }
-                document.getElementById('d-show').value = "";
-            }
-        };
-
-        window.publicarEscape = async () => {
-            const d = document.getElementById('d-esc').value.trim();
-            const dbV = parseFloat(document.getElementById('res-pico').innerText);
-            if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
-            const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
-            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:parseInt(document.getElementById('res-tono').innerText)||0 });
-            alert("✓ PUBLICADO");
-            document.getElementById('res-pico').innerText="0.0"; recDb=0;
-        };
-
-        // --- LÓGICA DE RANKING (Hz MÁS GRAVE PRIMERO) ---
-        onValue(ref(db, 'ranking_escapes'), snap => {
-            const data = snap.exists() ? Object.values(snap.val()) : [];
-            const render = (target, list, unit, sortFn) => {
-                let html = `<b>🏆 TOP 3 ${unit}:</b>`;
-                list.sort(sortFn).slice(0,3).forEach((p, i) => {
-                    const valor = unit === 'dB' ? p.db : p.hz;
-                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal} ${p.piloto}</span><b>${valor}${unit}</b></div>`;
-                });
-                document.getElementById(target).innerHTML = html;
-            };
-            render('m-rank-db', [...data], 'dB', (a,b)=>b.db-a.db);
-            render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz); // Menor Hz = Más grave
-        });
-
-        onValue(ref(db, 'votacion_activa'), snap => {
-            const v = snap.val();
-            document.getElementById('m-ap').innerText = v?.aplausos || 0;
-            document.getElementById('m-up').innerText = v?.up || 0;
-            document.getElementById('m-dw').innerText = v?.down || 0;
-            document.getElementById('info-pista-drift').innerText = v?.info || "";
-        });
-
-        onValue(ref(db, 'estado_pista'), s => {
-            const e = s.val();
-            document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-            if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
-        });
-
-        window.exportarVotos = async () => {
-            const s = await get(ref(db, 'historial_votos'));
-            if(!s.exists()) return alert("No hay datos");
-            let csv = "Dorsal,Info,Aplausos,Likes,Dislikes\n";
-            Object.values(s.val()).forEach(v => csv += `"${v.dorsal}","${v.info}",${v.ap},${v.up},${v.dw}\n`);
-            const blob = new Blob([csv], {type:'text/csv'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download="VOTOS.csv"; a.click();
-        };
-
-        window.exportarEscapes = async () => {
-            const s = await get(ref(db, 'ranking_escapes'));
-            if(!s.exists()) return alert("No hay datos");
-            let csv = "Dorsal,Piloto,Coche,dB,Hz\n";
-            Object.values(s.val()).forEach(p => csv += `"${p.dorsal}","${p.piloto}","${p.coche}",${p.db},${p.hz}\n`);
-            const blob = new Blob([csv], {type:'text/csv'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download="ESCAPES.csv"; a.click();
-        };
-
+        // Reset inicial
         set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
         set(ref(db, 'modo_actual'), 'tab-show');
     </script>

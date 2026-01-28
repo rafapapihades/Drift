@@ -8,8 +8,6 @@
         body { background: #000; margin: 0; padding: 2vh; display: flex; flex-direction: column; height: 96vh; font-family: sans-serif; }
         .btn { flex: 1; margin-bottom: 2vh; border-radius: 15px; border: none; font-size: 2em; font-weight: bold; color: #fff; cursor: pointer; opacity: 0.2; transition: 0.3s; }
         .btn-act { opacity: 1 !important; outline: 6px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
-        
-        /* Estado desactivado para Escapes */
         .modo-bloqueado { opacity: 0.05 !important; pointer-events: none; }
     </style>
 </head>
@@ -29,65 +27,68 @@
 
         let modoActual = "tab-show";
 
-        // 1. Escuchar el modo para bloquear/desbloquear panel
+        // Escuchar el modo para bloquear/desbloquear panel
         onValue(ref(db, 'modo_actual'), s => {
             modoActual = s.val() || "tab-show";
-            const botones = document.querySelectorAll('.btn');
-            botones.forEach(b => {
-                if(modoActual === 'tab-esc') {
-                    b.classList.add('modo-bloqueado');
-                } else {
-                    b.classList.remove('modo-bloqueado');
-                }
+            document.querySelectorAll('.btn').forEach(b => {
+                if(modoActual === 'tab-esc') b.classList.add('modo-bloqueado');
+                else b.classList.remove('modo-bloqueado');
             });
         });
 
         window.enviar = async (m, c, id) => {
-            // Seguridad: Si intentamos abrir votación, chequear si hay dorsal
+            // Seguridad: Verificar si hay un dorsal activo antes de poner coche en pista
             if (id === 'btn-coche') {
                 const vSnap = await get(ref(db, 'votacion_activa'));
-                const vData = vSnap.val();
-                if (!vData || !vData.dorsal || vData.dorsal.trim() === "") {
+                if (!vSnap.exists() || !vSnap.val().dorsal) {
                     alert("⚠️ ESPERA: El Master aún no ha puesto un dorsal.");
                     return;
                 }
             }
 
-            // Actualizar estado de pista
+            // Actualizar estado visual de la pista
             set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
 
-            // Lógica Pista Libre (Cierre de votación)
+            // --- LÓGICA SINCRONIZADA CON MASTER ---
             if (id === 'btn-libre') {
                 const snap = await get(ref(db, 'votacion_activa'));
                 const data = snap.val();
 
                 if (data && data.activa) {
+                    // 1. Calcular cuánto tenía YA acumulado de rondas anteriores
                     let acAp = 0, acUp = 0, acDw = 0;
                     const histSnap = await get(ref(db, 'historial_votos'));
+                    
                     if(histSnap.exists()){
                         Object.values(histSnap.val()).forEach(v => {
                             if(v.dorsal === data.dorsal) {
-                                acAp += (v.ap_tanda || 0); acUp += (v.up_tanda || 0); acDw += (v.dw_tanda || 0);
+                                acAp += (v.ap || 0); 
+                                acUp += (v.up || 0); 
+                                acDw += (v.dw || 0);
                             }
                         });
                     }
 
+                    // 2. Guardar solo la DIFERENCIA (lo nuevo de esta ronda)
                     push(ref(db, 'historial_votos'), {
                         dorsal: data.dorsal,
                         info: data.info,
-                        ap_tanda: (data.aplausos || 0) - acAp,
-                        up_tanda: (data.up || 0) - acUp,
-                        dw_tanda: (data.down || 0) - acDw,
-                        timestamp: Date.now()
+                        ap: (data.aplausos || 0) - acAp,
+                        up: (data.up || 0) - acUp,
+                        dw: (data.down || 0) - acDw,
+                        ts: Date.now()
                     });
 
+                    // 3. Cuenta atrás y limpieza total
                     let count = 5;
                     update(ref(db, 'votacion_activa'), { timer: count });
+                    
                     let interval = setInterval(() => {
                         count--;
                         if (count <= 0) {
                             clearInterval(interval);
-                            update(ref(db, 'votacion_activa'), { activa: false, timer: 0 });
+                            // Limpia dorsal e info igual que el Master
+                            set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
                         } else {
                             update(ref(db, 'votacion_activa'), { timer: count });
                         }
@@ -96,17 +97,14 @@
             }
         };
 
-        // Resaltado de botones
+        // Resaltado de botones en tiempo real
         onValue(ref(db, 'estado_pista'), s => {
             const e = s.val();
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-act'));
-            if(e?.id) {
-                const target = document.getElementById(e.id);
-                if(target) target.classList.add('btn-act');
-            }
+            if(e?.id) document.getElementById(e.id)?.classList.add('btn-act');
         });
     </script>
 </body>
-
 </html>
+
 

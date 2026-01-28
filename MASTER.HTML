@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V9.8</title>
+    <title>MASTER DRIFT SHOW V9.9</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -20,7 +20,7 @@
         .mini-rank-box { background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-top: 10px; font-size: 0.85em; }
         .rank-line { border-bottom: 1px solid #222; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; }
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
-        .info-pista-esc { color: #ffcc00 !important; }
+        .info-preview { color: #888; font-size: 0.8em; margin-top: 5px; text-align: center; min-height: 1em; }
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 15px; }
     </style>
 </head>
@@ -32,7 +32,8 @@
 
     <div id="tab-show" class="tab-content">
         <div class="card">
-            <input type="text" id="d-show" placeholder="DORSALES (EJ: 501 502)">
+            <input type="text" id="d-show" placeholder="DORSALES (EJ: 501 502)" oninput="buscarPilotoShow(this.value)">
+            <div id="preview-show" class="info-preview">Introduce dorsal para verificar...</div>
             <p style="font-size:0.7em; color:#ffcc00; text-align:center">Drift cargados: <span id="cnt-drift">0</span></p>
             <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
             <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
@@ -59,7 +60,7 @@
             <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
         </div>
         <div class="card">
-            <div id="info-piloto-esc" class="info-pista info-pista-esc">Introduce un dorsal...</div>
+            <div id="info-piloto-esc" class="info-pista" style="color:#ffcc00 !important">Introduce un dorsal...</div>
             <div id="db-live" class="big-db">0.0</div>
             <button class="btn" style="background:red; opacity:0.8" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)">MANTENER dB</button>
             <button class="btn" style="background:orange; opacity:0.8" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)">MANTENER TONO</button>
@@ -110,15 +111,10 @@
             let average = sum / dataArray.length;
             vDb = average > 0 ? (average * 1.5) + 35 : 0; 
             document.getElementById('db-live').innerText = vDb.toFixed(1);
-            if(pPico && vDb > recDb) {
-                recDb = vDb;
-                document.getElementById('res-pico').innerText = recDb.toFixed(1);
-            }
+            if(pPico && vDb > recDb) { recDb = vDb; document.getElementById('res-pico').innerText = recDb.toFixed(1); }
             if(pTono && average > 5) {
                 let maxVal = -1, maxIndex = -1;
-                for (let i = 0; i < dataArray.length; i++) {
-                    if (dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIndex = i; }
-                }
+                for (let i = 0; i < dataArray.length; i++) { if (dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIndex = i; } }
                 let hzActual = maxIndex * (audioCtx.sampleRate / analyser.fftSize);
                 sHz += hzActual; lHz++;
                 document.getElementById('res-tono').innerText = Math.round(sHz/lHz);
@@ -140,6 +136,17 @@
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(tabId === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
             set(ref(db, 'modo_actual'), tabId);
+        };
+
+        // --- BUSCADORES AUTOMÁTICOS ---
+        window.buscarPilotoShow = (val) => {
+            if(!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal para verificar..."; return; }
+            const dorsales = val.trim().split(/\s+/);
+            const encontrados = dorsales.map(d => {
+                const p = inscritosD[d];
+                return p ? `${d}: ${p.piloto}` : `${d}: ?`;
+            });
+            document.getElementById('preview-show').innerText = encontrados.join(' | ');
         };
 
         window.buscarPilotoEscape = (d) => {
@@ -202,10 +209,7 @@
                     const nuevosAp = (data.aplausos || 0) - acumuladoInicial.ap;
                     const nuevosUp = (data.up || 0) - acumuladoInicial.up;
                     const nuevosDw = (data.down || 0) - acumuladoInicial.dw;
-                    push(ref(db, 'historial_votos'), { 
-                        dorsal: data.dorsal, info: data.info, 
-                        ap: nuevosAp, up: nuevosUp, dw: nuevosDw, ts: Date.now() 
-                    });
+                    push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap: nuevosAp, up: nuevosUp, dw: nuevosDw, ts: Date.now() });
                     let t = 5;
                     update(ref(db, 'votacion_activa'), { timer: t });
                     const interval = setInterval(() => {
@@ -220,28 +224,21 @@
             }
         };
 
-        // --- ESCAPES CON CÁLCULO DE POSICIÓN ---
+        // --- ESCAPES ---
         window.publicarEscape = async () => {
             const d = document.getElementById('d-esc').value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
             const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
             if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
-            
             const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
             await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
-            
-            // Calcular posición tras publicar
             const snap = await get(ref(db, 'ranking_escapes'));
             const data = Object.values(snap.val());
-            
             const posDB = data.sort((a,b) => b.db - a.db).findIndex(p => p.dorsal == d) + 1;
             const posHZ = data.sort((a,b) => a.hz - b.hz).findIndex(p => p.dorsal == d) + 1;
-
             let msg = `✅ PUBLICADO\nPiloto: ${info.piloto}\n----------------------\n🏆 Posición dB: ${posDB}º\n🎸 Posición Graves: ${posHZ}º`;
             if(posDB <= 3 || posHZ <= 3) msg = "🔥 ¡PODIO DETECTADO! 🔥\n" + msg;
-            
             alert(msg);
-            
             document.getElementById('res-pico').innerText="0.0"; recDb=0;
             document.getElementById('d-esc').value = "";
             document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
@@ -267,7 +264,9 @@
             if (!v || v.activa === false) {
                 document.getElementById('m-ap').innerText = "0"; document.getElementById('m-up').innerText = "0";
                 document.getElementById('m-dw').innerText = "0"; document.getElementById('info-pista-drift').innerText = "";
-                document.getElementById('d-show').value = ""; return;
+                document.getElementById('d-show').value = ""; 
+                document.getElementById('preview-show').innerText = "Introduce dorsal para verificar...";
+                return;
             }
             document.getElementById('m-ap').innerText = v.aplausos || 0;
             document.getElementById('m-up').innerText = v.up || 0;
@@ -306,7 +305,6 @@
     </script>
 </body>
 </html>
-
 
 
 

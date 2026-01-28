@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER CONTROL V9.0</title>
+    <title>MASTER CONTROL V9.1</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -82,17 +82,16 @@
 
         let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false;
         let inscritosD={}, inscritosE={};
-        let currentDorsalString = "";
-        let acAp = 0, acUp = 0, acDw = 0;
-        let audioCtx, analyser, microphone, dataArray, streamActivo = false;
+        let audioCtx, analyser, dataArray, streamActivo = false;
 
+        // --- FUNCIONES DE MICRO ---
         async function iniciarMicrofono() {
             if (streamActivo) return;
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioCtx.createAnalyser();
-                microphone = audioCtx.createMediaStreamSource(stream);
+                const microphone = audioCtx.createMediaStreamSource(stream);
                 microphone.connect(analyser);
                 analyser.fftSize = 512;
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -132,15 +131,16 @@
             event.currentTarget.classList.toggle('btn-pulsado', !!a);
         };
 
+        // --- LÓGICA DE NAVEGACIÓN ---
         window.cambiarTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(tabId).style.display = 'block';
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(tabId === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
-            // SINCRONIZACIÓN CLAVE:
             set(ref(db, 'modo_actual'), tabId);
         };
 
+        // --- CARGA CSV ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
@@ -158,44 +158,67 @@
             reader.readAsText(e.target.files[0], "UTF-8");
         };
 
+        // --- CONTROL DE PISTA Y VOTOS ---
         window.abrirVoto = async () => {
             const inputVal = document.getElementById('d-show').value.trim();
             if(!inputVal) return alert("Pon un dorsal");
-            currentDorsalString = inputVal;
-            const dorsalesArr = inputVal.split(/\s+/);
             
-            // Buscar si ya tenían votos acumulados de antes
-            acAp = 0; acUp = 0; acDw = 0;
+            const dorsalesArr = inputVal.split(/\s+/);
             let nombresArr = [];
             dorsalesArr.forEach(d => {
                 const p = inscritosD[d] || { piloto: "Piloto "+d, coche: "" };
                 nombresArr.push(`${p.piloto} ${p.coche}`);
             });
 
-            set(ref(db, 'votacion_activa'), { dorsal: inputVal, info: nombresArr.join(' / '), aplausos: 0, up: 0, down: 0, activa: true, timer: 0 });
+            // Seteamos la votación limpia
+            set(ref(db, 'votacion_activa'), { 
+                dorsal: inputVal, 
+                info: nombresArr.join(' / '), 
+                aplausos: 0, up: 0, down: 0, 
+                activa: true, 
+                timer: 0 
+            });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
         };
 
         window.setEstado = async (m, c, id) => {
             set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
+            
             if(id === 'btn-libre') {
                 const snap = await get(ref(db, 'votacion_activa'));
                 const data = snap.val();
+                
                 if(data && data.activa) {
-                    // Guardamos la sesión actual en el historial
-                    push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap: data.aplausos||0, up: data.up||0, dw: data.down||0, ts: Date.now() });
-                    // Cuenta atrás de 5 seg antes de cerrar
+                    // 1. Guardar en historial antes de borrar
+                    push(ref(db, 'historial_votos'), { 
+                        dorsal: data.dorsal, 
+                        info: data.info, 
+                        ap: data.aplausos||0, 
+                        up: data.up||0, 
+                        dw: data.down||0, 
+                        ts: Date.now() 
+                    });
+
+                    // 2. Iniciar cuenta atrás
                     let t = 5;
-                    const int = setInterval(() => {
+                    update(ref(db, 'votacion_activa'), { timer: t });
+                    
+                    const interval = setInterval(async () => {
                         t--;
-                        update(ref(db, 'votacion_activa'), { timer: t });
-                        if(t<=0){ clearInterval(int); update(ref(ref(db, 'votacion_activa')), { activa: false, timer: 0 }); }
+                        if(t > 0) {
+                            update(ref(db, 'votacion_activa'), { timer: t });
+                        } else {
+                            clearInterval(interval);
+                            // CLAVE: Borramos o reseteamos TODO para que desaparezca en el público
+                            set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
+                        }
                     }, 1000);
                 }
                 document.getElementById('d-show').value = "";
             }
         };
 
+        // --- ESCAPES ---
         window.publicarEscape = async () => {
             const d = document.getElementById('d-esc').value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
@@ -206,6 +229,7 @@
             document.getElementById('res-pico').innerText="0.0"; recDb=0;
         };
 
+        // --- LISTENERS ---
         onValue(ref(db, 'ranking_escapes'), snap => {
             const data = snap.exists() ? Object.values(snap.val()) : [];
             const render = (target, list, unit, sortFn) => {
@@ -234,6 +258,7 @@
             if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
 
+        // --- EXPORTACIÓN ---
         window.exportarVotos = async () => {
             const s = await get(ref(db, 'historial_votos'));
             if(!s.exists()) return alert("No hay datos");
@@ -258,4 +283,5 @@
     </script>
 </body>
 </html>
+
 

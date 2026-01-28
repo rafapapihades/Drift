@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW</title>
+    <title>MASTER DRIFT SHOW V9.8</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -20,6 +20,7 @@
         .mini-rank-box { background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-top: 10px; font-size: 0.85em; }
         .rank-line { border-bottom: 1px solid #222; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; }
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
+        .info-pista-esc { color: #ffcc00 !important; }
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 15px; }
     </style>
 </head>
@@ -52,12 +53,13 @@
 
     <div id="tab-esc" class="tab-content" style="display:none">
         <div class="card">
-            <input type="number" id="d-esc" placeholder="DORSAL ESCAPE">
+            <input type="number" id="d-esc" placeholder="DORSAL ESCAPE" oninput="buscarPilotoEscape(this.value)">
             <p style="font-size:0.7em; color:#ffcc00; text-align:center">Escapes cargados: <span id="cnt-esc">0</span></p>
             <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-e').click()">📂 CARGAR ESCAPES.CSV</button>
             <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
         </div>
         <div class="card">
+            <div id="info-piloto-esc" class="info-pista info-pista-esc">Introduce un dorsal...</div>
             <div id="db-live" class="big-db">0.0</div>
             <button class="btn" style="background:red; opacity:0.8" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)">MANTENER dB</button>
             <button class="btn" style="background:orange; opacity:0.8" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)">MANTENER TONO</button>
@@ -85,6 +87,7 @@
         let audioCtx, analyser, dataArray, streamActivo = false;
         let acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
 
+        // --- MICROFONO ---
         async function iniciarMicrofono() {
             if (streamActivo) return;
             try {
@@ -130,12 +133,18 @@
             event.currentTarget.classList.toggle('btn-pulsado', !!a);
         };
 
+        // --- NAVEGACIÓN Y BUSQUEDA ---
         window.cambiarTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(tabId).style.display = 'block';
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(tabId === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
             set(ref(db, 'modo_actual'), tabId);
+        };
+
+        window.buscarPilotoEscape = (d) => {
+            const p = inscritosE[d];
+            document.getElementById('info-piloto-esc').innerText = p ? `${p.piloto} - ${p.coche}` : (d ? "No encontrado" : "Introduce un dorsal...");
         };
 
         window.cargarCSV = (e, t) => {
@@ -154,6 +163,7 @@
             reader.readAsText(e.target.files[0], "UTF-8");
         };
 
+        // --- DRIFT / VOTOS ---
         window.abrirVoto = async () => {
             const inputVal = document.getElementById('d-show').value.trim();
             if(!inputVal) return alert("Pon un dorsal");
@@ -210,14 +220,31 @@
             }
         };
 
+        // --- ESCAPES CON CÁLCULO DE POSICIÓN ---
         window.publicarEscape = async () => {
             const d = document.getElementById('d-esc').value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
+            const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
             if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
+            
             const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
-            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:parseInt(document.getElementById('res-tono').innerText)||0 });
-            alert("✓ PUBLICADO");
+            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
+            
+            // Calcular posición tras publicar
+            const snap = await get(ref(db, 'ranking_escapes'));
+            const data = Object.values(snap.val());
+            
+            const posDB = data.sort((a,b) => b.db - a.db).findIndex(p => p.dorsal == d) + 1;
+            const posHZ = data.sort((a,b) => a.hz - b.hz).findIndex(p => p.dorsal == d) + 1;
+
+            let msg = `✅ PUBLICADO\nPiloto: ${info.piloto}\n----------------------\n🏆 Posición dB: ${posDB}º\n🎸 Posición Graves: ${posHZ}º`;
+            if(posDB <= 3 || posHZ <= 3) msg = "🔥 ¡PODIO DETECTADO! 🔥\n" + msg;
+            
+            alert(msg);
+            
             document.getElementById('res-pico').innerText="0.0"; recDb=0;
+            document.getElementById('d-esc').value = "";
+            document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
         };
 
         onValue(ref(db, 'ranking_escapes'), snap => {
@@ -234,17 +261,13 @@
             render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
         });
 
-        // --- REALTIME LISTENERS (MODIFICADO PARA BORRAR DORSAL) ---
+        // --- REALTIME LISTENERS ---
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
-            // Si la votación se cierra, limpiamos el Master
             if (!v || v.activa === false) {
-                document.getElementById('m-ap').innerText = "0";
-                document.getElementById('m-up').innerText = "0";
-                document.getElementById('m-dw').innerText = "0";
-                document.getElementById('info-pista-drift').innerText = "";
-                document.getElementById('d-show').value = ""; // Esto limpia el input del dorsal
-                return;
+                document.getElementById('m-ap').innerText = "0"; document.getElementById('m-up').innerText = "0";
+                document.getElementById('m-dw').innerText = "0"; document.getElementById('info-pista-drift').innerText = "";
+                document.getElementById('d-show').value = ""; return;
             }
             document.getElementById('m-ap').innerText = v.aplausos || 0;
             document.getElementById('m-up').innerText = v.up || 0;

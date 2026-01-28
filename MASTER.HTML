@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V9.6</title>
+    <title>MASTER DRIFT SHOW</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -85,7 +85,6 @@
         let audioCtx, analyser, dataArray, streamActivo = false;
         let acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
 
-        // --- MICROFONO ---
         async function iniciarMicrofono() {
             if (streamActivo) return;
             try {
@@ -108,7 +107,6 @@
             let average = sum / dataArray.length;
             vDb = average > 0 ? (average * 1.5) + 35 : 0; 
             document.getElementById('db-live').innerText = vDb.toFixed(1);
-
             if(pPico && vDb > recDb) {
                 recDb = vDb;
                 document.getElementById('res-pico').innerText = recDb.toFixed(1);
@@ -132,7 +130,6 @@
             event.currentTarget.classList.toggle('btn-pulsado', !!a);
         };
 
-        // --- NAVEGACIÓN Y CSV ---
         window.cambiarTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(tabId).style.display = 'block';
@@ -157,14 +154,12 @@
             reader.readAsText(e.target.files[0], "UTF-8");
         };
 
-        // --- DRIFT / VOTOS ---
         window.abrirVoto = async () => {
             const inputVal = document.getElementById('d-show').value.trim();
             if(!inputVal) return alert("Pon un dorsal");
             const dorsalesArr = inputVal.split(/\s+/);
             let nombresArr = [];
             acumuladoInicial = { ap: 0, up: 0, dw: 0 };
-
             const histSnap = await get(ref(db, 'historial_votos'));
             if (histSnap.exists()) {
                 const historial = Object.values(histSnap.val());
@@ -176,12 +171,10 @@
                     });
                 });
             }
-
             dorsalesArr.forEach(d => {
                 const p = inscritosD[d] || { piloto: "Piloto "+d, coche: "" };
                 nombresArr.push(`${p.piloto} ${p.coche}`);
             });
-
             set(ref(db, 'votacion_activa'), { 
                 dorsal: inputVal, info: nombresArr.join(' / '), 
                 aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw, 
@@ -199,12 +192,10 @@
                     const nuevosAp = (data.aplausos || 0) - acumuladoInicial.ap;
                     const nuevosUp = (data.up || 0) - acumuladoInicial.up;
                     const nuevosDw = (data.down || 0) - acumuladoInicial.dw;
-                    
                     push(ref(db, 'historial_votos'), { 
                         dorsal: data.dorsal, info: data.info, 
                         ap: nuevosAp, up: nuevosUp, dw: nuevosDw, ts: Date.now() 
                     });
-
                     let t = 5;
                     update(ref(db, 'votacion_activa'), { timer: t });
                     const interval = setInterval(() => {
@@ -216,11 +207,9 @@
                         }
                     }, 1000);
                 }
-                document.getElementById('d-show').value = "";
             }
         };
 
-        // --- ESCAPES ---
         window.publicarEscape = async () => {
             const d = document.getElementById('d-esc').value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
@@ -245,13 +234,22 @@
             render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
         });
 
-        // --- REALTIME LISTENERS ---
+        // --- REALTIME LISTENERS (MODIFICADO PARA BORRAR DORSAL) ---
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
-            document.getElementById('m-ap').innerText = v?.aplausos || 0;
-            document.getElementById('m-up').innerText = v?.up || 0;
-            document.getElementById('m-dw').innerText = v?.down || 0;
-            document.getElementById('info-pista-drift').innerText = v?.info || "";
+            // Si la votación se cierra, limpiamos el Master
+            if (!v || v.activa === false) {
+                document.getElementById('m-ap').innerText = "0";
+                document.getElementById('m-up').innerText = "0";
+                document.getElementById('m-dw').innerText = "0";
+                document.getElementById('info-pista-drift').innerText = "";
+                document.getElementById('d-show').value = ""; // Esto limpia el input del dorsal
+                return;
+            }
+            document.getElementById('m-ap').innerText = v.aplausos || 0;
+            document.getElementById('m-up').innerText = v.up || 0;
+            document.getElementById('m-dw').innerText = v.down || 0;
+            document.getElementById('info-pista-drift').innerText = v.info || "";
         });
 
         onValue(ref(db, 'estado_pista'), s => {
@@ -260,7 +258,6 @@
             if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
 
-        // --- EXPORTAR ---
         window.exportarVotos = async () => {
             const s = await get(ref(db, 'historial_votos'));
             if(!s.exists()) return alert("No hay datos");
@@ -281,7 +278,6 @@
             if(confirm("¿Limpiar ranking de escapes?")) remove(ref(db, 'ranking_escapes'));
         };
 
-        // Reset inicial
         set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
         set(ref(db, 'modo_actual'), 'tab-show');
     </script>

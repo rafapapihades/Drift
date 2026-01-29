@@ -180,20 +180,46 @@
 
         // --- PUBLICAR ESCAPE ---
         window.publicarEscape = async () => {
-            const d = document.getElementById('d-esc').value.trim();
-            const dbV = parseFloat(document.getElementById('res-pico').innerText);
-            const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
-            if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
-            const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
-            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
-            
-            const totalM = document.getElementById('t-total').value;
-            const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
-            update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
+    const d = document.getElementById('d-esc').value.trim();
+    const dbV = parseFloat(document.getElementById('res-pico').innerText);
+    const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
+    
+    if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
+    
+    const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
+    
+    // Obtener ranking actual para comparar antes de subir el nuevo
+    const snap = await get(ref(db, 'ranking_escapes'));
+    const lista = snap.exists() ? Object.values(snap.val()) : [];
+    
+    // Verificar Podio dB
+    const mejorDb = lista.length > 0 ? Math.max(...lista.map(p => p.db)) : 0;
+    const esTopDb = dbV >= mejorDb;
+    
+    // Verificar Podio Graves (Hz más bajo es mejor)
+    const mejorHz = lista.length > 0 ? Math.min(...lista.map(p => p.hz)) : 999;
+    const esTopHz = hzV > 0 && hzV <= mejorHz;
 
-            document.getElementById('res-pico').innerText="0.0"; recDb=0;
-            document.getElementById('d-esc').value = "";
-        };
+    // Guardar en Firebase
+    await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
+    
+    // Reset de cronómetro por coche
+    const totalM = document.getElementById('t-total').value;
+    const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
+    update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
+
+    // Mensaje de éxito con información de podio
+    let msg = `✅ PUBLICADO: ${info.piloto}\n📊 Resultado: ${dbV}dB / ${hzV}Hz`;
+    if(esTopDb) msg += `\n\n🏆 ¡NUEVO RÉCORD DE SONIDO!`;
+    if(esTopHz) msg += `\n\n🔊 ¡NUEVO RÉCORD DE GRAVES!`;
+    
+    alert(msg);
+
+    // Limpiar interfaz
+    document.getElementById('res-pico').innerText="0.0"; recDb=0;
+    document.getElementById('d-esc').value = "";
+    document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
+};
 
         // --- EXPORTACIONES ---
         window.exportarVotos = async () => {
@@ -350,6 +376,7 @@
     </script>
 </body>
 </html>
+
 
 
 

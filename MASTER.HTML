@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V1.0 - FULL SYNC</title>
+    <title>MASTER DRIFT SHOW V1.0 - POSICIÓN SYNC</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -102,7 +102,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let timerGlobal, segRestantes = 0, segSlot = 0, realizadosEsc = 0, totalInscritosEsc = 0, corriendo = false;
+        let timerGlobal, segRestantes = 0, segSlot = 0, realizadosEsc = 0, totalInscritosEsc = 0;
         let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false, inscritosD={}, inscritosE={}, audioCtx, analyser, dataArray, streamActivo = false, acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
 
         // --- CRONÓMETRO ---
@@ -122,7 +122,6 @@
             const data = snap.val();
             clearInterval(timerGlobal);
             if (data && data.corriendo) {
-                corriendo = true;
                 timerGlobal = setInterval(() => {
                     const ahora = Date.now();
                     segRestantes = Math.max(0, Math.floor((data.endTime - ahora) / 1000));
@@ -130,7 +129,6 @@
                     actualizarCronoUI();
                 }, 1000);
             } else {
-                corriendo = false;
                 if (!data) { segRestantes = document.getElementById('t-total').value * 60; segSlot = 0; }
                 actualizarCronoUI();
             }
@@ -178,48 +176,52 @@
 
         window.medir = (t, a) => { if(a) iniciarMicrofono(); if(t==='pico') pPico=!!a; if(t==='tono'){ pTono=!!a; if(a){sHz=0; lHz=0;} } event.currentTarget.classList.toggle('btn-pulsado', !!a); };
 
-        // --- PUBLICAR ESCAPE ---
+        // --- PUBLICAR ESCAPE CON POSICIÓN ---
         window.publicarEscape = async () => {
-    const d = document.getElementById('d-esc').value.trim();
-    const dbV = parseFloat(document.getElementById('res-pico').innerText);
-    const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
-    
-    if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
-    
-    const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
-    
-    // Obtener ranking actual para comparar antes de subir el nuevo
-    const snap = await get(ref(db, 'ranking_escapes'));
-    const lista = snap.exists() ? Object.values(snap.val()) : [];
-    
-    // Verificar Podio dB
-    const mejorDb = lista.length > 0 ? Math.max(...lista.map(p => p.db)) : 0;
-    const esTopDb = dbV >= mejorDb;
-    
-    // Verificar Podio Graves (Hz más bajo es mejor)
-    const mejorHz = lista.length > 0 ? Math.min(...lista.map(p => p.hz)) : 999;
-    const esTopHz = hzV > 0 && hzV <= mejorHz;
+            const d = document.getElementById('d-esc').value.trim();
+            const dbV = parseFloat(document.getElementById('res-pico').innerText);
+            const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
+            
+            if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
+            
+            const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
+            
+            // 1. Guardar primero
+            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
+            
+            // 2. Obtener lista actualizada para calcular posición
+            const snap = await get(ref(db, 'ranking_escapes'));
+            const lista = snap.exists() ? Object.values(snap.val()) : [];
+            
+            // Posición dB
+            const listaDb = [...lista].sort((a,b) => b.db - a.db);
+            const posDb = listaDb.findIndex(p => p.dorsal === d) + 1;
+            
+            // Posición Hz (Grave)
+            const listaHz = [...lista].sort((a,b) => a.hz - b.hz);
+            const posHz = listaHz.findIndex(p => p.dorsal === d) + 1;
 
-    // Guardar en Firebase
-    await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
-    
-    // Reset de cronómetro por coche
-    const totalM = document.getElementById('t-total').value;
-    const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
-    update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
+            // 3. Reset Reloj Slot
+            const totalM = document.getElementById('t-total').value;
+            const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
+            update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
 
-    // Mensaje de éxito con información de podio
-    let msg = `✅ PUBLICADO: ${info.piloto}\n📊 Resultado: ${dbV}dB / ${hzV}Hz`;
-    if(esTopDb) msg += `\n\n🏆 ¡NUEVO RÉCORD DE SONIDO!`;
-    if(esTopHz) msg += `\n\n🔊 ¡NUEVO RÉCORD DE GRAVES!`;
-    
-    alert(msg);
+            // 4. Mensaje detallado
+            let msg = `✅ PUBLICADO: ${info.piloto}\n`;
+            msg += `📊 Resultado: ${dbV}dB / ${hzV}Hz\n\n`;
+            msg += `🏆 POSICIÓN dB: ${posDb}º de ${lista.length}\n`;
+            msg += `🔊 POSICIÓN GRAVES: ${posHz}º de ${lista.length}`;
+            
+            if(posDb === 1) msg += `\n\n🥇 ¡NUEVO RÉCORD DE SONIDO!`;
+            if(posHz === 1) msg += `\n\n🔥 ¡NUEVO RÉCORD DE GRAVES!`;
+            
+            alert(msg);
 
-    // Limpiar interfaz
-    document.getElementById('res-pico').innerText="0.0"; recDb=0;
-    document.getElementById('d-esc').value = "";
-    document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
-};
+            // 5. Limpieza
+            document.getElementById('res-pico').innerText="0.0"; recDb=0;
+            document.getElementById('d-esc').value = "";
+            document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
+        };
 
         // --- EXPORTACIONES ---
         window.exportarVotos = async () => {
@@ -243,11 +245,10 @@
         function descargarCSV(csv, name) {
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = name; link.click();
+            link.href = URL.createObjectURL(blob); link.download = name; link.click();
         }
 
-        // --- CARGA CSV ---
+        // --- SISTEMA ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
@@ -262,7 +263,6 @@
             reader.readAsText(e.target.files[0], "UTF-8");
         };
 
-        // --- LISTENERS ---
         onValue(ref(db, 'inscritos_esc'), snap => {
             inscritosE = snap.val() || {};
             totalInscritosEsc = Object.keys(inscritosE).length;
@@ -309,7 +309,6 @@
             document.getElementById('info-piloto-esc').innerText = p ? `${p.piloto} - ${p.coche}` : (d ? "No encontrado" : "Introduce un dorsal...");
         };
 
-        // --- SHOW DRIFT: ABRIR VOTO Y LIMPIAR ---
         window.abrirVoto = async () => {
             const inputElt = document.getElementById('d-show');
             const inputVal = inputElt.value.trim();
@@ -329,13 +328,9 @@
             dorsalesArr.forEach(d => { const p = inscritosD[d] || { piloto: "P"+d, coche: "" }; nombresArr.push(`${p.piloto} ${p.coche}`); });
             set(ref(db, 'votacion_activa'), { dorsal: inputVal, info: nombresArr.join(' / '), aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw, activa: true });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
-            
-            // LIMPIEZA AL EMPEZAR
-            inputElt.value = "";
-            document.getElementById('preview-show').innerText = "Introduce dorsal...";
+            inputElt.value = ""; document.getElementById('preview-show').innerText = "Introduce dorsal...";
         };
 
-        // --- SHOW DRIFT: PISTA LIBRE Y LIMPIAR ---
         window.setEstado = async (m, c, id) => {
             set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
             if(id === 'btn-libre') {
@@ -348,9 +343,7 @@
                     push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap: nuevosAp, up: nuevosUp, dw: nuevosDw, ts: Date.now() });
                     set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "" });
                 }
-                // LIMPIEZA AL TERMINAR
-                document.getElementById('d-show').value = "";
-                document.getElementById('preview-show').innerText = "Introduce dorsal...";
+                document.getElementById('d-show').value = ""; document.getElementById('preview-show').innerText = "Introduce dorsal...";
             }
         };
 
@@ -376,6 +369,7 @@
     </script>
 </body>
 </html>
+
 
 
 

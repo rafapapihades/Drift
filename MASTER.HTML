@@ -430,16 +430,28 @@
 
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
+            const previewElt = document.getElementById('preview-show');
+            const infoPistaElt = document.getElementById('info-pista-drift');
+
             if (v && v.activa) {
                 document.getElementById('m-ap').innerText = v.aplausos || 0;
                 document.getElementById('m-up').innerText = v.up || 0;
                 document.getElementById('m-dw').innerText = v.down || 0;
-                document.getElementById('info-pista-drift').innerText = v.info || "";
+                infoPistaElt.innerText = v.info || "";
+
+                // CORRECCIÓN: Si el timer es > 0, significa que estamos cerrando.
+                // No mostrar "Votación abierta" en ese caso.
+                if (v.timer > 0) {
+                    previewElt.innerText = "Cerrando votación (" + v.timer + "s)...";
+                } else {
+                    previewElt.innerText = "Votación abierta...";
+                }
             } else {
                 document.getElementById('m-ap').innerText = "0";
                 document.getElementById('m-up').innerText = "0";
                 document.getElementById('m-dw').innerText = "0";
-                document.getElementById('info-pista-drift').innerText = "Pista libre";
+                infoPistaElt.innerText = "Pista libre";
+                previewElt.innerText = "Introduce dorsal...";
             }
         });
 
@@ -487,6 +499,7 @@
     </script>
 </body>
 </html>
+
 
 
 

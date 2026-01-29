@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V1.0 - FINAL SYNC</title>
+    <title>MASTER DRIFT SHOW V1.0 - FULL SYNC</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -236,7 +236,7 @@
             reader.readAsText(e.target.files[0], "UTF-8");
         };
 
-        // --- LISTENERS FIREBASE ---
+        // --- LISTENERS ---
         onValue(ref(db, 'inscritos_esc'), snap => {
             inscritosE = snap.val() || {};
             totalInscritosEsc = Object.keys(inscritosE).length;
@@ -260,6 +260,11 @@
             actualizarCronoUI();
         });
 
+        onValue(ref(db, 'inscritos_drift'), snap => {
+            inscritosD = snap.val() || {};
+            document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
+        });
+
         window.cambiarTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(id).style.display = 'block';
@@ -273,18 +278,15 @@
             document.getElementById('preview-show').innerText = val ? encontrados.join(' | ') : "Introduce dorsal...";
         };
 
-        onValue(ref(db, 'inscritos_drift'), snap => {
-            inscritosD = snap.val() || {};
-            document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
-        });
-
         window.buscarPilotoEscape = (d) => {
             const p = inscritosE[d];
             document.getElementById('info-piloto-esc').innerText = p ? `${p.piloto} - ${p.coche}` : (d ? "No encontrado" : "Introduce un dorsal...");
         };
 
+        // --- SHOW DRIFT: ABRIR VOTO Y LIMPIAR ---
         window.abrirVoto = async () => {
-            const inputVal = document.getElementById('d-show').value.trim();
+            const inputElt = document.getElementById('d-show');
+            const inputVal = inputElt.value.trim();
             if(!inputVal) return alert("Pon un dorsal");
             const dorsalesArr = inputVal.split(/\s+/);
             let nombresArr = [];
@@ -299,11 +301,15 @@
                 });
             }
             dorsalesArr.forEach(d => { const p = inscritosD[d] || { piloto: "P"+d, coche: "" }; nombresArr.push(`${p.piloto} ${p.coche}`); });
-            set(ref(db, 'votacion_activa'), { dorsal: inputVal, info: nombresArr.join(' / '), aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw, activa: true, timer: 0 });
+            set(ref(db, 'votacion_activa'), { dorsal: inputVal, info: nombresArr.join(' / '), aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw, activa: true });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
+            
+            // LIMPIEZA AL EMPEZAR
+            inputElt.value = "";
+            document.getElementById('preview-show').innerText = "Introduce dorsal...";
         };
 
-        // --- CORRECCIÓN PISTA LIBRE ---
+        // --- SHOW DRIFT: PISTA LIBRE Y LIMPIAR ---
         window.setEstado = async (m, c, id) => {
             set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
             if(id === 'btn-libre') {
@@ -314,9 +320,9 @@
                     const nuevosUp = (data.up || 0) - acumuladoInicial.up;
                     const nuevosDw = (data.down || 0) - acumuladoInicial.dw;
                     push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap: nuevosAp, up: nuevosUp, dw: nuevosDw, ts: Date.now() });
-                    set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
+                    set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "" });
                 }
-                // LIMPIEZA DE CAMPOS TRAS PULSAR LIBRE
+                // LIMPIEZA AL TERMINAR
                 document.getElementById('d-show').value = "";
                 document.getElementById('preview-show').innerText = "Introduce dorsal...";
             }

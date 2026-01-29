@@ -360,10 +360,12 @@
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
             
             if (id === 'btn-libre') {
+                // LIMPIEZA VISUAL EN MASTER: Quitamos el "Votación abierta"
+                document.getElementById('preview-show').innerText = "Introduce dorsal...";
+
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
-                    // Guardar solo el "neto" (lo ganado en esta tanda)
                     push(ref(db, 'historial_votos'), {
                         dorsal: v.dorsal,
                         info: v.info,
@@ -373,7 +375,6 @@
                         ts: Date.now()
                     });
 
-                    // Temporizador de cierre para el público
                     let count = 5;
                     update(ref(db, 'votacion_activa'), { timer: count });
                     let interval = setInterval(() => {
@@ -485,6 +486,7 @@
     </script>
 </body>
 </html>
+
 
 
 

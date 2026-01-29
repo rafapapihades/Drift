@@ -293,11 +293,11 @@
             if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
 
-       window.exportarVotos = async () => {
+    window.exportarVotos = async () => {
     const s = await get(ref(db, 'historial_votos'));
     if(!s.exists()) return alert("No hay datos para exportar");
     
-    // 1. AGRUPAR VOTOS POR DORSAL (Para evitar lo de la imagen)
+    // 1. AGRUPAR VOTOS POR DORSAL
     const datos = Object.values(s.val());
     const resumen = {};
 
@@ -315,7 +315,6 @@
 
     // 2. CREAR CSV CON FORMATO EXCEL
     let csv = "sep=;\nDorsal;Piloto e Info;Aplauso;Like;Dislike\n";
-    
     for (const dorsal in resumen) {
         const r = resumen[dorsal];
         csv += `${dorsal};${r.info};${r.ap};${r.up};${r.dw}\n`;
@@ -331,39 +330,39 @@
     a.click();
     document.body.removeChild(a);
 
-    // 4. DOBLE CONFIRMACIÓN DE SEGURIDAD PARA BORRAR
+    // 4. DOBLE CONFIRMACIÓN Y LIMPIEZA TOTAL
     setTimeout(() => {
-        const confirma1 = confirm("✅ Archivo exportado con éxito.\n\n¿QUIERES BORRAR LOS DATOS DE LA NUBE PARA EL PRÓXIMO EVENTO?");
+        const confirma1 = confirm("✅ Archivo exportado con éxito.\n\n¿QUIERES BORRAR LOS DATOS DE LA NUBE Y REINICIAR EL ARCHIVO CARGADO?");
         if (confirma1) {
-            const confirma2 = confirm("⚠️ ¡ATENCIÓN! ⚠️\nEsta acción es irreversible y se borrarán todos los votos actuales.\n\n¿ESTÁS COMPLETAMENTE SEGURO?");
+            const confirma2 = confirm("⚠️ ¡ATENCIÓN! ⚠️\nEsta acción borrará los votos de la nube y el CSV actual.\n\n¿ESTÁS COMPLETAMENTE SEGURO?");
             if (confirma2) {
                 remove(ref(db, 'historial_votos'))
-                    .then(() => alert("Base de datos reseteada correctamente."))
+                    .then(() => {
+                        // Limpieza de interfaz y memoria
+                        document.getElementById('csv-votos').value = ""; 
+                        window.datosCSVVotos = []; 
+                        alert("Base de datos y CSV local reseteados correctamente.");
+                    })
                     .catch(err => alert("Error al borrar: " + err));
             }
         }
     }, 500);
 };
-
-        window.exportarEscapes = async () => {
+    window.exportarEscapes = async () => {
     const s = await get(ref(db, 'ranking_escapes'));
     if(!s.exists()) return alert("No hay datos en el ranking para exportar");
     
-    // 1. PREPARAR DATOS (Ordenados por dB para tener el podio arriba)
+    // 1. PREPARAR DATOS (Ordenados por dB)
     const datos = Object.values(s.val()).sort((a, b) => b.db - a.db);
     
-    // 2. CREAR CSV CON FORMATO EXCEL (Punto y coma y cabecera de separación)
-    let csv = "sep=;\n"; 
-    csv += "Posición;Dorsal;Piloto;Coche;Potencia (dB);Frecuencia (Hz)\n";
-    
+    // 2. CREAR CSV CON FORMATO EXCEL
+    let csv = "sep=;\nPosición;Dorsal;Piloto;Coche;Potencia (dB);Frecuencia (Hz)\n";
     datos.forEach((p, index) => {
-        // Limpieza de datos para evitar errores en Excel
         let dorsal = p.dorsal || "S/D";
         let piloto = (p.piloto || "Anónimo").replace(/;/g, " ");
         let coche = (p.coche || "S/C").replace(/;/g, " ");
         let dbVal = p.db || 0;
         let hzVal = p.hz || 0;
-
         csv += `${index + 1}º;${dorsal};${piloto};${coche};${dbVal};${hzVal}\n`;
     });
 
@@ -377,14 +376,19 @@
     a.click();
     document.body.removeChild(a);
 
-    // 4. DOBLE CONFIRMACIÓN DE SEGURIDAD
+    // 4. DOBLE CONFIRMACIÓN Y LIMPIEZA TOTAL
     setTimeout(() => {
-        const mensaje1 = "✅ Ranking de Escapes exportado.\n\n¿QUIERES REINICIAR EL RANKING EN LA NUBE?";
+        const mensaje1 = "✅ Ranking exportado.\n\n¿QUIERES REINICIAR EL RANKING Y EL ARCHIVO DE INSCRITOS?";
         if (confirm(mensaje1)) {
-            const mensaje2 = "⚠️ ADVERTENCIA CRÍTICA ⚠️\n\nEstás a punto de BORRAR TODAS las mediciones registradas.\n\n¿Confirmas que quieres empezar un ranking de cero?";
+            const mensaje2 = "⚠️ ADVERTENCIA CRÍTICA ⚠️\n\nSe borrará el ranking de la nube y el CSV de inscritos cargado.\n\n¿Confirmas el reinicio total?";
             if (confirm(mensaje2)) {
                 remove(ref(db, 'ranking_escapes'))
-                    .then(() => alert("Ranking reseteado. ¡Listo para nuevas mediciones!"))
+                    .then(() => {
+                        // Limpieza de interfaz y memoria
+                        document.getElementById('csv-escapes').value = ""; 
+                        window.datosCSVEscapes = []; 
+                        alert("Ranking y archivo de inscritos reseteados.");
+                    })
                     .catch(err => alert("Error al limpiar: " + err));
             }
         }
@@ -396,6 +400,7 @@
     </script>
 </body>
 </html>
+
 
 
 

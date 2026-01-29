@@ -335,21 +335,33 @@
                 });
             }
 
+            // --- CORRECCIÓN AQUÍ: Incluir Piloto + Coche ---
             dorsalesArr.forEach(d => {
-                const p = inscritosD[d] || { piloto: "P" + d };
-                infoConcat.push(p.piloto);
+                const p = inscritosD[d];
+                if (p) {
+                    // Si hay coche, lo ponemos entre paréntesis
+                    const textoCoche = p.coche ? ` (${p.coche})` : "";
+                    infoConcat.push(`${p.piloto}${textoCoche}`);
+                } else {
+                    infoConcat.push("P" + d);
+                }
             });
 
-            // 2. Publicar en la nube (el onValue actualizará tus marcadores automáticamente)
+            // 2. Publicar en la nube
             set(ref(db, 'votacion_activa'), {
                 dorsal: val,
-                info: infoConcat.join(' / '),
+                info: infoConcat.join(' / '), // Esto enviará "Nombre (Coche) / Nombre (Coche)"
                 aplausos: acumuladoInicial.ap,
                 up: acumuladoInicial.up,
                 down: acumuladoInicial.dw,
                 activa: true,
                 timer: 0
             });
+
+            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
+            inputElt.value = "";
+            document.getElementById('preview-show').innerText = "Votación abierta...";
+        };
 
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             inputElt.value = "";
@@ -486,6 +498,7 @@
     </script>
 </body>
 </html>
+
 
 
 

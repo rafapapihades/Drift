@@ -347,28 +347,48 @@
 
         window.exportarEscapes = async () => {
     const s = await get(ref(db, 'ranking_escapes'));
-    if(!s.exists()) return alert("No hay ranking que exportar");
+    if(!s.exists()) return alert("No hay datos en el ranking para exportar");
     
-    let csv = "Dorsal,Piloto,Coche,Decibelios_dB,Frecuencia_Hz\n";
+    // 1. PREPARAR DATOS (Ordenados por dB para tener el podio arriba)
+    const datos = Object.values(s.val()).sort((a, b) => b.db - a.db);
     
-    // Ordenamos por dB antes de exportar para que ya te salga el ganador arriba
-    const datosOrdenados = Object.values(s.val()).sort((a,b) => b.db - a.db);
+    // 2. CREAR CSV CON FORMATO EXCEL (Punto y coma y cabecera de separación)
+    let csv = "sep=;\n"; 
+    csv += "Posición;Dorsal;Piloto;Coche;Potencia (dB);Frecuencia (Hz)\n";
+    
+    datos.forEach((p, index) => {
+        // Limpieza de datos para evitar errores en Excel
+        let dorsal = p.dorsal || "S/D";
+        let piloto = (p.piloto || "Anónimo").replace(/;/g, " ");
+        let coche = (p.coche || "S/C").replace(/;/g, " ");
+        let dbVal = p.db || 0;
+        let hzVal = p.hz || 0;
 
-    datosOrdenados.forEach(p => {
-        let pilotoLimpio = p.piloto.replace(/,/g, " ");
-        let cocheLimpio = p.coche.replace(/,/g, " ");
-        csv += `${p.dorsal},${pilotoLimpio},${cocheLimpio},${p.db},${p.hz}\n`;
+        csv += `${index + 1}º;${dorsal};${piloto};${coche};${dbVal};${hzVal}\n`;
     });
 
+    // 3. DESCARGA DEL ARCHIVO
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = "RANKING_FINAL_ESCAPES.csv";
+    a.href = url;
+    a.download = `RANKING_FINAL_ESCAPES_${new Date().toLocaleDateString()}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
 
-    if(confirm("¿Deseas borrar el ranking de la nube para un nuevo evento?")) {
-        remove(ref(db, 'ranking_escapes'));
-    }
+    // 4. DOBLE CONFIRMACIÓN DE SEGURIDAD
+    setTimeout(() => {
+        const mensaje1 = "✅ Ranking de Escapes exportado.\n\n¿QUIERES REINICIAR EL RANKING EN LA NUBE?";
+        if (confirm(mensaje1)) {
+            const mensaje2 = "⚠️ ADVERTENCIA CRÍTICA ⚠️\n\nEstás a punto de BORRAR TODAS las mediciones registradas.\n\n¿Confirmas que quieres empezar un ranking de cero?";
+            if (confirm(mensaje2)) {
+                remove(ref(db, 'ranking_escapes'))
+                    .then(() => alert("Ranking reseteado. ¡Listo para nuevas mediciones!"))
+                    .catch(err => alert("Error al limpiar: " + err));
+            }
+        }
+    }, 500);
 };
 
         set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
@@ -376,6 +396,7 @@
     </script>
 </body>
 </html>
+
 
 
 

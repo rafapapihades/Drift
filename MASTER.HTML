@@ -297,25 +297,30 @@
     const s = await get(ref(db, 'historial_votos'));
     if(!s.exists()) return alert("No hay datos para exportar");
     
-    // Encabezados
-    let csv = "Dorsal,Piloto_Info,Aplausos,Likes,Dislikes\n";
+    // 'sep=;' le dice a Excel que el separador es el punto y coma
+    let csv = "sep=;\n"; 
+    csv += "Dorsal;Piloto e Info;Aplausos;Likes;Dislikes\n";
     
     Object.values(s.val()).forEach(v => {
-        // Limpiamos comas internas para no romper las columnas de Excel
-        let infoLimpia = v.info.replace(/,/g, " "); 
-        csv += `${v.dorsal},${infoLimpia},${v.ap},${v.up},${v.dw}\n`;
+        // Evitamos el 'undefined' usando || 0 (si no hay valor, pone 0)
+        let dorsal = v.dorsal || "S/D";
+        let infoLimpia = (v.info || "Sin Info").replace(/;/g, " "); // Limpiamos ; internos
+        let ap = v.ap || 0;
+        let up = v.up || 0;
+        let dw = v.dw || 0;
+
+        csv += `${dorsal};${infoLimpia};${ap};${up};${dw}\n`;
     });
 
-    // La magia para Excel: El BOM (Byte Order Mark) \uFEFF
+    // Usamos el BOM y el tipo de archivo correcto para Excel
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = "RESULTADOS_VOTOS_DRIFT.csv";
+    a.href = url;
+    a.download = "RESULTADOS_DRIFT_SHOW.csv";
+    document.body.appendChild(a);
     a.click();
-
-    if(confirm("¿Deseas limpiar el historial de la nube ahora?")) {
-        remove(ref(db, 'historial_votos'));
-    }
+    document.body.removeChild(a);
 };
 
         window.exportarEscapes = async () => {
@@ -349,6 +354,7 @@
     </script>
 </body>
 </html>
+
 
 
 

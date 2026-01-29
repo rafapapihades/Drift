@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V1.0 - SYNC PRO</title>
+    <title>MASTER DRIFT SHOW V1.0 - FULL SYNC</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -22,7 +22,6 @@
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
         .info-preview { color: #888; font-size: 0.8em; margin-top: 5px; text-align: center; min-height: 1em; }
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 15px; }
-        
         .crono-box { display: flex; justify-content: space-around; align-items: center; margin: 10px 0; background: #000; padding: 10px; border-radius: 8px; border: 1px solid #222; }
         .crono-time { font-family: monospace; font-size: 1.8em; line-height: 1; }
         .crono-label { font-size: 0.55em; color: #888; text-transform: uppercase; margin-top: 4px; }
@@ -60,21 +59,12 @@
         <div class="card" style="border-color: #007bff;">
             <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                 <div style="flex: 1;"><small>TOTAL (MIN)</small><input type="number" id="t-total" value="90" style="font-size: 1em; padding: 5px;"></div>
-                <div style="flex: 1;"><small>INSCRITOS CSV</small><input type="number" id="c-totales" value="0" readonly style="font-size: 1em; padding: 5px; opacity:0.6"></div>
+                <div style="flex: 1;"><small>INSCRITOS</small><input type="number" id="c-totales" value="0" readonly style="font-size: 1em; padding: 5px; opacity:0.6"></div>
             </div>
             <div class="crono-box">
-                <div class="crono-group">
-                    <div id="reloj-global" class="crono-time">--:--</div>
-                    <div class="crono-label">EVENTO</div>
-                </div>
-                <div class="crono-group">
-                    <div id="progreso-esc" class="crono-time" style="color: #ffcc00; font-size: 1.5em;">0 de 0</div>
-                    <div class="crono-label">PARTICIPANTES</div>
-                </div>
-                <div class="crono-group">
-                    <div id="reloj-slot" class="crono-time" style="color: #007bff;">--:--</div>
-                    <div class="crono-label">POR COCHE</div>
-                </div>
+                <div class="crono-group"><div id="reloj-global" class="crono-time">--:--</div><div class="crono-label">EVENTO</div></div>
+                <div class="crono-group"><div id="progreso-esc" class="crono-time" style="color: #ffcc00; font-size: 1.5em;">0 de 0</div><div class="crono-label">PARTICIPANTES</div></div>
+                <div class="crono-group"><div id="reloj-slot" class="crono-time" style="color: #007bff;">--:--</div><div class="crono-label">POR COCHE</div></div>
             </div>
             <div style="display: flex; gap: 5px;">
                 <button class="btn" id="btn-play" style="background:green; flex: 2; padding: 12px; margin: 0;" onclick="controlCrono('play')">▶ PLAY SYNC</button>
@@ -82,14 +72,12 @@
                 <button class="btn" style="background:#222; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('reset')">↺</button>
             </div>
         </div>
-
         <div class="card">
             <input type="number" id="d-esc" placeholder="DORSAL ESCAPE" oninput="buscarPilotoEscape(this.value)">
-            <p style="font-size:0.7em; color:#ffcc00; text-align:center">Inscritos Escapes: <span id="cnt-esc">0</span></p>
+            <p style="font-size:0.7em; color:#ffcc00; text-align:center">Inscritos: <span id="cnt-esc">0</span></p>
             <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-e').click()">📂 SINCRONIZAR ESCAPES.CSV</button>
             <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
         </div>
-
         <div class="card">
             <div id="info-piloto-esc" class="info-pista" style="color:#ffcc00 !important">Introduce un dorsal...</div>
             <div id="db-live" class="big-db">0.0</div>
@@ -120,13 +108,13 @@
         // --- CRONÓMETRO ---
         window.controlCrono = (accion) => {
             if (accion === 'play') {
-                const duracionMs = document.getElementById('t-total').value * 60000;
+                const totalM = document.getElementById('t-total').value;
+                const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
                 const ahora = Date.now();
-                segSlot = Math.floor((document.getElementById('t-total').value * 60) / (totalInscritosEsc || 1));
-                set(ref(db, 'crono_evento'), { endTime: ahora + duracionMs, totalMin: document.getElementById('t-total').value, corriendo: true });
+                set(ref(db, 'crono_evento'), { endTime: ahora + (totalM * 60000), slotTime: ahora + (slotS * 1000), totalMin: totalM, corriendo: true });
             } else if (accion === 'pause' || accion === 'reset') {
                 update(ref(db, 'crono_evento'), { corriendo: false });
-                if (accion === 'reset') { set(ref(db, 'crono_evento'), null); segSlot = 0; }
+                if (accion === 'reset') set(ref(db, 'crono_evento'), null);
             }
         };
 
@@ -138,12 +126,12 @@
                 timerGlobal = setInterval(() => {
                     const ahora = Date.now();
                     segRestantes = Math.max(0, Math.floor((data.endTime - ahora) / 1000));
-                    if(segSlot > 0) segSlot--; // DESCUENTO ACTIVO DEL SLOT
+                    segSlot = Math.max(0, Math.floor((data.slotTime - ahora) / 1000));
                     actualizarCronoUI();
                 }, 1000);
             } else {
                 corriendo = false;
-                if (!data) segRestantes = document.getElementById('t-total').value * 60;
+                if (!data) { segRestantes = document.getElementById('t-total').value * 60; segSlot = 0; }
                 actualizarCronoUI();
             }
         });
@@ -155,10 +143,7 @@
             document.getElementById('reloj-slot').style.color = segSlot < 20 ? "red" : "#007bff";
         }
 
-        function fmtT(s) {
-            const min = Math.floor(s/60); const seg = Math.floor(s%60);
-            return `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
-        }
+        function fmtT(s) { const min = Math.floor(s/60); const seg = Math.floor(s%60); return `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`; }
 
         // --- AUDIO ---
         async function iniciarMicrofono() {
@@ -179,28 +164,21 @@
         function procesarAudio() {
             analyser.getByteFrequencyData(dataArray);
             let sum = 0; for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-            let average = sum / dataArray.length;
-            vDb = average > 0 ? (average * 1.5) + 35 : 0; 
+            vDb = (sum / dataArray.length * 1.5) + 35;
             document.getElementById('db-live').innerText = vDb.toFixed(1);
             if(pPico && vDb > recDb) { recDb = vDb; document.getElementById('res-pico').innerText = recDb.toFixed(1); }
-            if(pTono && average > 5) {
+            if(pTono) {
                 let maxVal = -1, maxIndex = -1;
                 for (let i = 0; i < dataArray.length; i++) { if (dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIndex = i; } }
-                let hzActual = maxIndex * (audioCtx.sampleRate / analyser.fftSize);
-                sHz += hzActual; lHz++;
+                sHz += maxIndex * (audioCtx.sampleRate / analyser.fftSize); lHz++;
                 document.getElementById('res-tono').innerText = Math.round(sHz/lHz);
             }
             requestAnimationFrame(procesarAudio);
         }
 
-        window.medir = (t, a) => {
-            if(a) iniciarMicrofono();
-            if(t==='pico') pPico=!!a;
-            if(t==='tono'){ pTono=!!a; if(a){sHz=0; lHz=0;} }
-            event.currentTarget.classList.toggle('btn-pulsado', !!a);
-        };
+        window.medir = (t, a) => { if(a) iniciarMicrofono(); if(t==='pico') pPico=!!a; if(t==='tono'){ pTono=!!a; if(a){sHz=0; lHz=0;} } event.currentTarget.classList.toggle('btn-pulsado', !!a); };
 
-        // --- PUBLICAR Y RANKING ---
+        // --- PUBLICAR ESCAPE ---
         window.publicarEscape = async () => {
             const d = document.getElementById('d-esc').value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
@@ -209,32 +187,43 @@
             const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
             await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
             
-            // REINICIO DE RELOJ POR COCHE AL PUBLICAR
-            segSlot = Math.floor((document.getElementById('t-total').value * 60) / (totalInscritosEsc || 1));
-            
-            alert(`✅ PUBLICADO: ${info.piloto}`);
+            // RESET SYNC DEL SLOT PARA TODOS
+            const totalM = document.getElementById('t-total').value;
+            const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
+            update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
+
             document.getElementById('res-pico').innerText="0.0"; recDb=0;
             document.getElementById('d-esc').value = "";
-            actualizarCronoUI();
         };
 
-        onValue(ref(db, 'ranking_escapes'), snap => {
-            const data = snap.exists() ? Object.values(snap.val()) : [];
-            realizadosEsc = data.length;
-            const render = (target, list, unit, sortFn) => {
-                let html = `<b>🏆 TOP 3 ${unit}:</b>`;
-                list.sort(sortFn).slice(0,3).forEach((p, i) => {
-                    const valor = unit === 'dB' ? p.db : p.hz;
-                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal} ${p.piloto}</span><b>${valor}${unit}</b></div>`;
-                });
-                document.getElementById(target).innerHTML = html;
-            };
-            render('m-rank-db', [...data], 'dB', (a,b)=>b.db-a.db);
-            render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
-            actualizarCronoUI();
-        });
+        // --- EXPORTACIONES (CSV) ---
+        window.exportarVotos = async () => {
+            const snap = await get(ref(db, 'historial_votos'));
+            if (!snap.exists()) return alert("Sin datos");
+            let csv = "Dorsal;Info;Aplausos;Likes;Dislikes\n";
+            Object.values(snap.val()).forEach(v => { csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw}\n`; });
+            descargarCSV(csv, "Votos_Drift.csv");
+            if(confirm("¿Limpiar historial de votos?")) remove(ref(db, 'historial_votos'));
+        };
 
-        // --- CARGA CSV ---
+        window.exportarEscapes = async () => {
+            const snap = await get(ref(db, 'ranking_escapes'));
+            if (!snap.exists()) return alert("Sin ranking");
+            let csv = "Dorsal;Piloto;Coche;dB;Hz\n";
+            Object.values(snap.val()).sort((a,b)=>b.db-a.db).forEach(v => { csv += `${v.dorsal};${v.piloto};${v.coche};${v.db};${v.hz}\n`; });
+            descargarCSV(csv, "Ranking_Escapes.csv");
+            if(confirm("¿Limpiar ranking de escapes?")) remove(ref(db, 'ranking_escapes'));
+        };
+
+        function descargarCSV(csv, name) {
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = name;
+            link.click();
+        }
+
+        // --- SISTEMA ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
@@ -242,10 +231,9 @@
                 let d = {};
                 lines.forEach(l => {
                     const c = l.split(l.includes(';') ? ';' : ',');
-                    if(c[0] && c[0].trim()!=='') d[c[0].trim()] = { piloto:c[1]?.trim()||"", coche:c[2]?.trim()||"" };
+                    if(c[0]) d[c[0].trim()] = { piloto:c[1]?.trim()||"", coche:c[2]?.trim()||"" };
                 });
                 set(ref(db, 'inscritos_' + t), d);
-                alert(`✓ Sincronizados ${Object.keys(d).length} participantes.`);
             };
             reader.readAsText(e.target.files[0], "UTF-8");
         };
@@ -258,12 +246,22 @@
             actualizarCronoUI();
         });
 
-        onValue(ref(db, 'inscritos_drift'), snap => {
-            inscritosD = snap.val() || {};
-            document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
+        onValue(ref(db, 'ranking_escapes'), snap => {
+            const data = snap.exists() ? Object.values(snap.val()) : [];
+            realizadosEsc = data.length;
+            const render = (target, list, unit, sortFn) => {
+                let html = `<b>🏆 TOP 3 ${unit}:</b>`;
+                list.sort(sortFn).slice(0,3).forEach((p, i) => {
+                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal} ${p.piloto}</span><b>${unit === 'dB' ? p.db : p.hz}${unit}</b></div>`;
+                });
+                document.getElementById(target).innerHTML = html;
+            };
+            render('m-rank-db', [...data], 'dB', (a,b)=>b.db-a.db);
+            render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
+            actualizarCronoUI();
         });
 
-        // --- DRIFT Y VOTOS ---
+        // --- OTROS ---
         window.cambiarTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(id).style.display = 'block';
@@ -276,6 +274,11 @@
             const encontrados = dorsales.map(d => { const p = inscritosD[d]; return p ? `${d}: ${p.piloto}` : `${d}: ?`; });
             document.getElementById('preview-show').innerText = val ? encontrados.join(' | ') : "Introduce dorsal...";
         };
+
+        onValue(ref(db, 'inscritos_drift'), snap => {
+            inscritosD = snap.val() || {};
+            document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
+        });
 
         window.buscarPilotoEscape = (d) => {
             const p = inscritosE[d];
@@ -339,6 +342,7 @@
     </script>
 </body>
 </html>
+
 
 
 

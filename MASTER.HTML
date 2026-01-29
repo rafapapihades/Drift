@@ -320,13 +320,16 @@
             
             const dorsalesArr = val.split(/\s+/);
             let infoConcat = [];
+            
+            // Reiniciamos el contador que servirá de "base" para esta ronda
             acumuladoInicial = { ap: 0, up: 0, dw: 0 };
 
-            // Obtener acumulados para el cálculo de "esta ronda"
+            // 1. BUSCAR ACUMULADOS EN EL HISTORIAL (Solo de los dorsales seleccionados)
             const histSnap = await get(ref(db, 'historial_votos'));
             if (histSnap.exists()) {
                 const historial = Object.values(histSnap.val());
                 dorsalesArr.forEach(d => {
+                    // Filtramos todas las veces que este dorsal ha participado antes y sumamos sus votos
                     historial.filter(h => h.dorsal === d).forEach(v => {
                         acumuladoInicial.ap += (v.ap || 0);
                         acumuladoInicial.up += (v.up || 0);
@@ -335,11 +338,14 @@
                 });
             }
 
+            // 2. PREPARAR INFO DE PILOTOS
             dorsalesArr.forEach(d => {
                 const p = inscritosD[d] || { piloto: "P" + d, coche: "" };
-                infoConcat.push(`${p.piloto} (${p.coche})`);
+                infoConcat.push(`${p.piloto}`);
             });
 
+            // 3. ACTIVAR VOTACIÓN EN LA NUBE
+            // Enviamos el acumulado inicial. El público sumará sobre esto.
             set(ref(db, 'votacion_activa'), {
                 dorsal: val,
                 info: infoConcat.join(' / '),
@@ -350,7 +356,13 @@
                 timer: 0
             });
 
+            // 4. ACTUALIZAR UI MASTER
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
+            
+            // Mostrar en el preview que hemos recuperado votos antiguos
+            document.getElementById('preview-show').innerHTML = 
+                `<span style="color: #00ff00">Arrastrando: 👏${acumuladoInicial.ap} | 👍${acumuladoInicial.up}</span>`;
+            
             inputElt.value = "";
         };
 
@@ -361,17 +373,22 @@
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
-                    // Guardar lo nuevo en el historial
+                    // CALCULAMOS EL NETO: Lo que hay ahora menos lo que ya había antes de empezar
+                    const netoAp = (v.aplausos || 0) - acumuladoInicial.ap;
+                    const netoUp = (v.up || 0) - acumuladoInicial.up;
+                    const netoDw = (v.down || 0) - acumuladoInicial.dw;
+
+                    // Guardamos solo la diferencia de esta ronda en el historial
                     push(ref(db, 'historial_votos'), {
                         dorsal: v.dorsal,
                         info: v.info,
-                        ap: (v.aplausos || 0) - acumuladoInicial.ap,
-                        up: (v.up || 0) - acumuladoInicial.up,
-                        dw: (v.down || 0) - acumuladoInicial.dw,
+                        ap: netoAp,
+                        up: netoUp,
+                        dw: netoDw,
                         ts: Date.now()
                     });
 
-                    // Cuenta atrás de 5 segundos antes de cerrar
+                    // Cuenta atrás de 5 segundos antes de cerrar para el público
                     let count = 5;
                     update(ref(db, 'votacion_activa'), { timer: count });
                     let interval = setInterval(() => {
@@ -386,7 +403,6 @@
                 }
             }
         };
-
         // --- MANEJO DE CSV E INSCRITOS ---
         window.cargarCSV = (event, tipo) => {
             const reader = new FileReader();
@@ -484,6 +500,7 @@
     </script>
 </body>
 </html>
+
 
 
 

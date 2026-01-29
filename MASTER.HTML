@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V1.0 - POSICIÓN SYNC</title>
+    <title>MASTER DRIFT SHOW V1.0 - SECURITY SYNC</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -26,6 +26,8 @@
         .crono-time { font-family: monospace; font-size: 1.8em; line-height: 1; }
         .crono-label { font-size: 0.55em; color: #888; text-transform: uppercase; margin-top: 4px; }
         .crono-group { text-align: center; flex: 1; }
+        /* Bloqueo visual */
+        .disabled-section { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
     </style>
 </head>
 <body>
@@ -42,7 +44,7 @@
             <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-d').click()">📂 SINCRONIZAR DRIFT.CSV</button>
             <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
         </div>
-        <div class="card">
+        <div id="drift-controls" class="card">
             <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
             <div id="info-pista-drift" class="info-pista"></div>
             <div class="vote-stats">
@@ -56,41 +58,43 @@
     </div>
 
     <div id="tab-esc" class="tab-content" style="display:none">
-        <div class="card" style="border-color: #007bff;">
-            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                <div style="flex: 1;"><small>TOTAL (MIN)</small><input type="number" id="t-total" value="90" style="font-size: 1em; padding: 5px;"></div>
-                <div style="flex: 1;"><small>INSCRITOS</small><input type="number" id="c-totales" value="0" readonly style="font-size: 1em; padding: 5px; opacity:0.6"></div>
+        <div id="esc-controls">
+            <div class="card" style="border-color: #007bff;">
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <div style="flex: 1;"><small>TOTAL (MIN)</small><input type="number" id="t-total" value="90" style="font-size: 1em; padding: 5px;"></div>
+                    <div style="flex: 1;"><small>INSCRITOS</small><input type="number" id="c-totales" value="0" readonly style="font-size: 1em; padding: 5px; opacity:0.6"></div>
+                </div>
+                <div class="crono-box">
+                    <div class="crono-group"><div id="reloj-global" class="crono-time">--:--</div><div class="crono-label">EVENTO</div></div>
+                    <div class="crono-group"><div id="progreso-esc" class="crono-time" style="color: #ffcc00; font-size: 1.5em;">0 de 0</div><div class="crono-label">PARTICIPANTES</div></div>
+                    <div class="crono-group"><div id="reloj-slot" class="crono-time" style="color: #007bff;">--:--</div><div class="crono-label">POR COCHE</div></div>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn" id="btn-play" style="background:green; flex: 2; padding: 12px; margin: 0;" onclick="controlCrono('play')">▶ PLAY SYNC</button>
+                    <button class="btn" style="background:#444; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('pause')">||</button>
+                    <button class="btn" style="background:#222; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('reset')">↺</button>
+                </div>
             </div>
-            <div class="crono-box">
-                <div class="crono-group"><div id="reloj-global" class="crono-time">--:--</div><div class="crono-label">EVENTO</div></div>
-                <div class="crono-group"><div id="progreso-esc" class="crono-time" style="color: #ffcc00; font-size: 1.5em;">0 de 0</div><div class="crono-label">PARTICIPANTES</div></div>
-                <div class="crono-group"><div id="reloj-slot" class="crono-time" style="color: #007bff;">--:--</div><div class="crono-label">POR COCHE</div></div>
+            <div class="card">
+                <input type="number" id="d-esc" placeholder="DORSAL ESCAPE" oninput="buscarPilotoEscape(this.value)">
+                <p style="font-size:0.7em; color:#ffcc00; text-align:center">Inscritos: <span id="cnt-esc">0</span></p>
+                <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-e').click()">📂 SINCRONIZAR ESCAPES.CSV</button>
+                <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
             </div>
-            <div style="display: flex; gap: 5px;">
-                <button class="btn" id="btn-play" style="background:green; flex: 2; padding: 12px; margin: 0;" onclick="controlCrono('play')">▶ PLAY SYNC</button>
-                <button class="btn" style="background:#444; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('pause')">||</button>
-                <button class="btn" style="background:#222; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('reset')">↺</button>
+            <div class="card">
+                <div id="info-piloto-esc" class="info-pista" style="color:#ffcc00 !important">Introduce un dorsal...</div>
+                <div id="db-live" class="big-db">0.0</div>
+                <button class="btn" style="background:red; opacity:0.8" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)">MANTENER dB</button>
+                <button class="btn" style="background:orange; opacity:0.8" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)">MANTENER TONO</button>
+                <div style="display:flex; justify-content:space-around; margin:10px 0; font-family:monospace; background:#000; padding:10px; border-radius:5px">
+                    <span>MAX: <b id="res-pico" style="color:red">0.0</b></span>
+                    <span>Hz: <b id="res-tono" style="color:orange">0</b></span>
+                </div>
+                <button class="btn" style="background:green; opacity:1" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
+                <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 dB:</b></div>
+                <div class="mini-rank-box" id="m-rank-hz"><b>🏆 TOP 3 GRAVES:</b></div>
+                <button class="btn btn-reset" onclick="exportarEscapes()">💾 EXPORTAR RANKING Y LIMPIAR</button>
             </div>
-        </div>
-        <div class="card">
-            <input type="number" id="d-esc" placeholder="DORSAL ESCAPE" oninput="buscarPilotoEscape(this.value)">
-            <p style="font-size:0.7em; color:#ffcc00; text-align:center">Inscritos: <span id="cnt-esc">0</span></p>
-            <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-e').click()">📂 SINCRONIZAR ESCAPES.CSV</button>
-            <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
-        </div>
-        <div class="card">
-            <div id="info-piloto-esc" class="info-pista" style="color:#ffcc00 !important">Introduce un dorsal...</div>
-            <div id="db-live" class="big-db">0.0</div>
-            <button class="btn" style="background:red; opacity:0.8" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)">MANTENER dB</button>
-            <button class="btn" style="background:orange; opacity:0.8" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)">MANTENER TONO</button>
-            <div style="display:flex; justify-content:space-around; margin:10px 0; font-family:monospace; background:#000; padding:10px; border-radius:5px">
-                <span>MAX: <b id="res-pico" style="color:red">0.0</b></span>
-                <span>Hz: <b id="res-tono" style="color:orange">0</b></span>
-            </div>
-            <button class="btn" style="background:green; opacity:1" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
-            <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 dB:</b></div>
-            <div class="mini-rank-box" id="m-rank-hz"><b>🏆 TOP 3 GRAVES:</b></div>
-            <button class="btn btn-reset" onclick="exportarEscapes()">💾 EXPORTAR RANKING Y LIMPIAR</button>
         </div>
     </div>
 
@@ -104,6 +108,21 @@
 
         let timerGlobal, segRestantes = 0, segSlot = 0, realizadosEsc = 0, totalInscritosEsc = 0;
         let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false, inscritosD={}, inscritosE={}, audioCtx, analyser, dataArray, streamActivo = false, acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
+
+        // --- NAVEGACIÓN Y BLOQUEO ---
+        window.cambiarTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
+            
+            if(id === 'tab-show') {
+                document.getElementById('nav-show').classList.add('active-nav');
+                document.getElementById('drift-controls').classList.remove('disabled-section');
+            } else {
+                document.getElementById('nav-esc').classList.add('active-nav');
+                document.getElementById('drift-controls').classList.add('disabled-section');
+            }
+        };
 
         // --- CRONÓMETRO ---
         window.controlCrono = (accion) => {
@@ -176,70 +195,50 @@
 
         window.medir = (t, a) => { if(a) iniciarMicrofono(); if(t==='pico') pPico=!!a; if(t==='tono'){ pTono=!!a; if(a){sHz=0; lHz=0;} } event.currentTarget.classList.toggle('btn-pulsado', !!a); };
 
-        // --- PUBLICAR ESCAPE CON POSICIÓN ---
+        // --- RANKING POSICIÓN ---
         window.publicarEscape = async () => {
-            const d = document.getElementById('d-esc').value.trim();
+            const dInput = document.getElementById('d-esc');
+            const d = dInput.value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
             const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
             
             if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
             
             const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
-            
-            // 1. Guardar primero
             await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
             
-            // 2. Obtener lista actualizada para calcular posición
             const snap = await get(ref(db, 'ranking_escapes'));
             const lista = snap.exists() ? Object.values(snap.val()) : [];
-            
-            // Posición dB
-            const listaDb = [...lista].sort((a,b) => b.db - a.db);
-            const posDb = listaDb.findIndex(p => p.dorsal === d) + 1;
-            
-            // Posición Hz (Grave)
-            const listaHz = [...lista].sort((a,b) => a.hz - b.hz);
-            const posHz = listaHz.findIndex(p => p.dorsal === d) + 1;
+            const posDb = [...lista].sort((a,b)=>b.db-a.db).findIndex(p=>p.dorsal===d)+1;
+            const posHz = [...lista].sort((a,b)=>a.hz-b.hz).findIndex(p=>p.dorsal===d)+1;
 
-            // 3. Reset Reloj Slot
-            const totalM = document.getElementById('t-total').value;
-            const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
+            const slotS = Math.floor((document.getElementById('t-total').value * 60) / (totalInscritosEsc || 1));
             update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
 
-            // 4. Mensaje detallado
-            let msg = `✅ PUBLICADO: ${info.piloto}\n`;
-            msg += `📊 Resultado: ${dbV}dB / ${hzV}Hz\n\n`;
-            msg += `🏆 POSICIÓN dB: ${posDb}º de ${lista.length}\n`;
-            msg += `🔊 POSICIÓN GRAVES: ${posHz}º de ${lista.length}`;
-            
-            if(posDb === 1) msg += `\n\n🥇 ¡NUEVO RÉCORD DE SONIDO!`;
-            if(posHz === 1) msg += `\n\n🔥 ¡NUEVO RÉCORD DE GRAVES!`;
-            
-            alert(msg);
+            alert(`✅ ${info.piloto}\n📊 ${dbV}dB / ${hzV}Hz\n🏆 dB: ${posDb}º | 🔊 Hz: ${posHz}º`);
 
-            // 5. Limpieza
             document.getElementById('res-pico').innerText="0.0"; recDb=0;
-            document.getElementById('d-esc').value = "";
+            dInput.value = "";
             document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
         };
 
-        // --- EXPORTACIONES ---
+        // --- OTROS ---
         window.exportarVotos = async () => {
             const snap = await get(ref(db, 'historial_votos'));
             if (!snap.exists()) return alert("Sin datos");
-            let csv = "Dorsal;Info;Aplausos;Likes;Dislikes\n";
+            let csv = "Dorsal;Info;Ap;Up;Dw\n";
             Object.values(snap.val()).forEach(v => { csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw}\n`; });
-            descargarCSV(csv, "Votos_Drift.csv");
-            if(confirm("¿Limpiar historial?")) remove(ref(db, 'historial_votos'));
+            descargarCSV(csv, "Votos.csv");
+            if(confirm("¿Limpiar?")) remove(ref(db, 'historial_votos'));
         };
 
         window.exportarEscapes = async () => {
             const snap = await get(ref(db, 'ranking_escapes'));
             if (!snap.exists()) return alert("Sin ranking");
-            let csv = "Dorsal;Piloto;Coche;dB;Hz\n";
-            Object.values(snap.val()).sort((a,b)=>b.db-a.db).forEach(v => { csv += `${v.dorsal};${v.piloto};${v.coche};${v.db};${v.hz}\n`; });
-            descargarCSV(csv, "Ranking_Escapes.csv");
-            if(confirm("¿Limpiar ranking?")) remove(ref(db, 'ranking_escapes'));
+            let csv = "Dorsal;Piloto;dB;Hz\n";
+            Object.values(snap.val()).sort((a,b)=>b.db-a.db).forEach(v => { csv += `${v.dorsal};${v.piloto};${v.db};${v.hz}\n`; });
+            descargarCSV(csv, "Escapes.csv");
+            if(confirm("¿Limpiar?")) remove(ref(db, 'ranking_escapes'));
         };
 
         function descargarCSV(csv, name) {
@@ -248,7 +247,6 @@
             link.href = URL.createObjectURL(blob); link.download = name; link.click();
         }
 
-        // --- SISTEMA ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
@@ -277,7 +275,7 @@
             const render = (target, list, unit, sortFn) => {
                 let html = `<b>🏆 TOP 3 ${unit}:</b>`;
                 list.sort(sortFn).slice(0,3).forEach((p, i) => {
-                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal} ${p.piloto}</span><b>${unit === 'dB' ? p.db : p.hz}${unit}</b></div>`;
+                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal}</span><b>${unit === 'dB' ? p.db : p.hz}${unit}</b></div>`;
                 });
                 document.getElementById(target).innerHTML = html;
             };
@@ -290,13 +288,6 @@
             inscritosD = snap.val() || {};
             document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
         });
-
-        window.cambiarTab = (id) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-            document.getElementById(id).style.display = 'block';
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
-            document.getElementById(id === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
-        };
 
         window.buscarPilotoShow = (val) => {
             const dorsales = val.trim().split(/\s+/);
@@ -369,6 +360,7 @@
     </script>
 </body>
 </html>
+
 
 
 

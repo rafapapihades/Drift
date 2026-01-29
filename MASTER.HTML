@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V1.0 - FULL SYNC</title>
+    <title>MASTER DRIFT SHOW V1.0 - FINAL SYNC</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -187,7 +187,6 @@
             const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
             await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
             
-            // RESET SYNC DEL SLOT PARA TODOS
             const totalM = document.getElementById('t-total').value;
             const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
             update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
@@ -196,14 +195,14 @@
             document.getElementById('d-esc').value = "";
         };
 
-        // --- EXPORTACIONES (CSV) ---
+        // --- EXPORTACIONES ---
         window.exportarVotos = async () => {
             const snap = await get(ref(db, 'historial_votos'));
             if (!snap.exists()) return alert("Sin datos");
             let csv = "Dorsal;Info;Aplausos;Likes;Dislikes\n";
             Object.values(snap.val()).forEach(v => { csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw}\n`; });
             descargarCSV(csv, "Votos_Drift.csv");
-            if(confirm("¿Limpiar historial de votos?")) remove(ref(db, 'historial_votos'));
+            if(confirm("¿Limpiar historial?")) remove(ref(db, 'historial_votos'));
         };
 
         window.exportarEscapes = async () => {
@@ -212,18 +211,17 @@
             let csv = "Dorsal;Piloto;Coche;dB;Hz\n";
             Object.values(snap.val()).sort((a,b)=>b.db-a.db).forEach(v => { csv += `${v.dorsal};${v.piloto};${v.coche};${v.db};${v.hz}\n`; });
             descargarCSV(csv, "Ranking_Escapes.csv");
-            if(confirm("¿Limpiar ranking de escapes?")) remove(ref(db, 'ranking_escapes'));
+            if(confirm("¿Limpiar ranking?")) remove(ref(db, 'ranking_escapes'));
         };
 
         function descargarCSV(csv, name) {
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = name;
-            link.click();
+            link.download = name; link.click();
         }
 
-        // --- SISTEMA ---
+        // --- CARGA CSV ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
@@ -238,6 +236,7 @@
             reader.readAsText(e.target.files[0], "UTF-8");
         };
 
+        // --- LISTENERS FIREBASE ---
         onValue(ref(db, 'inscritos_esc'), snap => {
             inscritosE = snap.val() || {};
             totalInscritosEsc = Object.keys(inscritosE).length;
@@ -261,7 +260,6 @@
             actualizarCronoUI();
         });
 
-        // --- OTROS ---
         window.cambiarTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(id).style.display = 'block';
@@ -305,6 +303,7 @@
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
         };
 
+        // --- CORRECCIÓN PISTA LIBRE ---
         window.setEstado = async (m, c, id) => {
             set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
             if(id === 'btn-libre') {
@@ -317,6 +316,9 @@
                     push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap: nuevosAp, up: nuevosUp, dw: nuevosDw, ts: Date.now() });
                     set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
                 }
+                // LIMPIEZA DE CAMPOS TRAS PULSAR LIBRE
+                document.getElementById('d-show').value = "";
+                document.getElementById('preview-show').innerText = "Introduce dorsal...";
             }
         };
 
@@ -342,6 +344,7 @@
     </script>
 </body>
 </html>
+
 
 
 

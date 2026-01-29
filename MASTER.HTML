@@ -22,6 +22,12 @@
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
         .info-preview { color: #888; font-size: 0.8em; margin-top: 5px; text-align: center; min-height: 1em; }
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 15px; }
+        
+        /* Estilos nuevos Cronómetro */
+        .crono-box { display: flex; justify-content: space-around; align-items: center; margin: 10px 0; background: #000; padding: 10px; border-radius: 8px; border: 1px solid #222; }
+        .crono-time { font-family: monospace; font-size: 2em; line-height: 1; }
+        .crono-label { font-size: 0.6em; color: #888; text-transform: uppercase; margin-top: 4px; }
+        .crono-group { text-align: center; }
     </style>
 </head>
 <body>
@@ -53,12 +59,36 @@
     </div>
 
     <div id="tab-esc" class="tab-content" style="display:none">
+        <div class="card" style="border-color: #007bff;">
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <div style="flex: 1;"><small>TOTAL (MIN)</small><input type="number" id="t-total" value="90" style="font-size: 1em; padding: 5px;"></div>
+                <div style="flex: 1;"><small>COCHES</small><input type="number" id="c-totales" value="45" style="font-size: 1em; padding: 5px;" oninput="recalcularSlot()"></div>
+            </div>
+            <div class="crono-box">
+                <div class="crono-group">
+                    <div id="reloj-global" class="crono-time">90:00</div>
+                    <div class="crono-label">EVENTO</div>
+                </div>
+                <div style="width: 1px; background: #333; height: 30px;"></div>
+                <div class="crono-group">
+                    <div id="reloj-slot" class="crono-time" style="color: #ffcc00;">02:00</div>
+                    <div class="crono-label">POR COCHE</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 5px;">
+                <button class="btn" id="btn-play" style="background:green; flex: 2; padding: 12px; margin: 0;" onclick="controlCrono('play')">▶ PLAY</button>
+                <button class="btn" style="background:#444; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('pause')">||</button>
+                <button class="btn" style="background:#222; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('reset')">↺</button>
+            </div>
+        </div>
+
         <div class="card">
             <input type="number" id="d-esc" placeholder="DORSAL ESCAPE" oninput="buscarPilotoEscape(this.value)">
             <p style="font-size:0.7em; color:#ffcc00; text-align:center">Inscritos Escapes: <span id="cnt-esc">0</span></p>
             <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-e').click()">📂 SINCRONIZAR ESCAPES.CSV</button>
             <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
         </div>
+
         <div class="card">
             <div id="info-piloto-esc" class="info-pista" style="color:#ffcc00 !important">Introduce un dorsal...</div>
             <div id="db-live" class="big-db">0.0</div>
@@ -83,10 +113,52 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // --- VARIABLES CRONOMETRO ---
+        let timerGlobal, segRestantes, segSlot, corriendo = false;
+
+        // --- VARIABLES AUDIO ---
         let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false;
         let inscritosD={}, inscritosE={};
         let audioCtx, analyser, dataArray, streamActivo = false;
         let acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
+
+        // --- LOGICA CRONOMETRO ---
+        window.recalcularSlot = () => {
+            const totalMin = document.getElementById('t-total').value;
+            const totalC = document.getElementById('c-totales').value;
+            segRestantes = totalMin * 60;
+            segSlot = (totalMin * 60) / totalC;
+            actualizarCronoUI();
+        };
+
+        window.controlCrono = (accion) => {
+            if(accion === 'play' && !corriendo) {
+                corriendo = true;
+                timerGlobal = setInterval(() => {
+                    if(segRestantes > 0) segRestantes--;
+                    if(segSlot > 0) segSlot--;
+                    actualizarCronoUI();
+                }, 1000);
+            } else if(accion === 'pause') {
+                corriendo = false;
+                clearInterval(timerGlobal);
+            } else if(accion === 'reset') {
+                corriendo = false;
+                clearInterval(timerGlobal);
+                recalcularSlot();
+            }
+        };
+
+        function actualizarCronoUI() {
+            document.getElementById('reloj-global').innerText = fmtT(segRestantes);
+            document.getElementById('reloj-slot').innerText = fmtT(segSlot);
+            document.getElementById('reloj-slot').style.color = segSlot < 20 ? "red" : "#ffcc00";
+        }
+
+        function fmtT(s) {
+            const min = Math.floor(s/60); const seg = Math.floor(s%60);
+            return `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
+        }
 
         // --- MICROFONO ---
         async function iniciarMicrofono() {
@@ -138,7 +210,7 @@
             set(ref(db, 'modo_actual'), tabId);
         };
 
-        // --- SINCRONIZACIÓN CSV -> FIREBASE ---
+        // --- CSV E INSCRITOS ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
@@ -149,14 +221,12 @@
                     const c = l.split(l.includes(';') ? ';' : ',');
                     if(c[0] && c[0].trim()!=='') d[c[0].trim()] = { piloto:c[1]?.trim()||"", coche:c[2]?.trim()||"" };
                 });
-                // Guardamos en Firebase para que todos los dispositivos lo vean
                 set(ref(db, 'inscritos_' + t), d);
-                alert(`✓ Sincronizados ${Object.keys(d).length} pilotos en la nube.`);
+                alert(`✓ Sincronizados ${Object.keys(d).length} pilotos.`);
             };
             reader.readAsText(e.target.files[0], "UTF-8");
         };
 
-        // Escuchamos los inscritos de la nube (Realtime)
         onValue(ref(db, 'inscritos_drift'), snap => {
             inscritosD = snap.val() || {};
             document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
@@ -167,7 +237,6 @@
             document.getElementById('cnt-esc').innerText = Object.keys(inscritosE).length;
         });
 
-        // --- BUSCADORES ---
         window.buscarPilotoShow = (val) => {
             if(!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
             const dorsales = val.trim().split(/\s+/);
@@ -183,7 +252,7 @@
             document.getElementById('info-piloto-esc').innerText = p ? `${p.piloto} - ${p.coche}` : (d ? "No encontrado" : "Introduce un dorsal...");
         };
 
-        // --- DRIFT / VOTOS ---
+        // --- DRIFT ---
         window.abrirVoto = async () => {
             const inputVal = document.getElementById('d-show').value.trim();
             if(!inputVal) return alert("Pon un dorsal");
@@ -245,13 +314,17 @@
             if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
             const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
             await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
+            
+            // RESET CRONO POR COCHE AL PUBLICAR
+            segSlot = (document.getElementById('t-total').value * 60) / document.getElementById('c-totales').value;
+            actualizarCronoUI();
+
             const snap = await get(ref(db, 'ranking_escapes'));
             const data = Object.values(snap.val());
             const posDB = data.sort((a,b) => b.db - a.db).findIndex(p => p.dorsal == d) + 1;
             const posHZ = data.sort((a,b) => a.hz - b.hz).findIndex(p => p.dorsal == d) + 1;
-            let msg = `✅ PUBLICADO\nPiloto: ${info.piloto}\n----------------------\n🏆 Posición dB: ${posDB}º\n🏆 Posición Graves: ${posHZ}º`;
-            if(posDB <= 3 || posHZ <= 3) msg = "🔥 ¡PODIO DETECTADO! 🔥\n" + msg;
-            alert(msg);
+            alert(`✅ PUBLICADO\n${info.piloto}\n🏆 dB: ${posDB}º | 🏆 Hz: ${posHZ}º`);
+            
             document.getElementById('res-pico').innerText="0.0"; recDb=0;
             document.getElementById('d-esc').value = "";
             document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
@@ -271,7 +344,7 @@
             render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
         });
 
-        // --- REALTIME LISTENERS ---
+        // --- LISTENERS ---
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
             if (!v || v.activa === false) {
@@ -293,114 +366,14 @@
             if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
 
-    window.exportarVotos = async () => {
-    const s = await get(ref(db, 'historial_votos'));
-    if(!s.exists()) return alert("No hay datos para exportar");
-    
-    // 1. AGRUPAR VOTOS POR DORSAL
-    const datos = Object.values(s.val());
-    const resumen = {};
-
-    datos.forEach(v => {
-        if (!resumen[v.dorsal]) {
-            resumen[v.dorsal] = { 
-                info: (v.info || "Sin Info").replace(/;/g, " "), 
-                ap: 0, up: 0, dw: 0 
-            };
-        }
-        resumen[v.dorsal].ap += (v.ap || 0);
-        resumen[v.dorsal].up += (v.up || 0);
-        resumen[v.dorsal].dw += (v.dw || 0);
-    });
-
-    // 2. CREAR CSV CON FORMATO EXCEL
-    let csv = "sep=;\nDorsal;Piloto e Info;Aplauso;Like;Dislike\n";
-    for (const dorsal in resumen) {
-        const r = resumen[dorsal];
-        csv += `${dorsal};${r.info};${r.ap};${r.up};${r.dw}\n`;
-    }
-
-    // 3. DESCARGA AUTOMÁTICA
-    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `RESULTADOS_DRIFT_${new Date().toLocaleDateString()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // 4. DOBLE CONFIRMACIÓN Y LIMPIEZA TOTAL
-    setTimeout(() => {
-        const confirma1 = confirm("✅ Archivo exportado con éxito.\n\n¿QUIERES BORRAR LOS DATOS DE LA NUBE Y REINICIAR EL ARCHIVO CARGADO?");
-        if (confirma1) {
-            const confirma2 = confirm("⚠️ ¡ATENCIÓN! ⚠️\nEsta acción borrará los votos de la nube y el CSV actual.\n\n¿ESTÁS COMPLETAMENTE SEGURO?");
-            if (confirma2) {
-                remove(ref(db, 'historial_votos'))
-                    .then(() => {
-                        // Limpieza de interfaz y memoria
-                        document.getElementById('csv-votos').value = ""; 
-                        window.datosCSVVotos = []; 
-                        alert("Base de datos y CSV local reseteados correctamente.");
-                    })
-                    .catch(err => alert("Error al borrar: " + err));
-            }
-        }
-    }, 500);
-};
-    window.exportarEscapes = async () => {
-    const s = await get(ref(db, 'ranking_escapes'));
-    if(!s.exists()) return alert("No hay datos en el ranking para exportar");
-    
-    // 1. PREPARAR DATOS (Ordenados por dB)
-    const datos = Object.values(s.val()).sort((a, b) => b.db - a.db);
-    
-    // 2. CREAR CSV CON FORMATO EXCEL
-    let csv = "sep=;\nPosición;Dorsal;Piloto;Coche;Potencia (dB);Frecuencia (Hz)\n";
-    datos.forEach((p, index) => {
-        let dorsal = p.dorsal || "S/D";
-        let piloto = (p.piloto || "Anónimo").replace(/;/g, " ");
-        let coche = (p.coche || "S/C").replace(/;/g, " ");
-        let dbVal = p.db || 0;
-        let hzVal = p.hz || 0;
-        csv += `${index + 1}º;${dorsal};${piloto};${coche};${dbVal};${hzVal}\n`;
-    });
-
-    // 3. DESCARGA DEL ARCHIVO
-    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `RANKING_FINAL_ESCAPES_${new Date().toLocaleDateString()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // 4. DOBLE CONFIRMACIÓN Y LIMPIEZA TOTAL
-    setTimeout(() => {
-        const mensaje1 = "✅ Ranking exportado.\n\n¿QUIERES REINICIAR EL RANKING Y EL ARCHIVO DE INSCRITOS?";
-        if (confirm(mensaje1)) {
-            const mensaje2 = "⚠️ ADVERTENCIA CRÍTICA ⚠️\n\nSe borrará el ranking de la nube y el CSV de inscritos cargado.\n\n¿Confirmas el reinicio total?";
-            if (confirm(mensaje2)) {
-                remove(ref(db, 'ranking_escapes'))
-                    .then(() => {
-                        // Limpieza de interfaz y memoria
-                        document.getElementById('csv-escapes').value = ""; 
-                        window.datosCSVEscapes = []; 
-                        alert("Ranking y archivo de inscritos reseteados.");
-                    })
-                    .catch(err => alert("Error al limpiar: " + err));
-            }
-        }
-    }, 500);
-};
-
+        // Inicialización
+        recalcularSlot();
         set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
         set(ref(db, 'modo_actual'), 'tab-show');
+
     </script>
 </body>
 </html>
-
 
 
 

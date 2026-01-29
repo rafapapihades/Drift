@@ -23,11 +23,11 @@
         .info-preview { color: #888; font-size: 0.8em; margin-top: 5px; text-align: center; min-height: 1em; }
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 15px; }
         
-        /* Estilos nuevos Cronómetro */
+        /* Estilos Cronómetro y Progreso */
         .crono-box { display: flex; justify-content: space-around; align-items: center; margin: 10px 0; background: #000; padding: 10px; border-radius: 8px; border: 1px solid #222; }
-        .crono-time { font-family: monospace; font-size: 2em; line-height: 1; }
-        .crono-label { font-size: 0.6em; color: #888; text-transform: uppercase; margin-top: 4px; }
-        .crono-group { text-align: center; }
+        .crono-time { font-family: monospace; font-size: 1.8em; line-height: 1; }
+        .crono-label { font-size: 0.55em; color: #888; text-transform: uppercase; margin-top: 4px; }
+        .crono-group { text-align: center; flex: 1; }
     </style>
 </head>
 <body>
@@ -62,17 +62,20 @@
         <div class="card" style="border-color: #007bff;">
             <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                 <div style="flex: 1;"><small>TOTAL (MIN)</small><input type="number" id="t-total" value="90" style="font-size: 1em; padding: 5px;"></div>
-                <div style="flex: 1;"><small>COCHES</small><input type="number" id="c-totales" value="45" style="font-size: 1em; padding: 5px;" oninput="recalcularSlot()"></div>
+                <div style="flex: 1;"><small>COCHES CSV</small><input type="number" id="c-totales" value="0" readonly style="font-size: 1em; padding: 5px; opacity:0.6"></div>
             </div>
             <div class="crono-box">
                 <div class="crono-group">
                     <div id="reloj-global" class="crono-time">90:00</div>
-                    <div class="crono-label">EVENTO</div>
+                    <div class="crono-label">RESTANTE</div>
                 </div>
-                <div style="width: 1px; background: #333; height: 30px;"></div>
                 <div class="crono-group">
-                    <div id="reloj-slot" class="crono-time" style="color: #ffcc00;">02:00</div>
-                    <div class="crono-label">POR COCHE</div>
+                    <div id="progreso-esc" class="crono-time" style="color: #ffcc00; font-size: 1.5em;">0 de 0</div>
+                    <div class="crono-label">REALIZADOS</div>
+                </div>
+                <div class="crono-group">
+                    <div id="reloj-slot" class="crono-time" style="color: #007bff;">02:00</div>
+                    <div class="crono-label">TIEMPO/COCHE</div>
                 </div>
             </div>
             <div style="display: flex; gap: 5px;">
@@ -107,16 +110,17 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- VARIABLES CRONOMETRO ---
+        // --- CRONOMETRO Y PROGRESO ---
         let timerGlobal, segRestantes, segSlot, corriendo = false;
+        let realizadosEsc = 0, totalInscritosEsc = 0;
 
-        // --- VARIABLES AUDIO ---
+        // --- AUDIO ---
         let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false;
         let inscritosD={}, inscritosE={};
         let audioCtx, analyser, dataArray, streamActivo = false;
@@ -125,7 +129,7 @@
         // --- LOGICA CRONOMETRO ---
         window.recalcularSlot = () => {
             const totalMin = document.getElementById('t-total').value;
-            const totalC = document.getElementById('c-totales').value;
+            const totalC = totalInscritosEsc || 1; // Evitar división por cero
             segRestantes = totalMin * 60;
             segSlot = (totalMin * 60) / totalC;
             actualizarCronoUI();
@@ -152,7 +156,8 @@
         function actualizarCronoUI() {
             document.getElementById('reloj-global').innerText = fmtT(segRestantes);
             document.getElementById('reloj-slot').innerText = fmtT(segSlot);
-            document.getElementById('reloj-slot').style.color = segSlot < 20 ? "red" : "#ffcc00";
+            document.getElementById('progreso-esc').innerText = `${realizadosEsc} de ${totalInscritosEsc}`;
+            document.getElementById('reloj-slot').style.color = segSlot < 20 ? "red" : "#007bff";
         }
 
         function fmtT(s) {
@@ -207,7 +212,6 @@
             document.getElementById(tabId).style.display = 'block';
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(tabId === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
-            set(ref(db, 'modo_actual'), tabId);
         };
 
         // --- CSV E INSCRITOS ---
@@ -215,14 +219,22 @@
             const reader = new FileReader();
             reader.onload = (ex) => {
                 const content = ex.target.result;
-                const lines = content.split(/\r?\n/).slice(1);
+                const lines = content.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
                 let d = {};
                 lines.forEach(l => {
                     const c = l.split(l.includes(';') ? ';' : ',');
                     if(c[0] && c[0].trim()!=='') d[c[0].trim()] = { piloto:c[1]?.trim()||"", coche:c[2]?.trim()||"" };
                 });
+
+                if(t === 'esc') {
+                    totalInscritosEsc = Object.keys(d).length;
+                    document.getElementById('c-totales').value = totalInscritosEsc;
+                    realizadosEsc = 0; // Reiniciar contador al cargar nuevo CSV
+                    recalcularSlot();
+                }
+
                 set(ref(db, 'inscritos_' + t), d);
-                alert(`✓ Sincronizados ${Object.keys(d).length} pilotos.`);
+                alert(`✓ Cargados ${Object.keys(d).length} participantes.`);
             };
             reader.readAsText(e.target.files[0], "UTF-8");
         };
@@ -306,30 +318,27 @@
             }
         };
 
-        // --- ESCAPES ---
+        // --- PUBLICAR ESCAPE ---
         window.publicarEscape = async () => {
             const d = document.getElementById('d-esc').value.trim();
             const dbV = parseFloat(document.getElementById('res-pico').innerText);
             const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
             if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
+            
             const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
             await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
             
-            // RESET CRONO POR COCHE AL PUBLICAR
-            segSlot = (document.getElementById('t-total').value * 60) / document.getElementById('c-totales').value;
+            // PROGRESO Y CRONÓMETRO
+            realizadosEsc++;
+            segSlot = (document.getElementById('t-total').value * 60) / (totalInscritosEsc || 1);
             actualizarCronoUI();
 
-            const snap = await get(ref(db, 'ranking_escapes'));
-            const data = Object.values(snap.val());
-            const posDB = data.sort((a,b) => b.db - a.db).findIndex(p => p.dorsal == d) + 1;
-            const posHZ = data.sort((a,b) => a.hz - b.hz).findIndex(p => p.dorsal == d) + 1;
-            alert(`✅ PUBLICADO\n${info.piloto}\n🏆 dB: ${posDB}º | 🏆 Hz: ${posHZ}º`);
-            
+            alert(`✅ PUBLICADO: ${info.piloto}`);
             document.getElementById('res-pico').innerText="0.0"; recDb=0;
             document.getElementById('d-esc').value = "";
-            document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
         };
 
+        // RENDER RANKINGS
         onValue(ref(db, 'ranking_escapes'), snap => {
             const data = snap.exists() ? Object.values(snap.val()) : [];
             const render = (target, list, unit, sortFn) => {
@@ -342,16 +351,17 @@
             };
             render('m-rank-db', [...data], 'dB', (a,b)=>b.db-a.db);
             render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
+            // Actualizar contador realizado si se borran datos o se reinicia
+            realizadosEsc = data.length;
+            actualizarCronoUI();
         });
 
-        // --- LISTENERS ---
+        // VOTOS REALTIME
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
             if (!v || v.activa === false) {
                 document.getElementById('m-ap').innerText = "0"; document.getElementById('m-up').innerText = "0";
                 document.getElementById('m-dw').innerText = "0"; document.getElementById('info-pista-drift').innerText = "";
-                document.getElementById('d-show').value = ""; 
-                document.getElementById('preview-show').innerText = "Introduce dorsal...";
                 return;
             }
             document.getElementById('m-ap').innerText = v.aplausos || 0;
@@ -360,16 +370,20 @@
             document.getElementById('info-pista-drift').innerText = v.info || "";
         });
 
+        // ESTADO PISTA
         onValue(ref(db, 'estado_pista'), s => {
             const e = s.val();
             document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
             if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
 
-        // Inicialización
+        // EXPORTACIONES
+        window.exportarVotos = async () => { /* Tu lógica de exportación Drift */ };
+        window.exportarEscapes = async () => { /* Tu lógica de exportación Escapes */ };
+
+        // INICIO
         recalcularSlot();
         set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
-        set(ref(db, 'modo_actual'), 'tab-show');
 
     </script>
 </body>

@@ -44,7 +44,6 @@
             <button class="btn" style="background:#333; opacity:1; padding:10px" onclick="document.getElementById('xl-d').click()">📂 SINCRONIZAR DRIFT.CSV</button>
             <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
         </div>
-        
         <div class="card">
             <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
             <div id="info-pista-drift" class="info-pista"></div>
@@ -62,24 +61,24 @@
         <div class="card" style="border-color: #007bff;">
             <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                 <div style="flex: 1;"><small>TOTAL (MIN)</small><input type="number" id="t-total" value="90" style="font-size: 1em; padding: 5px;"></div>
-                <div style="flex: 1;"><small>COCHES CSV</small><input type="number" id="c-totales" value="0" readonly style="font-size: 1em; padding: 5px; opacity:0.6"></div>
+                <div style="flex: 1;"><small>INSCRITOS CSV</small><input type="number" id="c-totales" value="0" readonly style="font-size: 1em; padding: 5px; opacity:0.6"></div>
             </div>
             <div class="crono-box">
                 <div class="crono-group">
-                    <div id="reloj-global" class="crono-time">90:00</div>
-                    <div class="crono-label">RESTANTE</div>
+                    <div id="reloj-global" class="crono-time">--:--</div>
+                    <div class="crono-label">EVENTO</div>
                 </div>
                 <div class="crono-group">
                     <div id="progreso-esc" class="crono-time" style="color: #ffcc00; font-size: 1.5em;">0 de 0</div>
-                    <div class="crono-label">REALIZADOS</div>
+                    <div class="crono-label">PARTICIPANTES</div>
                 </div>
                 <div class="crono-group">
-                    <div id="reloj-slot" class="crono-time" style="color: #007bff;">02:00</div>
-                    <div class="crono-label">TIEMPO/COCHE</div>
+                    <div id="reloj-slot" class="crono-time" style="color: #007bff;">--:--</div>
+                    <div class="crono-label">POR COCHE</div>
                 </div>
             </div>
             <div style="display: flex; gap: 5px;">
-                <button class="btn" id="btn-play" style="background:green; flex: 2; padding: 12px; margin: 0;" onclick="controlCrono('play')">▶ PLAY</button>
+                <button class="btn" id="btn-play" style="background:green; flex: 2; padding: 12px; margin: 0;" onclick="controlCrono('play')">▶ PLAY SYNC</button>
                 <button class="btn" style="background:#444; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('pause')">||</button>
                 <button class="btn" style="background:#222; flex: 1; padding: 12px; margin: 0;" onclick="controlCrono('reset')">↺</button>
             </div>
@@ -110,48 +109,44 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- CRONOMETRO Y PROGRESO ---
-        let timerGlobal, segRestantes, segSlot, corriendo = false;
-        let realizadosEsc = 0, totalInscritosEsc = 0;
+        // --- VARIABLES DE ESTADO ---
+        let timerGlobal, segRestantes = 0, segSlot = 0, realizadosEsc = 0, totalInscritosEsc = 0, corriendo = false;
+        let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false, inscritosD={}, inscritosE={}, audioCtx, analyser, dataArray, streamActivo = false, acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
 
-        // --- AUDIO ---
-        let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false;
-        let inscritosD={}, inscritosE={};
-        let audioCtx, analyser, dataArray, streamActivo = false;
-        let acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
-
-        // --- LOGICA CRONOMETRO ---
-        window.recalcularSlot = () => {
-            const totalMin = document.getElementById('t-total').value;
-            const totalC = totalInscritosEsc || 1; // Evitar división por cero
-            segRestantes = totalMin * 60;
-            segSlot = (totalMin * 60) / totalC;
-            actualizarCronoUI();
-        };
-
+        // --- CRONÓMETRO SINCRONIZADO ---
         window.controlCrono = (accion) => {
-            if(accion === 'play' && !corriendo) {
-                corriendo = true;
-                timerGlobal = setInterval(() => {
-                    if(segRestantes > 0) segRestantes--;
-                    if(segSlot > 0) segSlot--;
-                    actualizarCronoUI();
-                }, 1000);
-            } else if(accion === 'pause') {
-                corriendo = false;
-                clearInterval(timerGlobal);
-            } else if(accion === 'reset') {
-                corriendo = false;
-                clearInterval(timerGlobal);
-                recalcularSlot();
+            if (accion === 'play') {
+                const duracionMs = document.getElementById('t-total').value * 60000;
+                const ahora = Date.now();
+                set(ref(db, 'crono_evento'), { endTime: ahora + duracionMs, totalMin: document.getElementById('t-total').value, corriendo: true });
+            } else if (accion === 'pause' || accion === 'reset') {
+                update(ref(db, 'crono_evento'), { corriendo: false });
+                if (accion === 'reset') set(ref(db, 'crono_evento'), null);
             }
         };
+
+        onValue(ref(db, 'crono_evento'), (snap) => {
+            const data = snap.val();
+            clearInterval(timerGlobal);
+            if (data && data.corriendo) {
+                corriendo = true;
+                timerGlobal = setInterval(() => {
+                    const ahora = Date.now();
+                    segRestantes = Math.max(0, Math.floor((data.endTime - ahora) / 1000));
+                    actualizarCronoUI();
+                }, 1000);
+            } else {
+                corriendo = false;
+                if (!data) segRestantes = document.getElementById('t-total').value * 60;
+                actualizarCronoUI();
+            }
+        });
 
         function actualizarCronoUI() {
             document.getElementById('reloj-global').innerText = fmtT(segRestantes);
@@ -165,7 +160,7 @@
             return `${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
         }
 
-        // --- MICROFONO ---
+        // --- AUDIO ---
         async function iniciarMicrofono() {
             if (streamActivo) return;
             try {
@@ -206,57 +201,81 @@
             event.currentTarget.classList.toggle('btn-pulsado', !!a);
         };
 
-        // --- NAVEGACIÓN ---
-        window.cambiarTab = (tabId) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-            document.getElementById(tabId).style.display = 'block';
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
-            document.getElementById(tabId === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
-        };
-
-        // --- CSV E INSCRITOS ---
+        // --- CSV Y CARGA ---
         window.cargarCSV = (e, t) => {
             const reader = new FileReader();
             reader.onload = (ex) => {
-                const content = ex.target.result;
-                const lines = content.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
+                const lines = ex.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
                 let d = {};
                 lines.forEach(l => {
                     const c = l.split(l.includes(';') ? ';' : ',');
                     if(c[0] && c[0].trim()!=='') d[c[0].trim()] = { piloto:c[1]?.trim()||"", coche:c[2]?.trim()||"" };
                 });
-
-                if(t === 'esc') {
-                    totalInscritosEsc = Object.keys(d).length;
-                    document.getElementById('c-totales').value = totalInscritosEsc;
-                    realizadosEsc = 0; // Reiniciar contador al cargar nuevo CSV
-                    recalcularSlot();
-                }
-
                 set(ref(db, 'inscritos_' + t), d);
-                alert(`✓ Cargados ${Object.keys(d).length} participantes.`);
+                alert(`✓ Sincronizados ${Object.keys(d).length} participantes.`);
             };
             reader.readAsText(e.target.files[0], "UTF-8");
         };
+
+        // Escuchar inscritos (Total Y)
+        onValue(ref(db, 'inscritos_esc'), snap => {
+            inscritosE = snap.val() || {};
+            totalInscritosEsc = Object.keys(inscritosE).length;
+            document.getElementById('c-totales').value = totalInscritosEsc;
+            document.getElementById('cnt-esc').innerText = totalInscritosEsc;
+            actualizarCronoUI();
+        });
 
         onValue(ref(db, 'inscritos_drift'), snap => {
             inscritosD = snap.val() || {};
             document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
         });
 
-        onValue(ref(db, 'inscritos_esc'), snap => {
-            inscritosE = snap.val() || {};
-            document.getElementById('cnt-esc').innerText = Object.keys(inscritosE).length;
+        // --- PUBLICAR ESCAPE ---
+        window.publicarEscape = async () => {
+            const d = document.getElementById('d-esc').value.trim();
+            const dbV = parseFloat(document.getElementById('res-pico').innerText);
+            const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
+            if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
+            const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
+            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
+            
+            // Reiniciar localmente el tiempo por coche
+            segSlot = (document.getElementById('t-total').value * 60) / (totalInscritosEsc || 1);
+            alert(`✅ PUBLICADO: ${info.piloto}`);
+            document.getElementById('res-pico').innerText="0.0"; recDb=0;
+            document.getElementById('d-esc').value = "";
+        };
+
+        // Escuchar ranking (Participantes X)
+        onValue(ref(db, 'ranking_escapes'), snap => {
+            const data = snap.exists() ? Object.values(snap.val()) : [];
+            realizadosEsc = data.length;
+            const render = (target, list, unit, sortFn) => {
+                let html = `<b>🏆 TOP 3 ${unit}:</b>`;
+                list.sort(sortFn).slice(0,3).forEach((p, i) => {
+                    const valor = unit === 'dB' ? p.db : p.hz;
+                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal} ${p.piloto}</span><b>${valor}${unit}</b></div>`;
+                });
+                document.getElementById(target).innerHTML = html;
+            };
+            render('m-rank-db', [...data], 'dB', (a,b)=>b.db-a.db);
+            render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
+            actualizarCronoUI();
         });
 
+        // --- LÓGICA DRIFT Y NAV ---
+        window.cambiarTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
+            document.getElementById(id === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
+        };
+
         window.buscarPilotoShow = (val) => {
-            if(!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
             const dorsales = val.trim().split(/\s+/);
-            const encontrados = dorsales.map(d => {
-                const p = inscritosD[d];
-                return p ? `${d}: ${p.piloto}` : `${d}: ?`;
-            });
-            document.getElementById('preview-show').innerText = encontrados.join(' | ');
+            const encontrados = dorsales.map(d => { const p = inscritosD[d]; return p ? `${d}: ${p.piloto}` : `${d}: ?`; });
+            document.getElementById('preview-show').innerText = val ? encontrados.join(' | ') : "Introduce dorsal...";
         };
 
         window.buscarPilotoEscape = (d) => {
@@ -264,7 +283,6 @@
             document.getElementById('info-piloto-esc').innerText = p ? `${p.piloto} - ${p.coche}` : (d ? "No encontrado" : "Introduce un dorsal...");
         };
 
-        // --- DRIFT ---
         window.abrirVoto = async () => {
             const inputVal = document.getElementById('d-show').value.trim();
             if(!inputVal) return alert("Pon un dorsal");
@@ -276,21 +294,12 @@
                 const historial = Object.values(histSnap.val());
                 dorsalesArr.forEach(d => {
                     historial.filter(h => h.dorsal === d).forEach(v => {
-                        acumuladoInicial.ap += (v.ap || 0);
-                        acumuladoInicial.up += (v.up || 0);
-                        acumuladoInicial.dw += (v.dw || 0);
+                        acumuladoInicial.ap += (v.ap || 0); acumuladoInicial.up += (v.up || 0); acumuladoInicial.dw += (v.dw || 0);
                     });
                 });
             }
-            dorsalesArr.forEach(d => {
-                const p = inscritosD[d] || { piloto: "Piloto "+d, coche: "" };
-                nombresArr.push(`${p.piloto} ${p.coche}`);
-            });
-            set(ref(db, 'votacion_activa'), { 
-                dorsal: inputVal, info: nombresArr.join(' / '), 
-                aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw, 
-                activa: true, timer: 0 
-            });
+            dorsalesArr.forEach(d => { const p = inscritosD[d] || { piloto: "P"+d, coche: "" }; nombresArr.push(`${p.piloto} ${p.coche}`); });
+            set(ref(db, 'votacion_activa'), { dorsal: inputVal, info: nombresArr.join(' / '), aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw, activa: true, timer: 0 });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + inputVal, color: '#007bff', id: 'btn-coche' });
         };
 
@@ -304,90 +313,33 @@
                     const nuevosUp = (data.up || 0) - acumuladoInicial.up;
                     const nuevosDw = (data.down || 0) - acumuladoInicial.dw;
                     push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap: nuevosAp, up: nuevosUp, dw: nuevosDw, ts: Date.now() });
-                    let t = 5;
-                    update(ref(db, 'votacion_activa'), { timer: t });
-                    const interval = setInterval(() => {
-                        t--;
-                        if(t > 0) update(ref(db, 'votacion_activa'), { timer: t });
-                        else { 
-                            clearInterval(interval);
-                            set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
-                        }
-                    }, 1000);
+                    set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
                 }
             }
         };
 
-        // --- PUBLICAR ESCAPE ---
-        window.publicarEscape = async () => {
-            const d = document.getElementById('d-esc').value.trim();
-            const dbV = parseFloat(document.getElementById('res-pico').innerText);
-            const hzV = parseInt(document.getElementById('res-tono').innerText) || 0;
-            if(!d || dbV <= 30) return alert("Dorsal o dB inválido");
-            
-            const info = inscritosE[d] || { piloto: "Piloto "+d, coche: "" };
-            await set(ref(db, 'ranking_escapes/'+d), { ...info, dorsal:d, db:dbV, hz:hzV });
-            
-            // PROGRESO Y CRONÓMETRO
-            realizadosEsc++;
-            segSlot = (document.getElementById('t-total').value * 60) / (totalInscritosEsc || 1);
-            actualizarCronoUI();
-
-            alert(`✅ PUBLICADO: ${info.piloto}`);
-            document.getElementById('res-pico').innerText="0.0"; recDb=0;
-            document.getElementById('d-esc').value = "";
-        };
-
-        // RENDER RANKINGS
-        onValue(ref(db, 'ranking_escapes'), snap => {
-            const data = snap.exists() ? Object.values(snap.val()) : [];
-            const render = (target, list, unit, sortFn) => {
-                let html = `<b>🏆 TOP 3 ${unit}:</b>`;
-                list.sort(sortFn).slice(0,3).forEach((p, i) => {
-                    const valor = unit === 'dB' ? p.db : p.hz;
-                    html += `<div class="rank-line"><span>${i+1}. ${p.dorsal} ${p.piloto}</span><b>${valor}${unit}</b></div>`;
-                });
-                document.getElementById(target).innerHTML = html;
-            };
-            render('m-rank-db', [...data], 'dB', (a,b)=>b.db-a.db);
-            render('m-rank-hz', [...data], 'Hz', (a,b)=>a.hz-b.hz);
-            // Actualizar contador realizado si se borran datos o se reinicia
-            realizadosEsc = data.length;
-            actualizarCronoUI();
-        });
-
-        // VOTOS REALTIME
+        // --- INICIO ---
+        set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
-            if (!v || v.activa === false) {
-                document.getElementById('m-ap').innerText = "0"; document.getElementById('m-up').innerText = "0";
-                document.getElementById('m-dw').innerText = "0"; document.getElementById('info-pista-drift').innerText = "";
-                return;
+            if (v && v.activa) {
+                document.getElementById('m-ap').innerText = v.aplausos || 0;
+                document.getElementById('m-up').innerText = v.up || 0;
+                document.getElementById('m-dw').innerText = v.down || 0;
+                document.getElementById('info-pista-drift').innerText = v.info || "";
+            } else {
+                document.getElementById('m-ap').innerText = "0"; document.getElementById('m-up').innerText = "0"; document.getElementById('m-dw').innerText = "0"; document.getElementById('info-pista-drift').innerText = "";
             }
-            document.getElementById('m-ap').innerText = v.aplausos || 0;
-            document.getElementById('m-up').innerText = v.up || 0;
-            document.getElementById('m-dw').innerText = v.down || 0;
-            document.getElementById('info-pista-drift').innerText = v.info || "";
         });
-
-        // ESTADO PISTA
         onValue(ref(db, 'estado_pista'), s => {
             const e = s.val();
             document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
             if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
-
-        // EXPORTACIONES
-        window.exportarVotos = async () => { /* Tu lógica de exportación Drift */ };
-        window.exportarEscapes = async () => { /* Tu lógica de exportación Escapes */ };
-
-        // INICIO
-        recalcularSlot();
-        set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
-
     </script>
 </body>
 </html>
+
 
 
 

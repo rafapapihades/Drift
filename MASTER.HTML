@@ -293,31 +293,63 @@
             if(e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
 
-        window.exportarVotos = async () => {
-            const s = await get(ref(db, 'historial_votos'));
-            if(!s.exists()) return alert("No hay datos");
-            let csv = "Dorsal,Info,Aplausos,Likes,Dislikes\n";
-            Object.values(s.val()).forEach(v => csv += `"${v.dorsal}","${v.info}",${v.ap},${v.up},${v.dw}\n`);
-            const blob = new Blob([csv], {type:'text/csv'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download="VOTOS.csv"; a.click();
-            if(confirm("¿Limpiar historial de votos?")) remove(ref(db, 'historial_votos'));
-        };
+       window.exportarVotos = async () => {
+    const s = await get(ref(db, 'historial_votos'));
+    if(!s.exists()) return alert("No hay datos para exportar");
+    
+    // Encabezados
+    let csv = "Dorsal,Piloto_Info,Aplausos,Likes,Dislikes\n";
+    
+    Object.values(s.val()).forEach(v => {
+        // Limpiamos comas internas para no romper las columnas de Excel
+        let infoLimpia = v.info.replace(/,/g, " "); 
+        csv += `${v.dorsal},${infoLimpia},${v.ap},${v.up},${v.dw}\n`;
+    });
+
+    // La magia para Excel: El BOM (Byte Order Mark) \uFEFF
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = "RESULTADOS_VOTOS_DRIFT.csv";
+    a.click();
+
+    if(confirm("¿Deseas limpiar el historial de la nube ahora?")) {
+        remove(ref(db, 'historial_votos'));
+    }
+};
 
         window.exportarEscapes = async () => {
-            const s = await get(ref(db, 'ranking_escapes'));
-            if(!s.exists()) return alert("No hay datos");
-            let csv = "Dorsal,Piloto,Coche,dB,Hz\n";
-            Object.values(s.val()).forEach(p => csv += `"${p.dorsal}","${p.piloto}","${p.coche}",${p.db},${p.hz}\n`);
-            const blob = new Blob([csv], {type:'text/csv'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download="ESCAPES.csv"; a.click();
-            if(confirm("¿Limpiar ranking de escapes?")) remove(ref(db, 'ranking_escapes'));
-        };
+    const s = await get(ref(db, 'ranking_escapes'));
+    if(!s.exists()) return alert("No hay ranking que exportar");
+    
+    let csv = "Dorsal,Piloto,Coche,Decibelios_dB,Frecuencia_Hz\n";
+    
+    // Ordenamos por dB antes de exportar para que ya te salga el ganador arriba
+    const datosOrdenados = Object.values(s.val()).sort((a,b) => b.db - a.db);
+
+    datosOrdenados.forEach(p => {
+        let pilotoLimpio = p.piloto.replace(/,/g, " ");
+        let cocheLimpio = p.coche.replace(/,/g, " ");
+        csv += `${p.dorsal},${pilotoLimpio},${cocheLimpio},${p.db},${p.hz}\n`;
+    });
+
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = "RANKING_FINAL_ESCAPES.csv";
+    a.click();
+
+    if(confirm("¿Deseas borrar el ranking de la nube para un nuevo evento?")) {
+        remove(ref(db, 'ranking_escapes'));
+    }
+};
 
         set(ref(db, 'estado_pista'), { mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
         set(ref(db, 'modo_actual'), 'tab-show');
     </script>
 </body>
 </html>
+
 
 
 

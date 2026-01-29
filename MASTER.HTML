@@ -112,7 +112,6 @@
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(id === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
             
-            // Sincronización con Pista y Público usando la variable correcta
             set(ref(db, 'modo_actual'), id); 
 
             if(id === 'tab-show') {
@@ -123,7 +122,7 @@
         };
 
         // --- EXPORTACIÓN DE ARCHIVOS ---
-        function descargarCSV(contenido, nombreArchivo) {
+        function descargarArchivo(contenido, nombreArchivo) {
             const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
@@ -145,7 +144,7 @@
                 csvContent += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw};${fecha}\n`;
             });
 
-            descargarCSV(csvContent, "votos_drift_show.csv");
+            descargarArchivo(csvContent, "votos_drift_show.csv");
             if(confirm("¿Deseas BORRAR el historial de la nube ahora que lo has descargado?")) {
                 remove(ref(db, 'historial_votos'));
                 alert("Historial limpiado.");
@@ -162,7 +161,7 @@
                 csvContent += `${index + 1};${v.dorsal};${v.piloto};${v.coche};${v.db};${v.hz}\n`;
             });
 
-            descargarCSV(csvContent, "ranking_escapes.csv");
+            descargarArchivo(csvContent, "ranking_escapes.csv");
         };
 
         // --- SISTEMA DE CRONÓMETRO ---
@@ -284,7 +283,6 @@
 
             const info = inscritosE[d] || { piloto: "Piloto " + d, coche: "S/D" };
             
-            // 1. Guardar en Firebase
             await set(ref(db, 'ranking_escapes/' + d), {
                 ...info,
                 dorsal: d,
@@ -293,26 +291,23 @@
                 ts: Date.now()
             });
 
-            // 2. Calcular posición para el aviso
             const snap = await get(ref(db, 'ranking_escapes'));
             const lista = Object.values(snap.val()).sort((a,b) => b.db - a.db);
             const pos = lista.findIndex(p => p.dorsal === d) + 1;
 
-            // 3. Resetear crono de slot
             const totalM = document.getElementById('t-total').value;
             const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
             update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
 
             alert(`✅ PUBLICADO: ${info.piloto}\n📊 Resultado: ${dbVal} dB\n🏆 Puesto actual: ${pos}º`);
 
-            // Limpiar
             dInput.value = "";
             document.getElementById('res-pico').innerText = "0.0";
             recDb = 0;
             document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
         };
 
-       // --- LÓGICA DRIFT SHOW (SIN TEXTO EXTRA) ---
+        // --- LÓGICA DRIFT SHOW ---
         window.abrirVoto = async () => {
             const inputElt = document.getElementById('d-show');
             const val = inputElt.value.trim();
@@ -322,7 +317,6 @@
             let infoConcat = [];
             acumuladoInicial = { ap: 0, up: 0, dw: 0 };
 
-            // 1. Calcular base acumulada desde el historial
             const histSnap = await get(ref(db, 'historial_votos'));
             if (histSnap.exists()) {
                 const historial = Object.values(histSnap.val());
@@ -335,11 +329,9 @@
                 });
             }
 
-            // --- CORRECCIÓN AQUÍ: Incluir Piloto + Coche ---
             dorsalesArr.forEach(d => {
                 const p = inscritosD[d];
                 if (p) {
-                    // Si hay coche, lo ponemos entre paréntesis
                     const textoCoche = p.coche ? ` (${p.coche})` : "";
                     infoConcat.push(`${p.piloto}${textoCoche}`);
                 } else {
@@ -347,10 +339,9 @@
                 }
             });
 
-            // 2. Publicar en la nube
             set(ref(db, 'votacion_activa'), {
                 dorsal: val,
-                info: infoConcat.join(' / '), // Esto enviará "Nombre (Coche) / Nombre (Coche)"
+                info: infoConcat.join(' / '),
                 aplausos: acumuladoInicial.ap,
                 up: acumuladoInicial.up,
                 down: acumuladoInicial.dw,
@@ -363,18 +354,11 @@
             document.getElementById('preview-show').innerText = "Votación abierta...";
         };
 
-            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
-            inputElt.value = "";
-            document.getElementById('preview-show').innerText = "Votación abierta...";
-        };
-
         window.setEstado = async (msg, col, id) => {
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
             
             if (id === 'btn-libre') {
-                // LIMPIEZA VISUAL EN MASTER: Quitamos el "Votación abierta"
                 document.getElementById('preview-show').innerText = "Introduce dorsal...";
-
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
@@ -401,25 +385,34 @@
                 }
             }
         };
+
         // --- MANEJO DE CSV E INSCRITOS ---
         window.cargarCSV = (event, tipo) => {
+            const file = event.target.files[0];
+            if (!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
-                const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
-                let obj = {};
-                lines.forEach(line => {
-                    const columns = line.split(line.includes(';') ? ';' : ',');
-                    if (columns[0]) {
-                        obj[columns[0].trim()] = {
-                            piloto: columns[1]?.trim() || "",
-                            coche: columns[2]?.trim() || ""
-                        };
-                    }
-                });
-                set(ref(db, 'inscritos_' + tipo), obj);
-                alert(`Cargados ${Object.keys(obj).length} inscritos.`);
+                try {
+                    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
+                    let obj = {};
+                    lines.forEach(line => {
+                        const columns = line.split(line.includes(';') ? ';' : ',');
+                        if (columns[0]) {
+                            const dorsal = columns[0].trim();
+                            obj[dorsal] = {
+                                piloto: columns[1]?.trim() || "Piloto " + dorsal,
+                                coche: columns[2]?.trim() || ""
+                            };
+                        }
+                    });
+                    set(ref(db, 'inscritos_' + tipo), obj).then(() => {
+                        alert(`Cargados ${Object.keys(obj).length} inscritos.`);
+                    });
+                } catch (err) {
+                    alert("Error procesando CSV");
+                }
             };
-            reader.readAsText(event.target.files[0], "UTF-8");
+            reader.readAsText(file, "UTF-8");
         };
 
         // --- LISTENERS DE FIREBASE ---
@@ -460,8 +453,6 @@
             if (!snap.exists()) return;
             const lista = Object.values(snap.val());
             realizadosEsc = lista.length;
-            
-            // Actualizar TOP 3 dB
             const topDb = [...lista].sort((a,b) => b.db - a.db).slice(0,3);
             let htmlDb = "<b>🏆 TOP 3 dB:</b>";
             topDb.forEach((p, i) => {
@@ -469,7 +460,6 @@
             });
             document.getElementById('m-rank-db').innerHTML = htmlDb;
 
-            // Actualizar TOP 3 Hz
             const topHz = [...lista].sort((a,b) => a.hz - b.hz).slice(0,3);
             let htmlHz = "<b>🏆 TOP 3 GRAVES:</b>";
             topHz.forEach((p, i) => {
@@ -493,11 +483,11 @@
             document.getElementById('info-piloto-esc').innerText = p ? `${p.piloto} (${p.coche})` : (d ? "No encontrado" : "Introduce un dorsal...");
         };
 
-        // Reset inicial
         set(ref(db, 'modo_actual'), 'tab-show');
     </script>
 </body>
 </html>
+
 
 
 

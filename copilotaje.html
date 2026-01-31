@@ -66,7 +66,7 @@
         <input type="text" id="nombre-evento" class="event-name-input" placeholder="NOMBRE DEL EVENTO">
         <div class="controls-row">
             <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (<span id="count-tag">0</span>)</button>
-            <button class="btn-mini btn-reset" id="btn-reset">REINICIAR</button>
+            <button class="btn-mini btn-reset" id="btn-reset">REINICIAR EVENTO</button>
         </div>
         <input type="file" id="csv-pilotos" hidden accept=".csv">
     </div>
@@ -143,7 +143,7 @@
                             <div class="ready-container">
                                 <input type="checkbox" class="status-chk" ${item.enRecinto?'checked':''}>
                                 <span class="${item.enRecinto ? 'label-dentro' : 'label-espera'}">
-                                    ${item.enRecinto ? 'DENTRO DEL RECINTO' : 'ENTRA AL RECINTO'}
+                                    ${item.enRecinto ? 'DENTRO' : 'FUERA'}
                                 </span>
                             </div>
                         </td>
@@ -173,7 +173,7 @@
             }
         });
 
-        // CARGA DE PILOTOS DESDE TU CSV
+        // CARGA DE PILOTOS
         document.getElementById('csv-pilotos').onchange = (e) => {
             const r = new FileReader();
             r.onload = (ev) => {
@@ -181,11 +181,7 @@
                 const obj = {};
                 lines.forEach((l, i) => { 
                     const c = l.split(l.includes(';') ? ';' : ',');
-                    if(c.length >= 3) {
-                        // Formato: Dorsal(0), Piloto(1), Coche(2), Equipo(3)
-                        // Guardamos: "Piloto | Coche"
-                        obj[i] = `${c[1].trim()} | ${c[2].trim()}`;
-                    }
+                    if(c.length >= 3) obj[i] = `${c[1].trim()} | ${c[2].trim()}`;
                 });
                 set(ref(db, 'copilotajes/config_pilotos'), obj);
             };
@@ -222,10 +218,50 @@
             document.getElementById('c-nombre').value = ""; document.getElementById('c-firma').checked = false; fnValidar();
         };
 
-        document.getElementById('btn-reset').onclick = () => confirm("¿BORRAR TODO EL EVENTO?") && remove(ref(db, 'copilotajes'));
+        // EXPORTAR Y REINICIAR
+        document.getElementById('btn-reset').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            if (!snap.exists()) return;
+            
+            const data = snap.val();
+            const nombreEvento = data.nombre_evento || "EVENTO_TAXI_DRIFT";
+            
+            // Combinar espera y completados para el CSV
+            let listado = [];
+            if(data.espera) Object.values(data.espera).forEach(v => listado.push({...v, estado: 'PENDIENTE'}));
+            if(data.completados) Object.values(data.completados).forEach(v => listado.push({...v, estado: 'COMPLETADO'}));
+            
+            listado.sort((a,b) => a.nPapel - b.nPapel);
+
+            // Crear contenido CSV
+            let csvContent = "Nº TICKET,ESTADO,COPILOTO,PILOTO,COCHE,HORA REGISTRO,HORA PISTA\n";
+            listado.forEach(v => {
+                const [pNom, pCoch] = v.piloto.split(' | ');
+                csvContent += `${v.nPapel},${v.estado},${v.copiloto},${pNom},${pCoch || ''},${v.horaRegistro},${v.horaPista || '-'}\n`;
+            });
+
+            // Descargar archivo
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${nombreEvento.replace(/\s+/g, '_')}_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Confirmación de borrado
+            setTimeout(() => {
+                if(confirm("CSV EXPORTADO. ¿Deseas borrar todos los datos de la nube para empezar un nuevo evento?")) {
+                    remove(ref(db, 'copilotajes'));
+                }
+            }, 500);
+        };
+
         onValue(ref(db, 'copilotajes/nombre_evento'), s => document.getElementById('nombre-evento').value = s.val() || "");
         document.getElementById('nombre-evento').onchange = (e) => set(ref(db, 'copilotajes/nombre_evento'), e.target.value);
     </script>
 </body>
-
 </html>
+
+

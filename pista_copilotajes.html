@@ -24,8 +24,7 @@
         .header h2 { margin: 0; color: var(--red); text-transform: uppercase; font-size: 1.4em; }
 
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
-        
-        .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
 
         input[type="search"] { 
             width: 100%; padding: 15px; background: #000; border: 1px solid #444; 
@@ -36,36 +35,19 @@
         td { padding: 12px 8px; border-bottom: 1px solid #222; }
 
         .n-doc { background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 900; margin-right: 5px; }
+        .dorsal-badge { background: #333; color: var(--accent); padding: 2px 5px; border-radius: 3px; font-size: 0.7em; border: 1px solid var(--accent); margin-right: 5px; }
         .piloto-info { color: #aaa; font-size: 0.8em; font-family: sans-serif; }
         .car-highlight { color: var(--accent); font-weight: bold; font-size: 0.85em; }
 
-        /* BOTONES */
-        .btn-pista { 
-            background: var(--green); color: white; border: none; padding: 15px 5px; 
-            border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer;
-            text-transform: uppercase; font-size: 0.85em; box-shadow: 0 4px 0 #155d27;
-        }
-        
-        .btn-salida { 
-            background: var(--orange); color: white; border: none; padding: 12px 5px; 
-            border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer;
-            text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e;
-        }
+        .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.85em; box-shadow: 0 4px 0 #155d27; }
+        .btn-salida { background: var(--orange); color: white; border: none; padding: 12px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e; }
+        .btn-change { background: #222; color: #888; border: 1px solid #444; padding: 8px; border-radius: 4px; font-size: 0.65em; cursor: pointer; margin-top: 8px; text-transform: uppercase; width: 100%; font-family: sans-serif; font-weight: bold; }
 
-        .btn-change {
-            background: #222; color: #888; border: 1px solid #444; padding: 5px; 
-            border-radius: 4px; font-size: 0.6em; cursor: pointer; margin-top: 8px;
-            text-transform: uppercase; width: 100%; font-family: sans-serif;
-        }
-
-        .no-data { text-align: center; padding: 20px; color: #444; font-size: 0.8em; font-style: italic; font-family: sans-serif; }
+        #modal-cambio { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 450px; text-align: center; }
+        .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; font-family: sans-serif; }
         
-        #modal-cambio {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center;
-        }
-        .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
-        .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; }
+        .sugerido-tag { color: var(--green); font-size: 0.7em; font-weight: bold; display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -74,31 +56,28 @@
         <h2>CONTROL PISTA TAXI DRIFT</h2>
     </div>
 
-    <input type="search" id="buscador" placeholder="🔍 BUSCAR DATOS..." oninput="filtrar()">
+    <input type="search" id="buscador" placeholder="🔍 BUSCAR COCO o PILOTO..." oninput="filtrar()">
 
     <div class="card">
         <div class="section-title">📋 COLA DE ACCESO (EN RECINTO)</div>
-        <table>
-            <tbody id="lista-espera"></tbody>
-        </table>
-        <div id="vacio-espera" class="no-data">No hay copilotos listos en el recinto.</div>
+        <table><tbody id="lista-espera"></tbody></table>
+        <div id="vacio-espera" class="no-data" style="text-align:center; color:#444; padding:20px;">No hay copilotos listos.</div>
     </div>
 
     <div class="card" style="border-color: var(--green);">
         <div class="section-title" style="color: var(--green);">🏁 VEHÍCULOS EN PISTA / RETORNO</div>
-        <table>
-            <tbody id="lista-pista-activa"></tbody>
-        </table>
-        <div id="vacio-pista" class="no-data">No hay vehículos rodando actualmente.</div>
+        <table><tbody id="lista-pista-activa"></tbody></table>
+        <div id="vacio-pista" class="no-data" style="text-align:center; color:#444; padding:20px;">No hay vehículos rodando.</div>
     </div>
 
     <div id="modal-cambio">
         <div class="modal-content">
-            <h3 style="color: var(--accent);">REASIGNAR COCHE</h3>
+            <h3 style="color: var(--accent); margin:0;">REASIGNAR PILOTO</h3>
+            <span class="sugerido-tag">🔥 SELECCIONADO AUTOMÁTICAMENTE EL QUE MENOS HA RODADO</span>
             <select id="nuevo-piloto-select" class="select-modal"></select>
             <div style="display: flex; gap: 10px;">
-                <button class="btn-pista" style="background: var(--blue); box-shadow: 0 4px 0 #0056b3;" onclick="ejecutarCambio()">CAMBIAR</button>
-                <button class="btn-pista" style="background: #333; box-shadow: 0 4px 0 #111;" onclick="cerrarModal()">CANCELAR</button>
+                <button class="btn-pista" style="background: var(--blue); box-shadow: 0 4px 0 #0056b3;" onclick="ejecutarCambio()">REASIGNAR</button>
+                <button class="btn-pista" style="background: #333; box-shadow: 0 4px 0 #111;" onclick="cerrarModal()">VOLVER</button>
             </div>
         </div>
     </div>
@@ -112,15 +91,29 @@
         const db = getDatabase(app);
 
         let idSeleccionado = null;
-        let pilotosDisponibles = [];
+        let pilotosData = []; // Guardará objetos { nombre, dorsal, coche }
         let estadisticasViajes = {};
 
-        // ACCIÓN: EN PISTA (Mover a lista de pista)
+        // CALCULAR CUAL ES EL PILOTO QUE TOCA (Balance de carga)
+        function obtenerPilotoSugerido() {
+            if(pilotosData.length === 0) return "";
+            let sugerido = pilotosData[0].fullString;
+            let min = estadisticasViajes[sugerido] || 0;
+            
+            pilotosData.forEach(p => {
+                const count = estadisticasViajes[p.fullString] || 0;
+                if(count < min) {
+                    min = count;
+                    sugerido = p.fullString;
+                }
+            });
+            return sugerido;
+        }
+
         window.confirmarSubida = async (id) => {
             const snap = await get(ref(db, `copilotajes/espera/${id}`));
             if(snap.exists()){
                 const data = snap.val();
-                // Lo pasamos a completados pero con un flag de "rodando"
                 const newRef = push(ref(db, 'copilotajes/completados'));
                 await set(newRef, {
                     ...data,
@@ -131,16 +124,21 @@
             }
         };
 
-        // ACCIÓN: ACOMPAÑADO A LA SALIDA (Borrar de completados visibles)
         window.confirmarSalidaRecinto = async (id) => {
-            if(confirm("¿Confirmas que el copiloto ya está fuera de la zona de pista?")) {
+            if(confirm("¿EL COPILOTO ABANDONA LA PISTA?")) {
                 await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
             }
         };
 
-        // GESTIÓN DE MODAL Y CAMBIOS
-        window.abrirModalCambio = (id) => { idSeleccionado = id; document.getElementById('modal-cambio').style.display = 'flex'; };
+        window.abrirModalCambio = (id) => { 
+            idSeleccionado = id;
+            const sugerido = obtenerPilotoSugerido();
+            document.getElementById('nuevo-piloto-select').value = sugerido;
+            document.getElementById('modal-cambio').style.display = 'flex'; 
+        };
+        
         window.cerrarModal = () => { document.getElementById('modal-cambio').style.display = 'none'; };
+        
         window.ejecutarCambio = async () => {
             const nuevo = document.getElementById('nuevo-piloto-select').value;
             await update(ref(db, `copilotajes/espera/${idSeleccionado}`), { piloto: nuevo });
@@ -150,17 +148,27 @@
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             
-            // Actualizar select modal
+            // 1. PROCESAR PILOTOS (Con Dorsal)
+            pilotosData = [];
             const sel = document.getElementById('nuevo-piloto-select');
             sel.innerHTML = "";
             if(data.config_pilotos) {
-                Object.values(data.config_pilotos).forEach(p => {
-                    let opt = document.createElement('option'); opt.value = p; opt.innerText = p;
+                Object.values(data.config_pilotos).forEach(pStr => {
+                    // Esperamos "Nombre | Coche | Dorsal" o similar
+                    // Si el formato es "Piloto | Coche", el dorsal vendrá en el string
+                    pilotosData.push({ fullString: pStr });
+                    let opt = document.createElement('option');
+                    opt.value = pStr; opt.innerText = pStr;
                     sel.appendChild(opt);
                 });
             }
 
-            // LISTA 1: ESPERA
+            // 2. CALCULAR ESTADÍSTICAS (Igual que Logística)
+            estadisticasViajes = {};
+            const todos = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
+            todos.forEach(v => { estadisticasViajes[v.piloto] = (estadisticasViajes[v.piloto] || 0) + 1; });
+
+            // 3. RENDER ESPERA
             const tEspera = document.getElementById('lista-espera');
             tEspera.innerHTML = "";
             let hayEspera = false;
@@ -169,13 +177,13 @@
                     const item = data.espera[id];
                     if(item.enRecinto) {
                         hayEspera = true;
-                        const [pNombre, pCoche] = item.piloto.split(' | ');
+                        // item.piloto suele ser "Nombre | Coche"
                         tEspera.innerHTML += `
                             <tr>
                                 <td>
                                     <span class="n-doc">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b><br>
-                                    <span class="piloto-info">Con: ${pNombre} | <span class="car-highlight">${pCoche||''}</span></span>
-                                    <button class="btn-change" onclick="abrirModalCambio('${id}')">Reasignar Coche</button>
+                                    <span class="piloto-info">Asignado: <span class="car-highlight">${item.piloto}</span></span>
+                                    <button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 REASIGNAR SIGUIENTE</button>
                                 </td>
                                 <td style="width:100px"><button class="btn-pista" onclick="confirmarSubida('${id}')">EN PISTA</button></td>
                             </tr>`;
@@ -184,7 +192,7 @@
             }
             document.getElementById('vacio-espera').style.display = hayEspera ? 'none' : 'block';
 
-            // LISTA 2: PISTA ACTIVA (No finalizados)
+            // 4. RENDER PISTA
             const tPista = document.getElementById('lista-pista-activa');
             tPista.innerHTML = "";
             let hayPista = false;
@@ -193,20 +201,18 @@
                     const item = data.completados[id];
                     if(item.finalizado === false) {
                         hayPista = true;
-                        const [pNombre, pCoche] = item.piloto.split(' | ');
                         tPista.innerHTML += `
                             <tr>
                                 <td>
                                     <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b><br>
-                                    <span class="piloto-info">En: <span class="car-highlight">${pCoche||''}</span> (Hora: ${item.horaPista})</span>
+                                    <span class="piloto-info">En coche: <span class="car-highlight">${item.piloto}</span></span>
                                 </td>
-                                <td style="width:120px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">ACOMPAÑADO A LA SALIDA</button></td>
+                                <td style="width:120px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA OK</button></td>
                             </tr>`;
                     }
                 });
             }
             document.getElementById('vacio-pista').style.display = hayPista ? 'none' : 'block';
-            filtrar();
         });
 
         window.filtrar = () => {

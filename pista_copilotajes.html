@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTROL PISTA - TAXI DRIFT</title>
+    <style>
+        :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
+        
+        body { 
+            background-image: url('Fibra3.png'); 
+            background-repeat: repeat; 
+            background-color: var(--bg);
+            color: #fff; 
+            font-family: 'Arial Black', Gadget, sans-serif; 
+            padding: 10px; margin: 0; 
+        }
+
+        .header { 
+            text-align: center; padding: 15px; 
+            background: rgba(0,0,0,0.9); border-radius: 12px;
+            border-bottom: 3px solid var(--red); margin-bottom: 15px; 
+        }
+        .header h2 { margin: 0; color: var(--red); text-transform: uppercase; font-size: 1.4em; }
+
+        .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
+        
+        .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+
+        input[type="search"] { 
+            width: 100%; padding: 15px; background: #000; border: 1px solid #444; 
+            color: #fff; border-radius: 10px; font-size: 1em; box-sizing: border-box; margin-bottom: 15px;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 12px 8px; border-bottom: 1px solid #222; }
+
+        .n-doc { background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 900; margin-right: 5px; }
+        .piloto-info { color: #aaa; font-size: 0.8em; font-family: sans-serif; }
+        .car-highlight { color: var(--accent); font-weight: bold; font-size: 0.85em; }
+
+        /* BOTONES */
+        .btn-pista { 
+            background: var(--green); color: white; border: none; padding: 15px 5px; 
+            border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer;
+            text-transform: uppercase; font-size: 0.85em; box-shadow: 0 4px 0 #155d27;
+        }
+        
+        .btn-salida { 
+            background: var(--orange); color: white; border: none; padding: 12px 5px; 
+            border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer;
+            text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e;
+        }
+
+        .btn-change {
+            background: #222; color: #888; border: 1px solid #444; padding: 5px; 
+            border-radius: 4px; font-size: 0.6em; cursor: pointer; margin-top: 8px;
+            text-transform: uppercase; width: 100%; font-family: sans-serif;
+        }
+
+        .no-data { text-align: center; padding: 20px; color: #444; font-size: 0.8em; font-style: italic; font-family: sans-serif; }
+        
+        #modal-cambio {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
+        .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>CONTROL PISTA TAXI DRIFT</h2>
+    </div>
+
+    <input type="search" id="buscador" placeholder="🔍 BUSCAR DATOS..." oninput="filtrar()">
+
+    <div class="card">
+        <div class="section-title">📋 COLA DE ACCESO (EN RECINTO)</div>
+        <table>
+            <tbody id="lista-espera"></tbody>
+        </table>
+        <div id="vacio-espera" class="no-data">No hay copilotos listos en el recinto.</div>
+    </div>
+
+    <div class="card" style="border-color: var(--green);">
+        <div class="section-title" style="color: var(--green);">🏁 VEHÍCULOS EN PISTA / RETORNO</div>
+        <table>
+            <tbody id="lista-pista-activa"></tbody>
+        </table>
+        <div id="vacio-pista" class="no-data">No hay vehículos rodando actualmente.</div>
+    </div>
+
+    <div id="modal-cambio">
+        <div class="modal-content">
+            <h3 style="color: var(--accent);">REASIGNAR COCHE</h3>
+            <select id="nuevo-piloto-select" class="select-modal"></select>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-pista" style="background: var(--blue); box-shadow: 0 4px 0 #0056b3;" onclick="ejecutarCambio()">CAMBIAR</button>
+                <button class="btn-pista" style="background: #333; box-shadow: 0 4px 0 #111;" onclick="cerrarModal()">CANCELAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push, remove, get, update, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let idSeleccionado = null;
+        let pilotosDisponibles = [];
+        let estadisticasViajes = {};
+
+        // ACCIÓN: EN PISTA (Mover a lista de pista)
+        window.confirmarSubida = async (id) => {
+            const snap = await get(ref(db, `copilotajes/espera/${id}`));
+            if(snap.exists()){
+                const data = snap.val();
+                // Lo pasamos a completados pero con un flag de "rodando"
+                const newRef = push(ref(db, 'copilotajes/completados'));
+                await set(newRef, {
+                    ...data,
+                    horaPista: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}),
+                    finalizado: false 
+                });
+                await remove(ref(db, `copilotajes/espera/${id}`));
+            }
+        };
+
+        // ACCIÓN: ACOMPAÑADO A LA SALIDA (Borrar de completados visibles)
+        window.confirmarSalidaRecinto = async (id) => {
+            if(confirm("¿Confirmas que el copiloto ya está fuera de la zona de pista?")) {
+                await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
+            }
+        };
+
+        // GESTIÓN DE MODAL Y CAMBIOS
+        window.abrirModalCambio = (id) => { idSeleccionado = id; document.getElementById('modal-cambio').style.display = 'flex'; };
+        window.cerrarModal = () => { document.getElementById('modal-cambio').style.display = 'none'; };
+        window.ejecutarCambio = async () => {
+            const nuevo = document.getElementById('nuevo-piloto-select').value;
+            await update(ref(db, `copilotajes/espera/${idSeleccionado}`), { piloto: nuevo });
+            cerrarModal();
+        };
+
+        onValue(ref(db, 'copilotajes'), (snap) => {
+            const data = snap.val() || {};
+            
+            // Actualizar select modal
+            const sel = document.getElementById('nuevo-piloto-select');
+            sel.innerHTML = "";
+            if(data.config_pilotos) {
+                Object.values(data.config_pilotos).forEach(p => {
+                    let opt = document.createElement('option'); opt.value = p; opt.innerText = p;
+                    sel.appendChild(opt);
+                });
+            }
+
+            // LISTA 1: ESPERA
+            const tEspera = document.getElementById('lista-espera');
+            tEspera.innerHTML = "";
+            let hayEspera = false;
+            if(data.espera) {
+                Object.keys(data.espera).forEach(id => {
+                    const item = data.espera[id];
+                    if(item.enRecinto) {
+                        hayEspera = true;
+                        const [pNombre, pCoche] = item.piloto.split(' | ');
+                        tEspera.innerHTML += `
+                            <tr>
+                                <td>
+                                    <span class="n-doc">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b><br>
+                                    <span class="piloto-info">Con: ${pNombre} | <span class="car-highlight">${pCoche||''}</span></span>
+                                    <button class="btn-change" onclick="abrirModalCambio('${id}')">Reasignar Coche</button>
+                                </td>
+                                <td style="width:100px"><button class="btn-pista" onclick="confirmarSubida('${id}')">EN PISTA</button></td>
+                            </tr>`;
+                    }
+                });
+            }
+            document.getElementById('vacio-espera').style.display = hayEspera ? 'none' : 'block';
+
+            // LISTA 2: PISTA ACTIVA (No finalizados)
+            const tPista = document.getElementById('lista-pista-activa');
+            tPista.innerHTML = "";
+            let hayPista = false;
+            if(data.completados) {
+                Object.keys(data.completados).forEach(id => {
+                    const item = data.completados[id];
+                    if(item.finalizado === false) {
+                        hayPista = true;
+                        const [pNombre, pCoche] = item.piloto.split(' | ');
+                        tPista.innerHTML += `
+                            <tr>
+                                <td>
+                                    <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b><br>
+                                    <span class="piloto-info">En: <span class="car-highlight">${pCoche||''}</span> (Hora: ${item.horaPista})</span>
+                                </td>
+                                <td style="width:120px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">ACOMPAÑADO A LA SALIDA</button></td>
+                            </tr>`;
+                    }
+                });
+            }
+            document.getElementById('vacio-pista').style.display = hayPista ? 'none' : 'block';
+            filtrar();
+        });
+
+        window.filtrar = () => {
+            const b = document.getElementById('buscador').value.toLowerCase();
+            document.querySelectorAll('tr').forEach(tr => {
+                tr.style.display = tr.innerText.toLowerCase().includes(b) ? '' : 'none';
+            });
+        };
+    </script>
+</body>
+</html>

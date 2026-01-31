@@ -26,17 +26,21 @@
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
 
-        .dorsal-tag {
+        /* ESTILO DORSAL TIPO MATRÍCULA */
+        .dorsal-container {
+            display: inline-flex;
+            align-items: center;
             background: #fff;
             color: #000;
-            padding: 2px 8px;
             border-radius: 4px;
-            font-weight: 900;
+            overflow: hidden;
             font-family: monospace;
-            border-left: 4px solid var(--red);
-            margin-right: 8px;
-            font-size: 1.1em;
+            font-weight: 900;
+            margin-right: 10px;
+            border: 1px solid #ccc;
         }
+        .dorsal-blue { background: #003399; color: white; padding: 2px 4px; font-size: 0.6em; display: flex; align-items: center; }
+        .dorsal-num { padding: 2px 8px; font-size: 1.2em; }
 
         .n-doc { background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 900; margin-right: 5px; }
 
@@ -58,7 +62,7 @@
         <h2>CONTROL PISTA TAXI DRIFT</h2>
     </div>
 
-    <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR COCO o DORSAL..." oninput="filtrar()">
+    <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR COPILOTO O DORSAL..." oninput="filtrar()">
 
     <div class="card">
         <div class="section-title">📋 EN RECINTO (ESPERANDO COCHE)</div>
@@ -72,12 +76,11 @@
 
     <div id="modal-cambio">
         <div class="modal-content">
-            <h3 style="color: var(--accent); margin-bottom:5px;">CAMBIO POR AVERÍA</h3>
-            <p style="color:#888; font-size:0.8em; font-family:sans-serif;">El sistema sugiere al siguiente según el orden de logística:</p>
+            <h3 style="color: var(--accent); margin-bottom:5px;">REASIGNAR COCHE</h3>
             <select id="nuevo-piloto-select" class="select-modal"></select>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-pista" style="background: var(--blue); box-shadow: 0 4px 0 #0056b3;" onclick="ejecutarCambio()">REASIGNAR</button>
-                <button class="btn-pista" style="background: #333; box-shadow: 0 4px 0 #111;" onclick="cerrarModal()">CANCELAR</button>
+                <button class="btn-pista" style="background: #333; box-shadow: 0 4px 0 #111;" onclick="cerrarModal()">VOLVER</button>
             </div>
         </div>
     </div>
@@ -92,14 +95,22 @@
 
         let idSeleccionado = null;
         let estadisticasViajes = {};
-        let listaPilotos = [];
+        let listaPilotosFull = [];
 
-        // LÓGICA DE ORDEN CORRELATIVO
-        function obtenerSiguientePiloto() {
-            if(listaPilotos.length === 0) return "";
-            return listaPilotos.reduce((prev, curr) => 
-                (estadisticasViajes[prev] || 0) <= (estadisticasViajes[curr] || 0) ? prev : curr
-            );
+        // Función para renderizar el dorsal bonito
+        function renderDorsal(textoPiloto) {
+            // Intentamos extraer el número si viene en formato [#1]
+            const match = textoPiloto.match(/\[#(\d+)\]/);
+            const num = match ? match[1] : "??";
+            const nombreLimpio = textoPiloto.replace(/\[#\d+\]/, "").trim();
+            
+            return `
+                <div class="dorsal-container">
+                    <div class="dorsal-blue">E</div>
+                    <div class="dorsal-num">${num}</div>
+                </div>
+                <b style="font-size:1.1em;">${nombreLimpio}</b>
+            `;
         }
 
         window.confirmarSubida = async (id) => {
@@ -118,14 +129,16 @@
             }
         };
 
-        window.abrirModalCambio = (id) => { 
+        window.abrirModalCambio = (id) => {
             idSeleccionado = id;
-            document.getElementById('nuevo-piloto-select').value = obtenerSiguientePiloto();
-            document.getElementById('modal-cambio').style.display = 'flex'; 
+            // Sugerir el que menos viajes tenga
+            const sugerido = listaPilotosFull.reduce((prev, curr) => (estadisticasViajes[prev] || 0) <= (estadisticasViajes[curr] || 0) ? prev : curr, listaPilotosFull[0]);
+            document.getElementById('nuevo-piloto-select').value = sugerido;
+            document.getElementById('modal-cambio').style.display = 'flex';
         };
-        
+
         window.cerrarModal = () => document.getElementById('modal-cambio').style.display = 'none';
-        
+
         window.ejecutarCambio = async () => {
             const nuevo = document.getElementById('nuevo-piloto-select').value;
             await update(ref(db, `copilotajes/espera/${idSeleccionado}`), { piloto: nuevo });
@@ -135,18 +148,18 @@
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             
-            // 1. Cargar Pilotos del CSV
+            // 1. Cargar pilotos configurados
             const sel = document.getElementById('nuevo-piloto-select');
-            sel.innerHTML = ""; listaPilotos = [];
+            sel.innerHTML = ""; listaPilotosFull = [];
             if(data.config_pilotos) {
                 Object.values(data.config_pilotos).forEach(p => {
-                    listaPilotos.push(p);
+                    listaPilotosFull.push(p);
                     let opt = document.createElement('option'); opt.value = p; opt.innerText = p;
                     sel.appendChild(opt);
                 });
             }
 
-            // 2. Calcular viajes para el orden correlativo
+            // 2. Calcular viajes
             estadisticasViajes = {};
             const todos = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
             todos.forEach(v => { estadisticasViajes[v.piloto] = (estadisticasViajes[v.piloto] || 0) + 1; });
@@ -157,17 +170,12 @@
                 Object.keys(data.espera).forEach(id => {
                     const item = data.espera[id];
                     if(item.enRecinto) {
-                        const partes = item.piloto.split('|');
-                        const dorsalNom = partes[0] || ""; // Trae [#XX] Nombre
-                        const coche = partes[1] || "";
-                        
                         tEspera.innerHTML += `
                             <tr>
                                 <td>
                                     <span class="n-doc">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b><br>
-                                    <div style="margin-top:8px;">
-                                        <span class="dorsal-tag">${dorsalNom}</span>
-                                        <span style="color:var(--accent); font-size:0.8em;">${coche}</span>
+                                    <div style="margin-top:10px; display:flex; align-items:center;">
+                                        ${renderDorsal(item.piloto)}
                                     </div>
                                     <button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 REASIGNAR SIGUIENTE</button>
                                 </td>
@@ -187,7 +195,9 @@
                             <tr>
                                 <td>
                                     <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b><br>
-                                    <small style="color:#aaa">${item.piloto}</small>
+                                    <div style="margin-top:5px; transform: scale(0.8); origin: left center; display:flex; align-items:center; opacity:0.8;">
+                                        ${renderDorsal(item.piloto)}
+                                    </div>
                                 </td>
                                 <td style="width:140px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">ACOMPAÑADO A SALIDA</button></td>
                             </tr>`;

@@ -175,18 +175,24 @@
 
         // CARGA DE PILOTOS
         document.getElementById('csv-pilotos').onchange = (e) => {
-            const r = new FileReader();
-            r.onload = (ev) => {
-                const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
-                const obj = {};
-                lines.forEach((l, i) => { 
-                    const c = l.split(l.includes(';') ? ';' : ',');
-                    if(c.length >= 3) obj[i] = `${c[1].trim()} | ${c[2].trim()}`;
-                });
-                set(ref(db, 'copilotajes/config_pilotos'), obj);
-            };
-            r.readAsText(e.target.files[0]);
-        };
+    const r = new FileReader();
+    r.onload = (ev) => {
+        const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
+        const obj = {};
+        lines.forEach((l, i) => { 
+            const c = l.split(l.includes(';') ? ';' : ',');
+            if(c.length >= 3) {
+                // FORMATO: [Dorsal] Nombre - Coche
+                const dorsal = c[0].trim();
+                const nombre = c[1].trim();
+                const coche = c[2].trim();
+                obj[i] = `[#${dorsal}] ${nombre} | ${coche}`;
+            }
+        });
+        set(ref(db, 'copilotajes/config_pilotos'), obj);
+    };
+    r.readAsText(e.target.files[0]);
+};
 
         onValue(ref(db, 'copilotajes/config_pilotos'), (snap) => {
             const sel = document.getElementById('c-piloto');
@@ -263,5 +269,6 @@
     </script>
 </body>
 </html>
+
 
 

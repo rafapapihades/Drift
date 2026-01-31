@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CONTROL PISTA - TAXI DRIFT</title>
     <style>
-        :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
+        :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #003399; --orange: #fd7e14; }
         
         body { 
             background-image: url('Fibra3.png'); 
@@ -26,8 +26,8 @@
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
 
-        /* MATRÍCULA MEJORADA */
-        .dorsal-container {
+        /* MATRÍCULA FORMATO REAL */
+        .matricula {
             display: inline-flex;
             align-items: center;
             background: #fff;
@@ -36,12 +36,11 @@
             overflow: hidden;
             font-family: 'Arial', sans-serif;
             font-weight: 900;
-            margin-right: 10px;
             border: 1px solid #fff;
-            box-shadow: 0 0 10px rgba(255,255,255,0.2);
+            margin-top: 5px;
         }
-        .dorsal-blue { background: #003399; color: white; padding: 5px 6px; font-size: 0.7em; display: flex; align-items: center; justify-content: center; flex-direction: column; line-height: 1; }
-        .dorsal-num { padding: 2px 10px; font-size: 1.4em; min-width: 30px; text-align: center; }
+        .m-bandera { background: var(--blue); color: white; padding: 4px 5px; font-size: 0.6em; text-align: center; line-height: 1; }
+        .m-num { padding: 2px 12px; font-size: 1.4em; min-width: 35px; text-align: center; }
 
         .n-doc { background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 900; margin-right: 5px; }
 
@@ -50,11 +49,11 @@
 
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.85em; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 12px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e; }
-        .btn-change { background: #222; color: var(--accent); border: 1px solid #444; padding: 10px; border-radius: 6px; font-size: 0.7em; cursor: pointer; margin-top: 10px; text-transform: uppercase; width: 100%; font-weight: bold; }
+        .btn-change { background: #222; color: var(--accent); border: 1px solid #444; padding: 10px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 10px; text-transform: uppercase; width: 100%; font-weight: bold; }
 
         #modal-cambio { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 450px; text-align: center; }
-        .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; font-size: 1.1em; font-weight: bold; }
+        .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; font-size: 1.1em; }
     </style>
 </head>
 <body>
@@ -63,7 +62,7 @@
         <h2>CONTROL PISTA TAXI DRIFT</h2>
     </div>
 
-    <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR DORSAL O COPILOTO..." oninput="filtrar()">
+    <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR DORSAL O NOMBRE..." oninput="filtrar()">
 
     <div class="card">
         <div class="section-title">📋 COLA DE ACCESO</div>
@@ -77,11 +76,10 @@
 
     <div id="modal-cambio">
         <div class="modal-content">
-            <h3 style="color: var(--accent); margin-bottom:5px;">REASIGNAR SIGUIENTE</h3>
-            <p style="color:#888; font-size:0.8em;">Selecciona el coche que entra a pista:</p>
+            <h3 style="color: var(--accent); margin-bottom:5px;">REASIGNAR COCHE</h3>
             <select id="nuevo-piloto-select" class="select-modal"></select>
             <div style="display: flex; gap: 10px;">
-                <button class="btn-pista" style="background: var(--blue); box-shadow: 0 4px 0 #0056b3;" onclick="ejecutarCambio()">CAMBIAR</button>
+                <button class="btn-pista" style="background: var(--blue); box-shadow: 0 4px 0 #002266;" onclick="ejecutarCambio()">REASIGNAR</button>
                 <button class="btn-pista" style="background: #333; box-shadow: 0 4px 0 #111;" onclick="cerrarModal()">VOLVER</button>
             </div>
         </div>
@@ -95,46 +93,27 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // MAPA DE DORSALES (Basado en tu CSV para que nunca falle)
-        const mapaDorsales = {
-            "Kevin Drift": "1", "Marta Side": "2", "Alex Angle": "3", "Diego Vortex": "4",
-            "Luis Nitro": "5", "Carla Boost": "6", "Marco Apex": "7", "Sara Cruz": "8",
-            "Pablo Torque": "9", "Elena Grip": "10", "Ruben Flow": "11", "Andres Blaze": "12",
-            "Victor Skid": "13", "Noelia Drift": "14", "Jorge Spin": "15", "Camilo Rueda": "16",
-            "Tania Slide": "17", "Felipe Norte": "18", "Gabriel Estevez": "19", "Daniel Fuego": "20",
-            "Irene Vega": "21", "Oscar Drift": "22", "Patricia Humo": "23", "Raul Vector": "24", "Santi Drift": "25"
-        };
-
         let idSeleccionado = null;
         let estadisticasViajes = {};
         let listaPilotosFB = [];
 
-        function renderMatricula(texto) {
-            let num = "??";
-            let nombre = texto;
-
-            // 1. Intentar extraer si viene [#1]
-            if(texto.includes('[#')) {
-                num = texto.match(/\[#(\d+)\]/)[1];
-                nombre = texto.split(']')[1].split('|')[0].trim();
-            } else {
-                // 2. Buscar en el mapa por nombre
-                for(let p in mapaDorsales) {
-                    if(texto.includes(p)) {
-                        num = mapaDorsales[p];
-                        nombre = p;
-                        break;
-                    }
-                }
-            }
+        // Función para procesar el string y devolver la matrícula HTML
+        function generarMatriculaHTML(pilotoData) {
+            // El formato esperado es "Dorsal, Piloto, Coche..." o lo que guarde Logística
+            // Intentamos extraer el dorsal: si hay un [#XX] lo usamos, si no, buscamos el primer número
+            const dorsalMatch = pilotoData.match(/\[#(\d+)\]/) || pilotoData.match(/^(\d+)/);
+            const num = dorsalMatch ? dorsalMatch[1] : "??";
+            
+            // Limpiamos el nombre para quitar el dorsal del texto
+            let nombreLimpio = pilotoData.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
 
             return `
-                <div style="display:flex; align-items:center; margin-top:10px;">
-                    <div class="dorsal-container">
-                        <div class="dorsal-blue"><span>E</span></div>
-                        <div class="dorsal-num">${num}</div>
+                <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+                    <div class="matricula">
+                        <div class="m-bandera">E</div>
+                        <div class="m-num">${num}</div>
                     </div>
-                    <b style="font-size:1.1em; color:#fff;">${nombre}</b>
+                    <span style="font-size:1.1em; color:#fff;">${nombreLimpio}</span>
                 </div>
             `;
         }
@@ -157,7 +136,7 @@
 
         window.abrirModalCambio = (id) => {
             idSeleccionado = id;
-            // Orden lógico (el que menos viajes tiene)
+            // Ordenar por el que menos viajes tenga
             const sugerido = listaPilotosFB.reduce((prev, curr) => (estadisticasViajes[prev] || 0) <= (estadisticasViajes[curr] || 0) ? prev : curr, listaPilotosFB[0]);
             document.getElementById('nuevo-piloto-select').value = sugerido;
             document.getElementById('modal-cambio').style.display = 'flex';
@@ -174,26 +153,28 @@
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             
-            // Cargar select con dorsales
+            // Llenar selector de reasignación
             const sel = document.getElementById('nuevo-piloto-select');
             sel.innerHTML = ""; listaPilotosFB = [];
             if(data.config_pilotos) {
                 Object.values(data.config_pilotos).forEach(p => {
                     listaPilotosFB.push(p);
-                    let num = "??";
-                    for(let k in mapaDorsales) { if(p.includes(k)) num = mapaDorsales[k]; }
                     let opt = document.createElement('option');
-                    opt.value = p; 
-                    opt.innerText = `DORSAL ${num} - ${p.replace(/\[#\d+\]/, "").split('|')[0]}`;
+                    opt.value = p;
+                    // Mostrar "Dorsal X - Nombre" en el select
+                    const dMatch = p.match(/\[#(\d+)\]/) || p.match(/^(\d+)/);
+                    const nLimpio = p.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
+                    opt.innerText = `DORSAL ${dMatch ? dMatch[1] : '?' } - ${nLimpio}`;
                     sel.appendChild(opt);
                 });
             }
 
+            // Calcular estadísticas para orden lógico
             estadisticasViajes = {};
             const todos = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
             todos.forEach(v => { estadisticasViajes[v.piloto] = (estadisticasViajes[v.piloto] || 0) + 1; });
 
-            // Render Listas
+            // Dibujar Lista Espera
             const tEspera = document.getElementById('lista-espera'); tEspera.innerHTML = "";
             if(data.espera) {
                 Object.keys(data.espera).forEach(id => {
@@ -201,13 +182,14 @@
                     if(item.enRecinto) {
                         tEspera.innerHTML += `<tr><td>
                             <span class="n-doc">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b>
-                            ${renderMatricula(item.piloto)}
+                            ${generarMatriculaHTML(item.piloto)}
                             <button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 CAMBIAR COCHE (SIGUIENTE)</button>
                         </td><td style="width:100px"><button class="btn-pista" onclick="confirmarSubida('${id}')">EN PISTA</button></td></tr>`;
                     }
                 });
             }
 
+            // Dibujar Lista Pista
             const tPista = document.getElementById('lista-pista-activa'); tPista.innerHTML = "";
             if(data.completados) {
                 Object.keys(data.completados).forEach(id => {
@@ -215,7 +197,7 @@
                     if(item.finalizado === false) {
                         tPista.innerHTML += `<tr><td>
                             <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b>
-                            <div style="transform: scale(0.85); origin: left center; opacity:0.9;">${renderMatricula(item.piloto)}</div>
+                            <div style="transform: scale(0.8); origin: left center; opacity:0.8;">${generarMatriculaHTML(item.piloto)}</div>
                         </td><td style="width:140px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">ACOMPAÑADO A SALIDA</button></td></tr>`;
                     }
                 });

@@ -35,6 +35,13 @@
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
         
+        /* AVISO DE REPETIDO */
+        .asistente-aviso {
+            background: #4a0000; color: #ffadad; padding: 12px; border-radius: 10px; 
+            margin-bottom: 15px; display: none; font-size: 0.9em; 
+            border: 2px solid var(--red); font-family: sans-serif; line-height: 1.4;
+        }
+
         .doc-box { background: #000; border: 1px solid var(--accent); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px; }
         .doc-box small { display: block; font-size: 0.6em; color: #666; font-family: sans-serif; margin-bottom: 2px; }
         .doc-box b { font-size: 2.8em; font-family: monospace; color: var(--accent); }
@@ -55,8 +62,8 @@
         
         .ready-container { display: flex; flex-direction: column; align-items: center; font-size: 0.65em; font-weight: bold; min-width: 100px; text-align: center; }
         .status-chk { transform: scale(2.2); cursor: pointer; margin-bottom: 8px; }
-        .label-espera { color: #666; }
         .label-dentro { color: var(--green); }
+        .label-fuera { color: #666; }
     </style>
 </head>
 <body>
@@ -66,22 +73,27 @@
         <input type="text" id="nombre-evento" class="event-name-input" placeholder="NOMBRE DEL EVENTO">
         <div class="controls-row">
             <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (<span id="count-tag">0</span>)</button>
-            <button class="btn-mini btn-reset" id="btn-reset">EXPORTAR Y REINICIAR EVENTO</button>
+            <button class="btn-mini btn-reset" id="btn-reset">EXPORTAR Y REINICIAR</button>
         </div>
         <input type="file" id="csv-pilotos" hidden accept=".csv">
     </div>
 
     <div class="main-card">
-        <input type="text" id="c-nombre" class="input-huge" placeholder="NOMBRE DEL PARTICIPANTE">
+        <div id="aviso-repetido" class="asistente-aviso"></div>
+        <input type="text" id="c-nombre" class="input-huge" placeholder="NOMBRE DEL PARTICIPANTE" autocomplete="off">
+        
         <select id="c-piloto" class="input-huge"></select>
+        
         <div class="doc-box">
             <small>Nº DOCUMENTO CORRELATIVO</small>
             <b id="v-proximo-numero">001</b>
         </div>
+
         <label class="chk-massive">
             <input type="checkbox" id="c-firma"> 
             <span style="font-family: sans-serif; font-weight: bold;">RESPONSABILIDAD FIRMADA</span>
         </label>
+
         <button id="btn-add" class="btn-add-massive" disabled>CONFIRMAR REGISTRO</button>
     </div>
 
@@ -104,24 +116,55 @@
         const db = getDatabase(app);
 
         let pilotosArray = [];
+        let registroRecuperado = null;
 
+        const nombreInput = document.getElementById('c-nombre');
+        const avisoBox = document.getElementById('aviso-repetido');
+        const firmaChk = document.getElementById('c-firma');
+        const btnAdd = document.getElementById('btn-add');
+
+        // --- VALIDACIÓN EN TIEMPO REAL ---
+        nombreInput.addEventListener('input', async () => {
+            const nombreBusqueda = nombreInput.value.trim().toLowerCase();
+            
+            if (nombreBusqueda.length < 3) {
+                avisoBox.style.display = 'none';
+                registroRecuperado = null;
+                fnValidar();
+                return;
+            }
+
+            const snap = await get(ref(db, 'copilotajes'));
+            const data = snap.val() || {};
+            
+            const todos = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
+            const encontrado = todos.find(r => r.copiloto.toLowerCase() === nombreBusqueda);
+
+            if (encontrado) {
+                avisoBox.innerHTML = `⚠️ <b>¡PARTICIPANTE YA REGISTRADO!</b><br>
+                    Tiene asignado el <b>Ticket #${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>
+                    <small>No necesita volver a firmar el documento físico.</small>`;
+                avisoBox.style.display = 'block';
+                
+                firmaChk.checked = true; // Auto-check
+                registroRecuperado = encontrado;
+            } else {
+                avisoBox.style.display = 'none';
+                registroRecuperado = null;
+            }
+            fnValidar();
+        });
+
+        const fnValidar = () => { 
+            btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
+        };
+        firmaChk.onchange = fnValidar;
+
+        // --- LÓGICA DE ACTUALIZACIÓN DE INTERFAZ ---
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             document.getElementById('v-proximo-numero').innerText = ((data.ultimo_numero || 0) + 1).toString().padStart(3, '0');
             document.getElementById('count-tag').innerText = data.config_pilotos ? Object.keys(data.config_pilotos).length : 0;
-
-            const todosViajes = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
-            const conteo = {};
-            todosViajes.forEach(v => { conteo[v.piloto] = (conteo[v.piloto] || 0) + 1; });
-
-            if(pilotosArray.length > 0) {
-                let sugerido = pilotosArray[0];
-                let min = conteo[sugerido] || 0;
-                pilotosArray.forEach(p => {
-                    if((conteo[p] || 0) < min) { min = (conteo[p] || 0); sugerido = p; }
-                });
-                if(document.activeElement.id !== 'c-piloto') document.getElementById('c-piloto').value = sugerido;
-            }
 
             // RENDER COLA
             const tEspera = document.getElementById('tabla-espera');
@@ -143,7 +186,7 @@
                             <div class="ready-container">
                                 <input type="checkbox" class="status-chk" ${item.enRecinto?'checked':''}>
                                 <span class="${item.enRecinto ? 'label-dentro' : 'label-fuera'}">
-                                    ${item.enRecinto ? 'EN RECINTO' : 'EN RECINTO'}
+                                    ${item.enRecinto ? 'DENTRO' : 'ESPERA'}
                                 </span>
                             </div>
                         </td>
@@ -167,39 +210,76 @@
                             <strong style="font-family:sans-serif">${item.copiloto}</strong><br>
                             <small style="color:#666">${pNombre}</small> <small style="color:var(--accent)">[${pCoche || ''}]</small>
                         </td>
-                        <td style="color:var(--green); font-size:0.8em; text-align:right; font-weight:bold;">🏁 ${item.horaPista}</td>
+                        <td style="color:var(--green); font-size:0.8em; text-align:right; font-weight:bold;">🏁 ${item.horaPista || '--:--'}</td>
                     `;
                 });
             }
         });
 
-        // CARGA DE PILOTOS
-        document.getElementById('csv-pilotos').onchange = (e) => {
-    const r = new FileReader();
-    r.onload = (ev) => {
-        const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
-        const obj = {};
-        lines.forEach((l, i) => { 
-            const c = l.split(l.includes(';') ? ';' : ',');
-            if(c.length >= 3) {
-                // FORMATO: [Dorsal] Nombre - Coche
-                const dorsal = c[0].trim();
-                const nombre = c[1].trim();
-                const coche = c[2].trim();
-                obj[i] = `[#${dorsal}] ${nombre} | ${coche}`;
+        // --- BOTÓN CONFIRMAR ---
+        btnAdd.onclick = async () => {
+            const pilotoSeleccionado = document.getElementById('c-piloto').value;
+            const horaActual = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+
+            if (registroRecuperado) {
+                // Borrar de completados si estaba allí para que no aparezca duplicado
+                const snapC = await get(ref(db, 'copilotajes/completados'));
+                if(snapC.exists()){
+                    Object.entries(snapC.val()).forEach(([id, reg]) => {
+                        if(reg.nPapel === registroRecuperado.nPapel) remove(ref(db, `copilotajes/completados/${id}`));
+                    });
+                }
+
+                await push(ref(db, 'copilotajes/espera'), {
+                    ...registroRecuperado,
+                    piloto: pilotoSeleccionado,
+                    enRecinto: true,
+                    horaRegistro: horaActual
+                });
+            } else {
+                const snapNum = await get(ref(db, 'copilotajes/ultimo_numero'));
+                const num = (snapNum.val() || 0) + 1;
+                
+                await push(ref(db, 'copilotajes/espera'), {
+                    nPapel: num,
+                    copiloto: nombreInput.value.trim(),
+                    piloto: pilotoSeleccionado,
+                    enRecinto: false,
+                    horaRegistro: horaActual
+                });
+                await set(ref(db, 'copilotajes/ultimo_numero'), num);
             }
-        });
-        set(ref(db, 'copilotajes/config_pilotos'), obj);
-    };
-    r.readAsText(e.target.files[0]);
-};
+
+            // Reset Formulario
+            nombreInput.value = "";
+            firmaChk.checked = false;
+            avisoBox.style.display = 'none';
+            registroRecuperado = null;
+            fnValidar();
+        };
+
+        // --- GESTIÓN DE PILOTOS (CSV) ---
+        document.getElementById('csv-pilotos').onchange = (e) => {
+            const r = new FileReader();
+            r.onload = (ev) => {
+                const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
+                const obj = {};
+                lines.forEach((l, i) => { 
+                    const c = l.split(l.includes(';') ? ';' : ',');
+                    if(c.length >= 3) {
+                        obj[i] = `[#${c[0].trim()}] ${c[1].trim()} | ${c[2].trim()}`;
+                    }
+                });
+                set(ref(db, 'copilotajes/config_pilotos'), obj);
+            };
+            r.readAsText(e.target.files[0]);
+        };
 
         onValue(ref(db, 'copilotajes/config_pilotos'), (snap) => {
             const sel = document.getElementById('c-piloto');
-            sel.innerHTML = ''; pilotosArray = [];
+            sel.innerHTML = '';
             if(snap.exists()){
                 Object.values(snap.val()).forEach(p => {
-                    pilotosArray.push(p);
                     let opt = document.createElement('option');
                     opt.value = p; opt.innerText = p;
                     sel.appendChild(opt);
@@ -207,116 +287,28 @@
             }
         });
 
-        const btn = document.getElementById('btn-add');
-        const fnValidar = () => { btn.disabled = !(document.getElementById('c-nombre').value.trim() && document.getElementById('c-firma').checked); };
-        document.getElementById('c-nombre').oninput = fnValidar;
-        document.getElementById('c-firma').onchange = fnValidar;
-
-        btn.onclick = async () => {
-    const nombreNuevo = document.getElementById('c-nombre').value.trim();
-    const pilotoSeleccionado = document.getElementById('c-piloto').value;
-    const snapTodo = await get(ref(db, 'copilotajes'));
-    const data = snapTodo.val() || {};
-    
-    let registroExistente = null;
-
-    // 1. Buscar si el nombre ya existe en espera o completados
-    const buscarEn = (objeto) => {
-        if (!objeto) return null;
-        return Object.entries(objeto).find(([id, reg]) => 
-            reg.copiloto.toLowerCase() === nombreNuevo.toLowerCase()
-        );
-    };
-
-    const enEspera = buscarEn(data.espera);
-    const enCompletados = buscarEn(data.completados);
-
-    if (enEspera || enCompletados) {
-        const datosReg = enEspera ? enEspera[1] : enCompletados[1];
-        
-        const confirmar = confirm(
-            `¡ATENCIÓN!\n\nEl participante "${datosReg.copiloto}" ya está registrado con el Nº ${datosReg.nPapel.toString().padStart(3, '0')}.\n\n¿Es la misma persona? (Se mantendrá su número original y no tendrá que firmar otra vez).`
-        );
-
-        if (confirmar) {
-            registroExistente = datosReg;
-            // Si estaba en completados y vuelve a correr, lo quitamos de completados para moverlo a espera
-            if (enCompletados) {
-                const idCompletado = enCompletados[0];
-                await remove(ref(db, `copilotajes/completados/${idCompletado}`));
-            }
-            // Si ya estaba en espera, simplemente no hacemos nada o actualizamos el piloto si ha cambiado
-        }
-    }
-
-    // 2. Lógica de inserción
-    if (registroExistente) {
-        // REUTILIZAR REGISTRO
-        await push(ref(db, 'copilotajes/espera'), {
-            ...registroExistente,
-            piloto: pilotoSeleccionado, // Permite cambiar de coche si quiere repetir con otro
-            enRecinto: true, // Asumimos que si repite, ya está en el recinto
-            horaRegistro: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})
-        });
-    } else {
-        // REGISTRO NUEVO (Número correlativo normal)
-        const snapNum = await get(ref(db, 'copilotajes/ultimo_numero'));
-        const num = (snapNum.val() || 0) + 1;
-        
-        await push(ref(db, 'copilotajes/espera'), {
-            nPapel: num, 
-            copiloto: nombreNuevo,
-            piloto: pilotoSeleccionado, 
-            enRecinto: false,
-            horaRegistro: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})
-        });
-        
-        await set(ref(db, 'copilotajes/ultimo_numero'), num);
-    }
-
-    // Limpiar formulario
-    document.getElementById('c-nombre').value = ""; 
-    document.getElementById('c-firma').checked = false; 
-    fnValidar();
-};
-
-        // EXPORTAR Y REINICIAR
+        // --- EXPORTAR Y REINICIAR ---
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             if (!snap.exists()) return;
-            
             const data = snap.val();
-            const nombreEvento = data.nombre_evento || "EVENTO_TAXI_DRIFT";
-            
-            // Combinar espera y completados para el CSV
             let listado = [];
             if(data.espera) Object.values(data.espera).forEach(v => listado.push({...v, estado: 'PENDIENTE'}));
             if(data.completados) Object.values(data.completados).forEach(v => listado.push({...v, estado: 'COMPLETADO'}));
-            
             listado.sort((a,b) => a.nPapel - b.nPapel);
 
-            // Crear contenido CSV
-            let csvContent = "Nº TICKET,ESTADO,COPILOTO,PILOTO,COCHE,HORA REGISTRO,HORA PISTA\n";
-            listado.forEach(v => {
-                const [pNom, pCoch] = v.piloto.split(' | ');
-                csvContent += `${v.nPapel},${v.estado},${v.copiloto},${pNom},${pCoch || ''},${v.horaRegistro},${v.horaPista || '-'}\n`;
-            });
+            let csv = "Nº TICKET,ESTADO,COPILOTO,PILOTO,HORA REGISTRO\n";
+            listado.forEach(v => csv += `${v.nPapel},${v.estado},${v.copiloto},${v.piloto},${v.horaRegistro}\n`);
 
-            // Descargar archivo
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
+            const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `${nombreEvento.replace(/\s+/g, '_')}_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Cierre_Evento_${new Date().toLocaleDateString()}.csv`;
+            a.click();
 
-            // Confirmación de borrado
             setTimeout(() => {
-                if(confirm("CSV EXPORTADO. ¿Deseas borrar todos los datos de la nube para empezar un nuevo evento?")) {
-                    remove(ref(db, 'copilotajes'));
-                }
+                if(confirm("¿BORRAR TODO EL EVENTO?")) remove(ref(db, 'copilotajes'));
             }, 500);
         };
 
@@ -325,6 +317,7 @@
     </script>
 </body>
 </html>
+
 
 
 

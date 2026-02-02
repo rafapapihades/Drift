@@ -213,16 +213,72 @@
         document.getElementById('c-firma').onchange = fnValidar;
 
         btn.onclick = async () => {
-            const snapNum = await get(ref(db, 'copilotajes/ultimo_numero'));
-            const num = (snapNum.val() || 0) + 1;
-            await push(ref(db, 'copilotajes/espera'), {
-                nPapel: num, copiloto: document.getElementById('c-nombre').value.trim(),
-                piloto: document.getElementById('c-piloto').value, enRecinto: false,
-                horaRegistro: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})
-            });
-            await set(ref(db, 'copilotajes/ultimo_numero'), num);
-            document.getElementById('c-nombre').value = ""; document.getElementById('c-firma').checked = false; fnValidar();
-        };
+    const nombreNuevo = document.getElementById('c-nombre').value.trim();
+    const pilotoSeleccionado = document.getElementById('c-piloto').value;
+    const snapTodo = await get(ref(db, 'copilotajes'));
+    const data = snapTodo.val() || {};
+    
+    let registroExistente = null;
+
+    // 1. Buscar si el nombre ya existe en espera o completados
+    const buscarEn = (objeto) => {
+        if (!objeto) return null;
+        return Object.entries(objeto).find(([id, reg]) => 
+            reg.copiloto.toLowerCase() === nombreNuevo.toLowerCase()
+        );
+    };
+
+    const enEspera = buscarEn(data.espera);
+    const enCompletados = buscarEn(data.completados);
+
+    if (enEspera || enCompletados) {
+        const datosReg = enEspera ? enEspera[1] : enCompletados[1];
+        
+        const confirmar = confirm(
+            `¡ATENCIÓN!\n\nEl participante "${datosReg.copiloto}" ya está registrado con el Nº ${datosReg.nPapel.toString().padStart(3, '0')}.\n\n¿Es la misma persona? (Se mantendrá su número original y no tendrá que firmar otra vez).`
+        );
+
+        if (confirmar) {
+            registroExistente = datosReg;
+            // Si estaba en completados y vuelve a correr, lo quitamos de completados para moverlo a espera
+            if (enCompletados) {
+                const idCompletado = enCompletados[0];
+                await remove(ref(db, `copilotajes/completados/${idCompletado}`));
+            }
+            // Si ya estaba en espera, simplemente no hacemos nada o actualizamos el piloto si ha cambiado
+        }
+    }
+
+    // 2. Lógica de inserción
+    if (registroExistente) {
+        // REUTILIZAR REGISTRO
+        await push(ref(db, 'copilotajes/espera'), {
+            ...registroExistente,
+            piloto: pilotoSeleccionado, // Permite cambiar de coche si quiere repetir con otro
+            enRecinto: true, // Asumimos que si repite, ya está en el recinto
+            horaRegistro: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})
+        });
+    } else {
+        // REGISTRO NUEVO (Número correlativo normal)
+        const snapNum = await get(ref(db, 'copilotajes/ultimo_numero'));
+        const num = (snapNum.val() || 0) + 1;
+        
+        await push(ref(db, 'copilotajes/espera'), {
+            nPapel: num, 
+            copiloto: nombreNuevo,
+            piloto: pilotoSeleccionado, 
+            enRecinto: false,
+            horaRegistro: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})
+        });
+        
+        await set(ref(db, 'copilotajes/ultimo_numero'), num);
+    }
+
+    // Limpiar formulario
+    document.getElementById('c-nombre').value = ""; 
+    document.getElementById('c-firma').checked = false; 
+    fnValidar();
+};
 
         // EXPORTAR Y REINICIAR
         document.getElementById('btn-reset').onclick = async () => {
@@ -269,6 +325,7 @@
     </script>
 </body>
 </html>
+
 
 
 

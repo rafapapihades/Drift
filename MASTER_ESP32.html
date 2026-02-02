@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V1.1 - ESP32 SYNC</title>
+    <title>MASTER DRIFT SHOW V1.0</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -81,16 +81,13 @@
         </div>
         <div class="card">
             <div id="db-live" class="big-db">0.0</div>
-            
             <button class="btn" style="background:red; opacity:0.8" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)">MANTENER dB</button>
             <button class="btn" style="background:orange; opacity:0.8" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)">MANTENER TONO</button>
-            
             <div style="display:flex; justify-content:space-around; margin:10px 0; font-family:monospace; background:#000; padding:10px; border-radius:5px">
                 <span>MAX: <b id="res-pico" style="color:red">0.0</b></span>
                 <span>Hz: <b id="res-tono" style="color:orange">0</b></span>
             </div>
             <button class="btn" style="background:green; opacity:1" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
-            
             <div class="mini-rank-box" id="m-rank-db"><b>🏆 TOP 3 dB:</b></div>
             <div class="mini-rank-box" id="m-rank-hz"><b>🏆 TOP 3 GRAVES:</b></div>
             <button class="btn btn-reset" onclick="exportarEscapes()">💾 DESCARGAR RANKING</button>
@@ -106,73 +103,68 @@
         const db = getDatabase(app);
 
         let timerGlobal, segRestantes = 0, segSlot = 0, realizadosEsc = 0, totalInscritosEsc = 0;
-        let inscritosD={}, inscritosE={}, acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
+        let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false, inscritosD={}, inscritosE={}, audioCtx, analyser, dataArray, streamActivo = false, acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
 
-        // --- 1. FUNCIÓN MEDIR (CONTROL ESP32) ---
-        window.medir = (tipo, activa) => {
-            // Efecto visual
-            event.currentTarget.classList.toggle('btn-pulsado', !!activa);
-
-            // Avisar al ESP32 qué debe hacer
-            if (activa) {
-                set(ref(db, 'sensor_cmd'), tipo); 
-            } else {
-                set(ref(db, 'sensor_cmd'), 'idle');
-            }
-        };
-
-        // --- 2. LISTENERS RESULTADOS ESP32 ---
-        onValue(ref(db, 'sensor_live_db'), snap => {
-            document.getElementById('db-live').innerText = snap.val() ? snap.val().toFixed(1) : "0.0";
-        });
-
-        onValue(ref(db, 'sensor_max_db'), snap => {
-            document.getElementById('res-pico').innerText = snap.val() ? snap.val().toFixed(1) : "0.0";
-        });
-
-        onValue(ref(db, 'sensor_avg_hz'), snap => {
-            document.getElementById('res-tono').innerText = snap.val() || "0";
-        });
-
-        // --- NAVEGACIÓN ---
+        // --- NAVEGACIÓN Y SINCRONIZACIÓN ---
         window.cambiarTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
             document.getElementById(id).style.display = 'block';
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(id === 'tab-show' ? 'nav-show' : 'nav-esc').classList.add('active-nav');
+            
             set(ref(db, 'modo_actual'), id); 
+
+            if(id === 'tab-show') {
+                document.getElementById('drift-controls').classList.remove('disabled-section');
+            } else {
+                document.getElementById('drift-controls').classList.add('disabled-section');
+            }
         };
 
-        // --- EXPORTACIÓN ---
-        function descargarCSV(contenido, nombre) {
-            const blob = new Blob(["\uFEFF" + contenido], { type: 'text/csv;charset=utf-8;' });
+        // --- EXPORTACIÓN DE ARCHIVOS ---
+        function descargarArchivo(contenido, nombreArchivo) {
+            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; a.download = nombre; a.click();
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", nombreArchivo);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         window.exportarVotos = async () => {
             const snap = await get(ref(db, 'historial_votos'));
-            if (!snap.exists()) return alert("Sin historial");
-            let csv = "Dorsal;Info;Aplausos;Up;Down;Fecha\n";
-            Object.values(snap.val()).forEach(v => {
-                csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw};${new Date(v.ts).toLocaleString()}\n`;
+            if (!snap.exists()) return alert("No hay datos en el historial para exportar.");
+            
+            let csvContent = "\uFEFFDorsal;Piloto/Info;Aplausos;Up;Down;Timestamp\n";
+            const data = snap.val();
+            Object.values(data).forEach(v => {
+                const fecha = new Date(v.ts).toLocaleString();
+                csvContent += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw};${fecha}\n`;
             });
-            descargarCSV(csv, "votos_drift.csv");
-            if(confirm("¿Limpiar historial?")) remove(ref(db, 'historial_votos'));
+
+            descargarArchivo(csvContent, "votos_drift_show.csv");
+            if(confirm("¿Deseas BORRAR el historial de la nube ahora que lo has descargado?")) {
+                remove(ref(db, 'historial_votos'));
+                alert("Historial limpiado.");
+            }
         };
 
         window.exportarEscapes = async () => {
             const snap = await get(ref(db, 'ranking_escapes'));
-            if (!snap.exists()) return alert("Sin ranking");
-            let csv = "Dorsal;Piloto;Coche;dB;Hz\n";
-            Object.values(snap.val()).sort((a,b)=>b.db-a.db).forEach(v => {
-                csv += `${v.dorsal};${v.piloto};${v.coche};${v.db};${v.hz}\n`;
+            if (!snap.exists()) return alert("No hay datos en el ranking de escapes.");
+            
+            let csvContent = "\uFEFFPosición;Dorsal;Piloto;Coche;Máximo dB;Frecuencia Hz\n";
+            const lista = Object.values(snap.val()).sort((a,b) => b.db - a.db);
+            lista.forEach((v, index) => {
+                csvContent += `${index + 1};${v.dorsal};${v.piloto};${v.coche};${v.db};${v.hz}\n`;
             });
-            descargarCSV(csv, "ranking_escapes.csv");
+
+            descargarArchivo(csvContent, "ranking_escapes.csv");
         };
 
-        // --- CRONÓMETRO ---
+        // --- SISTEMA DE CRONÓMETRO ---
         window.controlCrono = (accion) => {
             if (accion === 'play') {
                 const totalM = document.getElementById('t-total').value;
@@ -181,6 +173,7 @@
                 set(ref(db, 'crono_evento'), { 
                     endTime: ahora + (totalM * 60000), 
                     slotTime: ahora + (slotS * 1000), 
+                    totalMin: totalM, 
                     corriendo: true 
                 });
             } else if (accion === 'pause') {
@@ -201,6 +194,10 @@
                     actualizarCronoUI();
                 }, 1000);
             } else {
+                if (!data) {
+                    segRestantes = document.getElementById('t-total').value * 60;
+                    segSlot = 0;
+                }
                 actualizarCronoUI();
             }
         });
@@ -209,108 +206,316 @@
             document.getElementById('reloj-global').innerText = formatTime(segRestantes);
             document.getElementById('reloj-slot').innerText = formatTime(segSlot);
             document.getElementById('progreso-esc').innerText = `${realizadosEsc} de ${totalInscritosEsc}`;
+            document.getElementById('reloj-slot').style.color = segSlot < 20 ? "red" : "#007bff";
         }
 
         function formatTime(s) {
-            const m = Math.floor(s / 60);
-            const se = Math.floor(s % 60);
-            return `${m.toString().padStart(2, '0')}:${se.toString().padStart(2, '0')}`;
+            const min = Math.floor(s / 60);
+            const seg = Math.floor(s % 60);
+            return `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
         }
 
-        // --- DRIFT SHOW ---
-        window.abrirVoto = async () => {
-            const inp = document.getElementById('d-show');
-            const val = inp.value.trim();
-            if (!val) return;
-            const dorsales = val.split(/\s+/);
-            let info = dorsales.map(d => inscritosD[d] ? `${inscritosD[d].piloto}` : "P"+d);
-            set(ref(db, 'votacion_activa'), {
-                dorsal: val, info: info.join(' / '),
-                aplausos: 0, up: 0, down: 0, activa: true, timer: 0
+        // --- SISTEMA DE AUDIO (COMENTADO PARA USAR ESP32) ---
+        /*
+        async function iniciarMicrofono() {
+            if (streamActivo) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                const microphone = audioCtx.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.fftSize = 512;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                streamActivo = true;
+                procesarAudio();
+            } catch (err) {
+                alert("Error al acceder al micrófono: " + err);
+            }
+        }
+
+        function procesarAudio() {
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            vDb = (sum / dataArray.length * 1.5) + 35;
+            document.getElementById('db-live').innerText = vDb.toFixed(1);
+
+            if (pPico && vDb > recDb) {
+                recDb = vDb;
+                document.getElementById('res-pico').innerText = recDb.toFixed(1);
+            }
+
+            if (pTono) {
+                let maxVal = -1;
+                let maxIndex = -1;
+                for (let i = 0; i < dataArray.length; i++) {
+                    if (dataArray[i] > maxVal) {
+                        maxVal = dataArray[i];
+                        maxIndex = i;
+                    }
+                }
+                const frecuencia = maxIndex * (audioCtx.sampleRate / analyser.fftSize);
+                sHz += frecuencia;
+                lHz++;
+                document.getElementById('res-tono').innerText = Math.round(sHz / lHz);
+            }
+            requestAnimationFrame(procesarAudio);
+        }
+        */
+
+        // --- NUEVA LÓGICA DE MEDICIÓN (ESP32) ---
+        window.medir = (tipo, activa) => {
+            // 1. Efecto visual
+            event.currentTarget.classList.toggle('btn-pulsado', !!activa);
+
+            // 2. Avisar al ESP32 qué debe hacer
+            if (activa) {
+                set(ref(db, 'sensor_cmd'), tipo); 
+            } else {
+                set(ref(db, 'sensor_cmd'), 'idle');
+            }
+        };
+
+        // 3. Escuchar los resultados que el ESP32 nos devuelve
+        onValue(ref(db, 'sensor_live_db'), snap => {
+            if(snap.exists()) document.getElementById('db-live').innerText = snap.val().toFixed(1);
+        });
+
+        onValue(ref(db, 'sensor_max_db'), snap => {
+            if(snap.exists()) document.getElementById('res-pico').innerText = snap.val().toFixed(1);
+        });
+
+        onValue(ref(db, 'sensor_avg_hz'), snap => {
+            if(snap.exists()) document.getElementById('res-tono').innerText = snap.val();
+        });
+
+        // --- RANKING ESCAPES ---
+        window.publicarEscape = async () => {
+            const dInput = document.getElementById('d-esc');
+            const d = dInput.value.trim();
+            const dbVal = parseFloat(document.getElementById('res-pico').innerText);
+            const hzVal = parseInt(document.getElementById('res-tono').innerText) || 0;
+
+            if (!d || dbVal <= 30) return alert("Dorsal no válido o medición insuficiente.");
+
+            const info = inscritosE[d] || { piloto: "Piloto " + d, coche: "S/D" };
+            
+            await set(ref(db, 'ranking_escapes/' + d), {
+                ...info,
+                dorsal: d,
+                db: dbVal,
+                hz: hzVal,
+                ts: Date.now()
             });
+
+            const snap = await get(ref(db, 'ranking_escapes'));
+            const lista = Object.values(snap.val()).sort((a,b) => b.db - a.db);
+            const pos = lista.findIndex(p => p.dorsal === d) + 1;
+
+            const totalM = document.getElementById('t-total').value;
+            const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
+            update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
+
+            alert(`✅ PUBLICADO: ${info.piloto}\n📊 Resultado: ${dbVal} dB\n🏆 Puesto actual: ${pos}º`);
+
+            dInput.value = "";
+            document.getElementById('res-pico').innerText = "0.0";
+            recDb = 0;
+            document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
+        };
+
+        // --- LÓGICA DRIFT SHOW ---
+        window.abrirVoto = async () => {
+            const inputElt = document.getElementById('d-show');
+            const val = inputElt.value.trim();
+            if (!val) return alert("Introduce dorsal");
+            
+            const dorsalesArr = val.split(/\s+/);
+            let infoConcat = [];
+            acumuladoInicial = { ap: 0, up: 0, dw: 0 };
+
+            const histSnap = await get(ref(db, 'historial_votos'));
+            if (histSnap.exists()) {
+                const historial = Object.values(histSnap.val());
+                dorsalesArr.forEach(d => {
+                    historial.filter(h => h.dorsal === d).forEach(v => {
+                        acumuladoInicial.ap += (v.ap || 0);
+                        acumuladoInicial.up += (v.up || 0);
+                        acumuladoInicial.dw += (v.dw || 0);
+                    });
+                });
+            }
+
+            dorsalesArr.forEach(d => {
+                const p = inscritosD[d];
+                if (p) {
+                    const textoCoche = p.coche ? ` (${p.coche})` : "";
+                    infoConcat.push(`${p.piloto}${textoCoche}`);
+                } else {
+                    infoConcat.push("P" + d);
+                }
+            });
+
+            set(ref(db, 'votacion_activa'), {
+                dorsal: val,
+                info: infoConcat.join(' / '),
+                aplausos: acumuladoInicial.ap,
+                up: acumuladoInicial.up,
+                down: acumuladoInicial.dw,
+                activa: true,
+                timer: 0
+            });
+
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
-            inp.value = "";
+            inputElt.value = "";
+            document.getElementById('preview-show').innerText = "Votación abierta...";
         };
 
         window.setEstado = async (msg, col, id) => {
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
+            
             if (id === 'btn-libre') {
-                const s = await get(ref(db, 'votacion_activa'));
-                if (s.exists() && s.val().activa) {
-                    push(ref(db, 'historial_votos'), { ...s.val(), ts: Date.now() });
-                    set(ref(db, 'votacion_activa'), { activa: false });
+                document.getElementById('preview-show').innerText = "Introduce dorsal...";
+                const snap = await get(ref(db, 'votacion_activa'));
+                const v = snap.val();
+                if (v && v.activa) {
+                    push(ref(db, 'historial_votos'), {
+                        dorsal: v.dorsal,
+                        info: v.info,
+                        ap: (v.aplausos || 0) - acumuladoInicial.ap,
+                        up: (v.up || 0) - acumuladoInicial.up,
+                        down: (v.down || 0) - acumuladoInicial.dw,
+                        ts: Date.now()
+                    });
+
+                    let count = 5;
+                    update(ref(db, 'votacion_activa'), { timer: count });
+                    let interval = setInterval(() => {
+                        count--;
+                        if (count <= 0) {
+                            clearInterval(interval);
+                            set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
+                        } else {
+                            update(ref(db, 'votacion_activa'), { timer: count });
+                        }
+                    }, 1000);
                 }
             }
         };
 
-        // --- PUBLICAR ESCAPE ---
-        window.publicarEscape = async () => {
-            const d = document.getElementById('d-esc').value.trim();
-            const dbVal = parseFloat(document.getElementById('res-pico').innerText);
-            const hzVal = parseInt(document.getElementById('res-tono').innerText) || 0;
-            if (!d || dbVal < 30) return alert("Datos inválidos");
-
-            const info = inscritosE[d] || { piloto: "Piloto " + d, coche: "S/D" };
-            await set(ref(db, 'ranking_escapes/' + d), {
-                ...info, dorsal: d, db: dbVal, hz: hzVal, ts: Date.now()
-            });
-            set(ref(db, 'sensor_max_db'), 0);
-            set(ref(db, 'sensor_avg_hz'), 0);
-            document.getElementById('d-esc').value = "";
-            alert("Publicado!");
-        };
-
-        // --- CSV E INSCRITOS ---
+        // --- MANEJO DE CSV E INSCRITOS ---
         window.cargarCSV = (event, tipo) => {
             const file = event.target.files[0];
+            if (!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
-                const lines = e.target.result.split(/\n/).filter(l => l.trim() !== "").slice(1);
-                let obj = {};
-                lines.forEach(l => {
-                    const c = l.split(/[;,]/);
-                    if(c[0]) obj[c[0].trim()] = { piloto: c[1]?.trim(), coche: c[2]?.trim() };
-                });
-                set(ref(db, 'inscritos_' + tipo), obj);
+                try {
+                    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
+                    let obj = {};
+                    lines.forEach(line => {
+                        const columns = line.split(line.includes(';') ? ';' : ',');
+                        if (columns[0]) {
+                            const dorsal = columns[0].trim();
+                            obj[dorsal] = {
+                                piloto: columns[1]?.trim() || "Piloto " + dorsal,
+                                coche: columns[2]?.trim() || ""
+                            };
+                        }
+                    });
+                    set(ref(db, 'inscritos_' + tipo), obj).then(() => {
+                        alert(`Cargados ${Object.keys(obj).length} inscritos.`);
+                    });
+                } catch (err) {
+                    alert("Error procesando CSV");
+                }
             };
-            reader.readAsText(file);
+            reader.readAsText(file, "UTF-8");
         };
 
-        onValue(ref(db, 'inscritos_drift'), s => { 
-            inscritosD = s.val() || {}; 
+        // --- LISTENERS DE FIREBASE ---
+        onValue(ref(db, 'inscritos_drift'), s => {
+            inscritosD = s.val() || {};
             document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
         });
-        onValue(ref(db, 'inscritos_esc'), s => { 
-            inscritosE = s.val() || {}; 
+
+        onValue(ref(db, 'inscritos_esc'), s => {
+            inscritosE = s.val() || {};
             totalInscritosEsc = Object.keys(inscritosE).length;
             document.getElementById('cnt-esc').innerText = totalInscritosEsc;
             document.getElementById('c-totales').value = totalInscritosEsc;
+        });
+
+        onValue(ref(db, 'votacion_activa'), snap => {
+            const v = snap.val();
+            const previewElt = document.getElementById('preview-show');
+            const infoPistaElt = document.getElementById('info-pista-drift');
+
+            if (v && v.activa) {
+                document.getElementById('m-ap').innerText = v.aplausos || 0;
+                document.getElementById('m-up').innerText = v.up || 0;
+                document.getElementById('m-dw').innerText = v.down || 0;
+                infoPistaElt.innerText = v.info || "";
+
+                if (v.timer > 0) {
+                    previewElt.innerText = "Cerrando votación (" + v.timer + "s)...";
+                } else {
+                    previewElt.innerText = "Votación abierta...";
+                }
+            } else {
+                document.getElementById('m-ap').innerText = "0";
+                document.getElementById('m-up').innerText = "0";
+                document.getElementById('m-dw').innerText = "0";
+                infoPistaElt.innerText = "Pista libre";
+                previewElt.innerText = "Introduce dorsal...";
+            }
+        });
+
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
+            if (e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
 
         onValue(ref(db, 'ranking_escapes'), snap => {
             if (!snap.exists()) return;
             const lista = Object.values(snap.val());
             realizadosEsc = lista.length;
+            
             const topDb = [...lista].sort((a,b) => b.db - a.db).slice(0,3);
-            let hDb = "<b>🏆 TOP 3 dB:</b>";
-            topDb.forEach((p,i) => hDb += `<div class="rank-line"><span>${p.piloto}</span><b>${p.db}dB</b></div>`);
-            document.getElementById('m-rank-db').innerHTML = hDb;
+            let htmlDb = "<b>🏆 TOP 3 dB:</b>";
+            topDb.forEach((p, i) => {
+                htmlDb += `<div class="rank-line"><span>${i+1}. [${p.dorsal}] ${p.piloto}</span><b>${p.db}dB</b></div>`;
+            });
+            document.getElementById('m-rank-db').innerHTML = htmlDb;
 
             const topHz = [...lista].sort((a,b) => a.hz - b.hz).slice(0,3);
-            let hHz = "<b>🏆 TOP 3 GRAVES:</b>";
-            topHz.forEach((p,i) => hHz += `<div class="rank-line"><span>${p.piloto}</span><b>${p.hz}Hz</b></div>`);
-            document.getElementById('m-rank-hz').innerHTML = hHz;
+            let htmlHz = "<b>🏆 TOP 3 GRAVES:</b>";
+            topHz.forEach((p, i) => {
+                htmlHz += `<div class="rank-line"><span>${i+1}. [${p.dorsal}] ${p.piloto}</span><b>${p.hz}Hz</b></div>`;
+            });
+            document.getElementById('m-rank-hz').innerHTML = htmlHz;
+            actualizarCronoUI();
         });
 
         window.buscarPilotoShow = (val) => {
-            const d = val.trim().split(/\s+/);
-            const res = d.map(x => inscritosD[x] ? `${x}: ${inscritosD[x].piloto}` : `${x}: ?`);
-            document.getElementById('preview-show').innerText = val ? res.join(' | ') : "Introduce dorsal...";
+            const dorsales = val.trim().split(/\s+/);
+            const encontrados = dorsales.map(d => {
+                const p = inscritosD[d];
+                return p ? `${d}: ${p.piloto}` : `${d}: ?`;
+            });
+            document.getElementById('preview-show').innerText = val ? encontrados.join(' | ') : "Introduce dorsal...";
         };
 
         window.buscarPilotoEscape = (d) => {
-            document.getElementById('info-piloto-esc').innerText = inscritosE[d] ? `${inscritosE[d].piloto} (${inscritosE[d].coche})` : "Introduce dorsal...";
+            const p = inscritosE[d];
+            document.getElementById('info-piloto-esc').innerText = p ? `${p.piloto} (${p.coche})` : (d ? "No encontrado" : "Introduce un dorsal...");
         };
+
+        set(ref(db, 'modo_actual'), 'tab-show');
+    </script>
+</body>
+</html>
 
     </script>
 </body>

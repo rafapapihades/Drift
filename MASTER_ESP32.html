@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW V1.0</title>
+    <title>MASTER DRIFT SHOW V1.1</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; }
         .nav-header { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -16,6 +16,12 @@
         input { width: 100%; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; box-sizing: border-box; }
         .vote-stats { display: flex; justify-content: space-around; font-size: 1.2em; margin: 10px 0; background: #222; padding: 10px; border-radius: 8px; color: #ffcc00; }
         .big-db { font-size: 4em; color: red; text-align: center; font-weight: bold; font-family: monospace; min-height: 1.2em; text-shadow: 0 0 10px rgba(255,0,0,0.3); }
+        
+        /* Indicador de Conexión ESP32 */
+        .status-esp { width: 12px; height: 12px; border-radius: 50%; background: gray; display: inline-block; margin-right: 5px; vertical-align: middle; }
+        .online { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+        .offline { background: #ff0000; box-shadow: 0 0 8px #ff0000; }
+
         .btn-pulsado { background: #fff !important; color: #000 !important; opacity: 1 !important; }
         .mini-rank-box { background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333; margin-top: 10px; font-size: 0.85em; }
         .rank-line { border-bottom: 1px solid #222; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; }
@@ -80,6 +86,9 @@
             <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarCSV(event, 'esc')">
         </div>
         <div class="card">
+            <div style="text-align: center; margin-bottom: 5px;">
+                <span id="esp-led" class="status-esp offline"></span><small id="esp-text" style="color: #888;">SENSOR OFFLINE</small>
+            </div>
             <div id="db-live" class="big-db">0.0</div>
             <button class="btn" style="background:red; opacity:0.8" onmousedown="medir('pico',1)" onmouseup="medir('pico',0)" ontouchstart="medir('pico',1)" ontouchend="medir('pico',0)">MANTENER dB</button>
             <button class="btn" style="background:orange; opacity:0.8" onmousedown="medir('tono',1)" onmouseup="medir('tono',0)" ontouchstart="medir('tono',1)" ontouchend="medir('tono',0)">MANTENER TONO</button>
@@ -103,7 +112,21 @@
         const db = getDatabase(app);
 
         let timerGlobal, segRestantes = 0, segSlot = 0, realizadosEsc = 0, totalInscritosEsc = 0;
-        let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false, inscritosD={}, inscritosE={}, audioCtx, analyser, dataArray, streamActivo = false, acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
+        let vDb=0, recDb=0, sHz=0, lHz=0, pPico=false, pTono=false, inscritosD={}, inscritosE={}, acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
+
+        // --- SISTEMA DE ESTADO ESP32 ---
+        let lastEspUpdate = 0;
+        setInterval(() => {
+            const led = document.getElementById('esp-led');
+            const txt = document.getElementById('esp-text');
+            if (Date.now() - lastEspUpdate > 3000) {
+                led.className = "status-esp offline";
+                txt.innerText = "SENSOR OFFLINE";
+            } else {
+                led.className = "status-esp online";
+                txt.innerText = "SENSOR ONLINE";
+            }
+        }, 1000);
 
         // --- NAVEGACIÓN Y SINCRONIZACIÓN ---
         window.cambiarTab = (id) => {
@@ -162,6 +185,13 @@
             });
 
             descargarArchivo(csvContent, "ranking_escapes.csv");
+
+            if(confirm("¿Deseas REINICIAR el ranking y el contador de participantes realizado?")) {
+                remove(ref(db, 'ranking_escapes'));
+                realizadosEsc = 0;
+                actualizarCronoUI();
+                alert("Ranking reiniciado.");
+            }
         };
 
         // --- SISTEMA DE CRONÓMETRO ---
@@ -215,61 +245,9 @@
             return `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
         }
 
-        // --- SISTEMA DE AUDIO (COMENTADO PARA USAR ESP32) ---
-        /*
-        async function iniciarMicrofono() {
-            if (streamActivo) return;
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioCtx.createAnalyser();
-                const microphone = audioCtx.createMediaStreamSource(stream);
-                microphone.connect(analyser);
-                analyser.fftSize = 512;
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
-                streamActivo = true;
-                procesarAudio();
-            } catch (err) {
-                alert("Error al acceder al micrófono: " + err);
-            }
-        }
-
-        function procesarAudio() {
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-            vDb = (sum / dataArray.length * 1.5) + 35;
-            document.getElementById('db-live').innerText = vDb.toFixed(1);
-
-            if (pPico && vDb > recDb) {
-                recDb = vDb;
-                document.getElementById('res-pico').innerText = recDb.toFixed(1);
-            }
-
-            if (pTono) {
-                let maxVal = -1;
-                let maxIndex = -1;
-                for (let i = 0; i < dataArray.length; i++) {
-                    if (dataArray[i] > maxVal) {
-                        maxVal = dataArray[i];
-                        maxIndex = i;
-                    }
-                }
-                const frecuencia = maxIndex * (audioCtx.sampleRate / analyser.fftSize);
-                sHz += frecuencia;
-                lHz++;
-                document.getElementById('res-tono').innerText = Math.round(sHz / lHz);
-            }
-            requestAnimationFrame(procesarAudio);
-        }
-        */
-
-        // --- NUEVA LÓGICA DE MEDICIÓN (ESP32) ---
+        // --- LÓGICA DE MEDICIÓN (COMANDOS AL ESP32) ---
         window.medir = (tipo, activa) => {
-            // 1. Efecto visual
             event.currentTarget.classList.toggle('btn-pulsado', !!activa);
-
-            // 2. Avisar al ESP32 qué debe hacer
             if (activa) {
                 set(ref(db, 'sensor_cmd'), tipo); 
             } else {
@@ -277,9 +255,11 @@
             }
         };
 
-        // 3. Escuchar los resultados que el ESP32 nos devuelve
         onValue(ref(db, 'sensor_live_db'), snap => {
-            if(snap.exists()) document.getElementById('db-live').innerText = snap.val().toFixed(1);
+            if(snap.exists()){
+                document.getElementById('db-live').innerText = snap.val().toFixed(1);
+                lastEspUpdate = Date.now(); // Feedback de que el ESP está vivo
+            }
         });
 
         onValue(ref(db, 'sensor_max_db'), snap => {
@@ -309,23 +289,16 @@
                 ts: Date.now()
             });
 
-            const snap = await get(ref(db, 'ranking_escapes'));
-            const lista = Object.values(snap.val()).sort((a,b) => b.db - a.db);
-            const pos = lista.findIndex(p => p.dorsal === d) + 1;
-
             const totalM = document.getElementById('t-total').value;
             const slotS = Math.floor((totalM * 60) / (totalInscritosEsc || 1));
             update(ref(db, 'crono_evento'), { slotTime: Date.now() + (slotS * 1000) });
 
-            alert(`✅ PUBLICADO: ${info.piloto}\n📊 Resultado: ${dbVal} dB\n🏆 Puesto actual: ${pos}º`);
-
             dInput.value = "";
             document.getElementById('res-pico').innerText = "0.0";
-            recDb = 0;
             document.getElementById('info-piloto-esc').innerText = "Introduce un dorsal...";
         };
 
-        // --- LÓGICA DRIFT SHOW ---
+        // --- LÓGICA DRIFT SHOW (FUNCIONES ORIGINALES) ---
         window.abrirVoto = async () => {
             const inputElt = document.getElementById('d-show');
             const val = inputElt.value.trim();
@@ -424,11 +397,14 @@
                         }
                     });
                     set(ref(db, 'inscritos_' + tipo), obj).then(() => {
+                        if (tipo === 'esc') {
+                            remove(ref(db, 'ranking_escapes'));
+                            realizadosEsc = 0;
+                            actualizarCronoUI();
+                        }
                         alert(`Cargados ${Object.keys(obj).length} inscritos.`);
                     });
-                } catch (err) {
-                    alert("Error procesando CSV");
-                }
+                } catch (err) { alert("Error procesando CSV"); }
             };
             reader.readAsText(file, "UTF-8");
         };
@@ -456,12 +432,7 @@
                 document.getElementById('m-up').innerText = v.up || 0;
                 document.getElementById('m-dw').innerText = v.down || 0;
                 infoPistaElt.innerText = v.info || "";
-
-                if (v.timer > 0) {
-                    previewElt.innerText = "Cerrando votación (" + v.timer + "s)...";
-                } else {
-                    previewElt.innerText = "Votación abierta...";
-                }
+                previewElt.innerText = v.timer > 0 ? "Cerrando votación (" + v.timer + "s)..." : "Votación abierta...";
             } else {
                 document.getElementById('m-ap').innerText = "0";
                 document.getElementById('m-up').innerText = "0";
@@ -478,8 +449,7 @@
         });
 
         onValue(ref(db, 'ranking_escapes'), snap => {
-            if (!snap.exists()) return;
-            const lista = Object.values(snap.val());
+            const lista = snap.exists() ? Object.values(snap.val()) : [];
             realizadosEsc = lista.length;
             
             const topDb = [...lista].sort((a,b) => b.db - a.db).slice(0,3);

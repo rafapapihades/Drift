@@ -35,7 +35,6 @@
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
         
-        /* AVISO DE REPETIDO */
         .asistente-aviso {
             background: #4a0000; color: #ffadad; padding: 12px; border-radius: 10px; 
             margin-bottom: 15px; display: none; font-size: 0.9em; 
@@ -122,8 +121,14 @@
         const avisoBox = document.getElementById('aviso-repetido');
         const firmaChk = document.getElementById('c-firma');
         const btnAdd = document.getElementById('btn-add');
+        const selPiloto = document.getElementById('c-piloto');
 
-        // --- VALIDACIÓN EN TIEMPO REAL ---
+        // FUNCIÓN VALIDAR BOTÓN
+        const fnValidar = () => { 
+            btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
+        };
+
+        // BÚSQUEDA DE DUPLICADOS EN TIEMPO REAL
         nombreInput.addEventListener('input', async () => {
             const nombreBusqueda = nombreInput.value.trim().toLowerCase();
             
@@ -137,16 +142,20 @@
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             
-            const todos = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
+            // Buscar en ambos nodos
+            const todos = [
+                ...Object.values(data.espera || {}), 
+                ...Object.values(data.completados || {})
+            ];
+            
             const encontrado = todos.find(r => r.copiloto.toLowerCase() === nombreBusqueda);
 
             if (encontrado) {
-                avisoBox.innerHTML = `⚠️ <b>¡PARTICIPANTE YA REGISTRADO!</b><br>
-                    Tiene asignado el <b>Ticket #${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>
-                    <small>No necesita volver a firmar el documento físico.</small>`;
+                avisoBox.innerHTML = `⚠️ <b>¡YA REGISTRADO!</b><br>
+                    Tiene el <b>Ticket #${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>
+                    No necesita firmar otra vez.`;
                 avisoBox.style.display = 'block';
-                
-                firmaChk.checked = true; // Auto-check
+                firmaChk.checked = true;
                 registroRecuperado = encontrado;
             } else {
                 avisoBox.style.display = 'none';
@@ -155,18 +164,31 @@
             fnValidar();
         });
 
-        const fnValidar = () => { 
-            btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
-        };
         firmaChk.onchange = fnValidar;
 
-        // --- LÓGICA DE ACTUALIZACIÓN DE INTERFAZ ---
+        // OBTENER DATOS Y SUGERIR PILOTO AUTOMÁTICAMENTE
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
+            
+            // Actualizar número correlativo y contador
             document.getElementById('v-proximo-numero').innerText = ((data.ultimo_numero || 0) + 1).toString().padStart(3, '0');
             document.getElementById('count-tag').innerText = data.config_pilotos ? Object.keys(data.config_pilotos).length : 0;
 
-            // RENDER COLA
+            // --- LÓGICA DE SUGERENCIA DE PILOTO ---
+            const todosViajes = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
+            const conteo = {};
+            todosViajes.forEach(v => { conteo[v.piloto] = (conteo[v.piloto] || 0) + 1; });
+
+            if(pilotosArray.length > 0) {
+                let sugerido = pilotosArray[0];
+                let min = conteo[sugerido] || 0;
+                pilotosArray.forEach(p => {
+                    if((conteo[p] || 0) < min) { min = (conteo[p] || 0); sugerido = p; }
+                });
+                if(document.activeElement.id !== 'c-piloto') selPiloto.value = sugerido;
+            }
+
+            // RENDER TABLA ESPERA
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
@@ -177,17 +199,15 @@
                     row.innerHTML = `
                         <td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td>
                         <td>
-                            <strong style="font-size:1.1em; font-family:sans-serif">${item.copiloto}</strong>
+                            <strong style="font-family:sans-serif">${item.copiloto}</strong>
                             <span class="time-tag">⏱ ${item.horaRegistro}</span><br>
-                            <span style="font-size:0.85em; color:#bbb; font-family:sans-serif">${pNombre}</span> 
+                            <span style="font-size:0.85em; color:#bbb;">${pNombre}</span> 
                             <span class="car-tag">| ${pCoche || ''}</span>
                         </td>
                         <td style="text-align:right">
                             <div class="ready-container">
                                 <input type="checkbox" class="status-chk" ${item.enRecinto?'checked':''}>
-                                <span class="${item.enRecinto ? 'label-dentro' : 'label-fuera'}">
-                                    ${item.enRecinto ? 'DENTRO' : 'ESPERA'}
-                                </span>
+                                <span class="${item.enRecinto ? 'label-dentro' : 'label-fuera'}">${item.enRecinto ? 'DENTRO' : 'ESPERA'}</span>
                             </div>
                         </td>
                     `;
@@ -197,7 +217,7 @@
                 });
             }
 
-            // RENDER HISTORIAL
+            // RENDER TABLA COMPLETADOS
             const tComp = document.getElementById('tabla-completados');
             tComp.innerHTML = "";
             if(data.completados) {
@@ -207,29 +227,30 @@
                     row.innerHTML = `
                         <td><span class="n-papel-cola" style="background:#444; color:#aaa;">${item.nPapel.toString().padStart(3, '0')}</span></td>
                         <td>
-                            <strong style="font-family:sans-serif">${item.copiloto}</strong><br>
+                            <strong>${item.copiloto}</strong><br>
                             <small style="color:#666">${pNombre}</small> <small style="color:var(--accent)">[${pCoche || ''}]</small>
                         </td>
-                        <td style="color:var(--green); font-size:0.8em; text-align:right; font-weight:bold;">🏁 ${item.horaPista || '--:--'}</td>
+                        <td style="color:var(--green); font-size:0.8em; text-align:right; font-weight:bold;">🏁 ${item.horaPista || ''}</td>
                     `;
                 });
             }
         });
 
-        // --- BOTÓN CONFIRMAR ---
+        // BOTÓN AÑADIR (CONFIRMAR)
         btnAdd.onclick = async () => {
-            const pilotoSeleccionado = document.getElementById('c-piloto').value;
+            const nombreNuevo = nombreInput.value.trim();
+            const pilotoSeleccionado = selPiloto.value;
             const horaActual = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
 
             if (registroRecuperado) {
-                // Borrar de completados si estaba allí para que no aparezca duplicado
+                // Si repetía de completados, lo borramos de allá primero
                 const snapC = await get(ref(db, 'copilotajes/completados'));
                 if(snapC.exists()){
                     Object.entries(snapC.val()).forEach(([id, reg]) => {
                         if(reg.nPapel === registroRecuperado.nPapel) remove(ref(db, `copilotajes/completados/${id}`));
                     });
                 }
-
+                // Insertar en espera manteniendo el número original
                 await push(ref(db, 'copilotajes/espera'), {
                     ...registroRecuperado,
                     piloto: pilotoSeleccionado,
@@ -237,12 +258,12 @@
                     horaRegistro: horaActual
                 });
             } else {
+                // Registro totalmente nuevo
                 const snapNum = await get(ref(db, 'copilotajes/ultimo_numero'));
                 const num = (snapNum.val() || 0) + 1;
-                
                 await push(ref(db, 'copilotajes/espera'), {
                     nPapel: num,
-                    copiloto: nombreInput.value.trim(),
+                    copiloto: nombreNuevo,
                     piloto: pilotoSeleccionado,
                     enRecinto: false,
                     horaRegistro: horaActual
@@ -250,7 +271,7 @@
                 await set(ref(db, 'copilotajes/ultimo_numero'), num);
             }
 
-            // Reset Formulario
+            // Limpiar todo
             nombreInput.value = "";
             firmaChk.checked = false;
             avisoBox.style.display = 'none';
@@ -258,7 +279,7 @@
             fnValidar();
         };
 
-        // --- GESTIÓN DE PILOTOS (CSV) ---
+        // CARGA DE CSV
         document.getElementById('csv-pilotos').onchange = (e) => {
             const r = new FileReader();
             r.onload = (ev) => {
@@ -275,43 +296,39 @@
             r.readAsText(e.target.files[0]);
         };
 
+        // ACTUALIZAR SELECT DE PILOTOS
         onValue(ref(db, 'copilotajes/config_pilotos'), (snap) => {
-            const sel = document.getElementById('c-piloto');
-            sel.innerHTML = '';
+            selPiloto.innerHTML = ''; 
+            pilotosArray = [];
             if(snap.exists()){
                 Object.values(snap.val()).forEach(p => {
+                    pilotosArray.push(p);
                     let opt = document.createElement('option');
                     opt.value = p; opt.innerText = p;
-                    sel.appendChild(opt);
+                    selPiloto.appendChild(opt);
                 });
             }
         });
 
-        // --- EXPORTAR Y REINICIAR ---
+        // REINICIO DE EVENTO
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             if (!snap.exists()) return;
             const data = snap.val();
-            let listado = [];
-            if(data.espera) Object.values(data.espera).forEach(v => listado.push({...v, estado: 'PENDIENTE'}));
-            if(data.completados) Object.values(data.completados).forEach(v => listado.push({...v, estado: 'COMPLETADO'}));
-            listado.sort((a,b) => a.nPapel - b.nPapel);
-
-            let csv = "Nº TICKET,ESTADO,COPILOTO,PILOTO,HORA REGISTRO\n";
-            listado.forEach(v => csv += `${v.nPapel},${v.estado},${v.copiloto},${v.piloto},${v.horaRegistro}\n`);
-
+            let csv = "Nº TICKET,COPILOTO,PILOTO,HORA\n";
+            const listado = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})].sort((a,b) => a.nPapel - b.nPapel);
+            listado.forEach(v => csv += `${v.nPapel},${v.copiloto},${v.piloto},${v.horaRegistro}\n`);
             const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = url;
-            a.download = `Cierre_Evento_${new Date().toLocaleDateString()}.csv`;
+            a.href = URL.createObjectURL(blob);
+            a.download = `Resumen_Evento.csv`;
             a.click();
-
-            setTimeout(() => {
-                if(confirm("¿BORRAR TODO EL EVENTO?")) remove(ref(db, 'copilotajes'));
+            setTimeout(() => { 
+                if(confirm("¿BORRAR TODA LA NUBE?")) remove(ref(db, 'copilotajes')); 
             }, 500);
         };
 
+        // NOMBRE DEL EVENTO
         onValue(ref(db, 'copilotajes/nombre_evento'), s => document.getElementById('nombre-evento').value = s.val() || "");
         document.getElementById('nombre-evento').onchange = (e) => set(ref(db, 'copilotajes/nombre_evento'), e.target.value);
     </script>

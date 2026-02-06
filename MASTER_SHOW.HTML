@@ -8,14 +8,23 @@
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
         
-        /* CONTENEDOR DEL LOGO */
+        /* CONTENEDOR DEL LOGO OPTIMIZADO */
         .header-logo { 
             display: block; 
-            margin: 0 auto 15px auto; 
-            max-width: 100%; 
+            margin: 0 auto; 
+            width: 100%;       /* Ocupa todo el ancho disponible */
+            max-width: 400px;  /* Pero no más de 400px para que no sea gigante en tablets */
             height: auto; 
-            max-height: 80px; /* Ajusta este valor según prefieras el tamaño del logo */
+            aspect-ratio: auto;
             object-fit: contain;
+            /* Eliminamos el max-height restrictivo para que gane presencia */
+        }
+
+        .header-border { 
+            border-bottom: 1px solid #333; 
+            padding: 10px 0; 
+            margin-bottom: 15px;
+            background: #000; /* Asegura fondo negro tras el logo */
         }
 
         .header-border { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }

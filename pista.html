@@ -5,35 +5,196 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PISTA DRIFT SHOW</title>
     <style>
-        body { background: #000; margin: 0; padding: 2vh; display: flex; flex-direction: column; height: 96vh; font-family: sans-serif; }
+        /* Ajuste general para que todo quepa en la pantalla sin scroll */
+        body { 
+            background: #000; 
+            margin: 0; 
+            padding: 1.5vh; 
+            display: flex; 
+            flex-direction: column; 
+            height: 97vh; 
+            font-family: sans-serif; 
+            box-sizing: border-box;
+        }
         
-        /* BANNER DE MENSAJES EN NARANJA */
+        /* BANNER DE MENSAJES */
         #banner-mensaje { 
             display: none; 
-            background: #ff8800; /* Naranja Precaución */
-            color: #000;         /* Texto Negro para contraste */
-            padding: 20px; 
+            background: #ff8800; 
+            color: #000;
+            padding: 15px; 
             text-align: center; 
-            border-radius: 15px; 
-            margin-bottom: 2vh; 
-            border: 4px solid #fff; 
-            position: relative;
-            box-shadow: 0 0 30px rgba(255, 136, 0, 0.8);
+            border-radius: 12px; 
+            margin-bottom: 1.5vh; 
+            border: 3px solid #fff; 
+            flex-shrink: 0; /* Para que no se encoja */
         }
         
         #texto-mensaje { 
-            font-size: 2.2em; 
+            font-size: 1.8em; 
             font-weight: bold; 
-            margin-bottom: 15px; 
+            margin-bottom: 10px; 
             animation: parpadeo 1s infinite; 
             text-transform: uppercase;
         }
 
         .btn-cerrar-msg {
-            background: #000;    /* Botón Negro */
-            color: #ff8800;      /* Texto Naranja */
+            background: #000;
+            color: #ff8800;
             border: none;
-            padding: 12px 30px;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        /* BOTONES DE CONTROL - Se estiran para llenar el resto del espacio */
+        .btn { 
+            flex: 1; 
+            margin-bottom: 1.5vh; 
+            border-radius: 15px; 
+            border: none; 
+            font-size: 1.8em; 
+            font-weight: bold; 
+            color: #fff; 
+            cursor: pointer; 
+            opacity: 0.2; 
+            transition: 0.3s; 
+            text-transform: uppercase;
+        }
+
+        .btn:last-child { margin-bottom: 0; }
+
+        .btn-act { 
+            opacity: 1 !important; 
+            outline: 5px solid #fff; 
+            box-shadow: 0 0 20px rgba(255,255,255,0.5); 
+        }
+
+        .modo-bloqueado { opacity: 0.05 !important; pointer-events: none; }
+
+        @keyframes parpadeo {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="banner-mensaje">
+        <div id="texto-mensaje"></div>
+        <button class="btn-cerrar-msg" onclick="cerrarMensajeLocal()">He leído [X]</button>
+    </div>
+
+    <button id="btn-coche" class="btn" style="background:#007bff" onclick="enviar('EN PISTA', '#007bff', 'btn-coche')">COCHE EN PISTA</button>
+    <button id="btn-libre" class="btn" style="background:green" onclick="enviar('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
+    <button id="btn-obs" class="btn" style="background:#ffcc00; color:black" onclick="enviar('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
+    <button id="btn-acc" class="btn" style="background:red" onclick="enviar('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, get, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let modoActual = "tab-show";
+
+        // CIERRE LOCAL DE MENSAJES
+        window.cerrarMensajeLocal = () => {
+            const textoMsg = document.getElementById('texto-mensaje').innerText;
+            localStorage.setItem('msg_leido', textoMsg);
+            document.getElementById('banner-mensaje').style.display = 'none';
+        };
+
+        // ESCUCHAR MENSAJES DEL MASTER
+        onValue(ref(db, 'copilotajes/mensaje_pista'), (snap) => {
+            const msg = snap.val();
+            const banner = document.getElementById('banner-mensaje');
+            const texto = document.getElementById('texto-mensaje');
+            const yaLeido = localStorage.getItem('msg_leido');
+            
+            if (msg && msg.trim() !== "") {
+                const formatoMsg = "📢 " + msg;
+                if (formatoMsg !== yaLeido) {
+                    texto.innerText = formatoMsg;
+                    banner.style.display = 'block';
+                }
+            } else {
+                banner.style.display = 'none';
+                localStorage.removeItem('msg_leido');
+            }
+        });
+
+        // BLOQUEO POR MODO (ESC / SHOW)
+        onValue(ref(db, 'modo_actual'), s => {
+            modoActual = s.val() || "tab-show";
+            document.querySelectorAll('.btn').forEach(b => {
+                if(modoActual === 'tab-esc') b.classList.add('modo-bloqueado');
+                else b.classList.remove('modo-bloqueado');
+            });
+        });
+
+        // ENVIAR ESTADO DE PISTA
+        window.enviar = async (m, c, id) => {
+            if (id === 'btn-coche') {
+                const vSnap = await get(ref(db, 'votacion_activa'));
+                if (!vSnap.exists() || !vSnap.val().dorsal) {
+                    alert("⚠️ ESPERA: El Master aún no ha puesto un dorsal.");
+                    return;
+                }
+            }
+
+            set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
+
+            if (id === 'btn-libre') {
+                const snap = await get(ref(db, 'votacion_activa'));
+                const data = snap.val();
+                if (data && data.activa) {
+                    let acAp = 0, acUp = 0, acDw = 0;
+                    const histSnap = await get(ref(db, 'historial_votos'));
+                    if(histSnap.exists()){
+                        Object.values(histSnap.val()).forEach(v => {
+                            if(v.dorsal === data.dorsal) {
+                                acAp += (v.ap || 0); acUp += (v.up || 0); acDw += (v.dw || 0);
+                            }
+                        });
+                    }
+                    push(ref(db, 'historial_votos'), {
+                        dorsal: data.dorsal, info: data.info,
+                        ap: (data.aplausos || 0) - acAp,
+                        up: (data.up || 0) - acUp,
+                        dw: (data.down || 0) - acDw,
+                        ts: Date.now()
+                    });
+                    let count = 5;
+                    update(ref(db, 'votacion_activa'), { timer: count });
+                    let interval = setInterval(() => {
+                        count--;
+                        if (count <= 0) {
+                            clearInterval(interval);
+                            set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
+                        } else {
+                            update(ref(db, 'votacion_activa'), { timer: count });
+                        }
+                    }, 1000);
+                }
+            }
+        };
+
+        // RESALTAR BOTÓN ACTIVO
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-act'));
+            if(e?.id) document.getElementById(e.id)?.classList.add('btn-act');
+        });
+    </script>
+</body>
+</html>
             border-radius: 8px;
             font-size: 1.3em;
             font-weight: 900;
@@ -312,4 +473,5 @@
     </script>
 </body>
 </html>
+
 

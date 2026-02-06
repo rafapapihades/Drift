@@ -214,7 +214,7 @@
                 hist_ap: acum.ap, hist_up: acum.up, hist_dw: acum.dw
             });
 
-            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
+            set(ref(db, 'estado_pista'), { mensaje: 'EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             document.getElementById('d-show').value = "";
             document.getElementById('preview-show').innerText = "Introduce dorsal...";
         };

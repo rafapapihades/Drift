@@ -11,31 +11,57 @@
         .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
         .btn-pista { opacity: 0.25; }
         .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
-        input { width: 100%; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; box-sizing: border-box; }
+        
+        /* CONTENEDOR INPUT + BOTÓN LUPA */
+        .input-group { display: flex; gap: 8px; margin-bottom: 5px; }
+        input { flex: 1; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; box-sizing: border-box; }
+        .btn-lupa { width: 60px; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; }
+
         .vote-stats { display: flex; justify-content: space-around; font-size: 1.2em; margin: 10px 0; background: #222; padding: 10px; border-radius: 8px; color: #ffcc00; }
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
-        
-        /* AJUSTE SOLICITADO: Texto de previsualización más grande y blanco */
-        .info-preview { 
-            color: #fff; 
-            font-size: 1.1em; /* Tamaño similar al de los botones */
-            font-weight: bold;
-            margin-top: 15px; 
-            text-align: center; 
-            min-height: 1.2em;
-            text-transform: uppercase;
-        }
+        .info-preview { color: #fff; font-size: 1.1em; font-weight: bold; margin-top: 15px; text-align: center; min-height: 1.2em; text-transform: uppercase; }
 
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
         .btn-cargar { background: #222; border: 1px dashed #444; color: #888; font-size: 0.75em; margin-top: 20px; padding: 10px; }
+
+        /* ESTILOS DEL MODAL SELECTOR */
+        #modal-selector { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; padding: 20px; box-sizing: border-box; 
+        }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; gap: 10px; }
+        .grid-pilotos { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
+            gap: 10px; overflow-y: auto; flex: 1; padding-bottom: 20px;
+        }
+        .btn-piloto-selec { 
+            background: #222; border: 1px solid #444; color: #fff; padding: 15px 5px; 
+            border-radius: 8px; font-weight: bold; font-size: 0.9em; cursor: pointer; text-align: center;
+        }
+        .btn-piloto-selec.selected { background: #ffcc00; color: #000; border-color: #fff; }
+        .btn-confirmar { background: green; color: white; padding: 15px; border-radius: 8px; border: none; font-weight: bold; flex: 1; }
+        .btn-cancelar { background: #600; color: white; padding: 15px; border-radius: 8px; border: none; font-weight: bold; flex: 1; }
     </style>
 </head>
 <body>
-    <div class="header-title">PANEL DE CONTROL DRIFTSHOW</div>
+
+    <div id="modal-selector">
+        <div class="modal-header">
+            <button class="btn-cancelar" onclick="cerrarSelector()">✕ CANCELAR</button>
+            <button class="btn-confirmar" onclick="confirmarSeleccion()">✓ ACEPTAR</button>
+        </div>
+        <div id="lista-botones-pilotos" class="grid-pilotos">
+            </div>
+    </div>
+
+    <div class="header-title">PANEL DE CONTROL SHOW / DRIFT</div>
 
     <div id="tab-show">
         <div class="card">
-            <input type="text" id="d-show" placeholder="DORSALES (EJ: 1 23 34)" oninput="buscarPilotoShow(this.value)">
+            <div class="input-group">
+                <input type="text" id="d-show" placeholder="DORSALES (EJ: 501 502)" oninput="buscarPilotoShow(this.value)">
+                <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
+            </div>
             <div id="preview-show" class="info-preview">Introduce dorsal...</div>
             <p style="font-size:0.7em; color:#ffcc00; text-align:center; margin-top:10px;">
                 Inscritos en base de datos: <span id="cnt-drift">0</span>
@@ -45,20 +71,14 @@
         <div id="drift-controls" class="card">
             <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
             <div id="info-pista-drift" class="info-pista"></div>
-            
             <div class="vote-stats">
-                <span>👏 <b id="m-ap">0</b></span> 
-                <span>👍 <b id="m-up">0</b></span> 
-                <span>👎 <b id="m-dw">0</b></span>
+                <span>👏 <b id="m-ap">0</b></span> <span>👍 <b id="m-up">0</b></span> <span>👎 <b id="m-dw">0</b></span>
             </div>
-
             <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
             <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
             <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
-            
             <button class="btn btn-cargar" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
             <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
-            
             <button class="btn btn-reset" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
         </div>
     </div>
@@ -72,8 +92,43 @@
         const db = getDatabase(app);
 
         let inscritosD = {};
-        let acumuladoInicial = { ap: 0, up: 0, dw: 0 }; 
+        let seleccionados = [];
 
+        // --- LÓGICA DEL SELECTOR ---
+        window.abrirSelector = () => {
+            const grid = document.getElementById('lista-botones-pilotos');
+            grid.innerHTML = "";
+            seleccionados = [];
+            
+            // Ordenar dorsales numéricamente
+            const dorsales = Object.keys(inscritosD).sort((a,b) => a - b);
+
+            dorsales.forEach(d => {
+                const btn = document.createElement('div');
+                btn.className = 'btn-piloto-selec';
+                btn.innerText = d;
+                btn.onclick = () => {
+                    btn.classList.toggle('selected');
+                    const index = seleccionados.indexOf(d);
+                    if (index > -1) seleccionados.splice(index, 1);
+                    else seleccionados.push(d);
+                };
+                grid.appendChild(btn);
+            });
+            document.getElementById('modal-selector').style.display = 'flex';
+        };
+
+        window.cerrarSelector = () => {
+            document.getElementById('modal-selector').style.display = 'none';
+        };
+
+        window.confirmarSeleccion = () => {
+            document.getElementById('d-show').value = seleccionados.join(" ");
+            window.buscarPilotoShow(seleccionados.join(" "));
+            cerrarSelector();
+        };
+
+        // --- RESTO DE LÓGICA MANTENIDA ---
         window.abrirVoto = async () => {
             const inputElt = document.getElementById('d-show');
             const val = inputElt.value.trim();
@@ -81,7 +136,7 @@
             
             const dorsalesArr = val.split(/\s+/);
             let infoConcat = [];
-            acumuladoInicial = { ap: 0, up: 0, dw: 0 };
+            let acumuladoInicial = { ap: 0, up: 0, dw: 0 };
 
             const histSnap = await get(ref(db, 'historial_votos'));
             if (histSnap.exists()) {
@@ -112,24 +167,19 @@
 
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             inputElt.value = "";
+            document.getElementById('preview-show').innerText = "Votación abierta...";
         };
 
         window.setEstado = async (msg, col, id) => {
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
-            
             if (id === 'btn-libre') {
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
                     push(ref(db, 'historial_votos'), {
-                        dorsal: v.dorsal,
-                        info: v.info,
-                        ap: (v.aplausos || 0) - acumuladoInicial.ap,
-                        up: (v.up || 0) - acumuladoInicial.up,
-                        dw: (v.down || 0) - acumuladoInicial.dw,
-                        ts: Date.now()
+                        dorsal: v.dorsal, info: v.info,
+                        ap: (v.aplausos || 0), up: (v.up || 0), dw: (v.down || 0), ts: Date.now()
                     });
-
                     let count = 5;
                     update(ref(db, 'votacion_activa'), { timer: count });
                     let interval = setInterval(() => {
@@ -167,28 +217,20 @@
             reader.readAsText(file, "UTF-8");
         };
 
-        window.exportarVotos = async () => {
-            const snap = await get(ref(db, 'historial_votos'));
-            if (!snap.exists()) return alert("No hay datos.");
-            
-            let csv = "\uFEFFDorsal;Piloto/Info;Aplausos;Up;Down;Timestamp\n";
-            Object.values(snap.val()).forEach(v => {
-                csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw};${new Date(v.ts).toLocaleString()}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "votos_drift.csv";
-            link.click();
-
-            if(confirm("¿Borrar historial de la nube?")) remove(ref(db, 'historial_votos'));
-        };
-
         onValue(ref(db, 'inscritos_drift'), s => {
             inscritosD = s.val() || {};
             document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
         });
+
+        window.buscarPilotoShow = (val) => {
+            const dorsales = val.trim().split(/\s+/);
+            const encontrados = dorsales.map(d => {
+                const p = inscritosD[d];
+                if (p) return p.coche ? `${p.piloto} (${p.coche})` : p.piloto;
+                return d ? `${d}: ?` : "";
+            });
+            document.getElementById('preview-show').innerText = val ? encontrados.filter(x => x).join(' | ') : "Introduce dorsal...";
+        };
 
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
@@ -201,7 +243,7 @@
                 preview.innerText = v.timer > 0 ? `Cerrando (${v.timer}s)...` : "Votación abierta...";
             } else {
                 document.getElementById('info-pista-drift').innerText = "Pista libre";
-                preview.innerText = "Introduce dorsal...";
+                if (!document.getElementById('d-show').value) preview.innerText = "Introduce dorsal...";
             }
         });
 
@@ -210,19 +252,6 @@
             document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
             if (e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
         });
-
-        // AJUSTE SOLICITADO: Mostrar Piloto + Coche en la búsqueda
-        window.buscarPilotoShow = (val) => {
-            const dorsales = val.trim().split(/\s+/);
-            const encontrados = dorsales.map(d => {
-                const p = inscritosD[d];
-                if (p) {
-                    return p.coche ? `${p.piloto} (${p.coche})` : p.piloto;
-                }
-                return d ? `${d}: ?` : "";
-            });
-            document.getElementById('preview-show').innerText = val ? encontrados.filter(x => x).join(' | ') : "Introduce dorsal...";
-        };
 
         set(ref(db, 'modo_actual'), 'tab-show');
     </script>

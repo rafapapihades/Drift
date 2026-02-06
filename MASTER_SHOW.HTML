@@ -17,16 +17,13 @@
         .btn-pista { opacity: 0.25; }
         .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
         
+        input { width: 100%; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
         .input-group { display: flex; gap: 8px; width: 100%; }
-        input { flex: 1; min-width: 0; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
         .btn-lupa { width: 60px; flex-shrink: 0; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
         .vote-stats { display: flex; justify-content: space-around; font-size: 1.2em; margin: 10px 0; background: #222; padding: 10px; border-radius: 8px; color: #ffcc00; }
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
         .info-preview { color: #fff; font-size: 1.1em; font-weight: bold; margin-top: 15px; text-align: center; min-height: 1.2em; text-transform: uppercase; }
-
-        .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
-        .btn-cargar { background: #222; border: 1px dashed #444; color: #888; font-size: 0.75em; margin-top: 20px; padding: 10px; margin-bottom: 5px; }
 
         /* MODALES */
         #modal-selector, #modal-mensaje { 
@@ -34,11 +31,11 @@
             background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; padding: 10px; 
             align-items: center; justify-content: center;
         }
-        .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #007bff; width: 95%; max-width: 450px; text-align: center; }
+        .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #cc7700; width: 95%; max-width: 450px; text-align: center; }
 
-        /* PANEL DE LECTURA PISTAS */
-        #panel-lectura { background: #1a1a1a; border-radius: 10px; margin-top: 10px; padding: 12px; border: 1px solid #444; }
-        .pista-tag { padding: 5px 10px; border-radius: 5px; color: #fff; font-weight: bold; font-size: 0.75em; border: 1px solid rgba(255,255,255,0.2); }
+        /* PANEL DE LECTURA (Oculto por defecto) */
+        #panel-lectura { display: none; background: #1a1a1a; border-radius: 10px; margin-top: 10px; padding: 12px; border: 1px solid #cc7700; }
+        .pista-tag { padding: 5px 10px; border-radius: 5px; color: #fff; font-weight: bold; font-size: 0.75em; border: 1px solid rgba(255,255,255,0.1); }
 
         .grid-pilotos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; width: 100%; }
         .btn-piloto-selec { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; text-align: center; justify-content: center; min-height: 70px; }
@@ -57,11 +54,11 @@
 
     <div id="modal-mensaje">
         <div class="modal-content">
-            <h3 style="color:#ff8800; margin-top:0;">NUEVO AVISO A PISTA</h3>
-            <input type="text" id="input-mensaje-pista" style="width:100%; font-size:1.2em; padding:15px; margin-bottom:20px;" placeholder="Ej: Pista sucia en curva 2...">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <h3 style="color:#cc7700; margin-top:0;">NUEVO AVISO A PISTA</h3>
+            <input type="text" id="input-mensaje-pista" style="width:100%;" placeholder="Ej: REAGRUPAMIENTO EN BOXES">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
                 <button class="btn" style="background:#28a745" onclick="enviarMensajePista()">ENVIAR</button>
-                <button class="btn" style="background:#ff8800; color:#000" onclick="cerrarModalMensaje()">CANCELAR</button>
+                <button class="btn" style="background:#444" onclick="cerrarModalMensaje()">SALIR</button>
             </div>
         </div>
     </div>
@@ -94,26 +91,24 @@
             <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
             <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
             
-            <button class="btn" style="background:#ff8800; color:#000; margin-top:10px;" onclick="abrirModalMensaje()">💬 ENVIAR MENSAJE NARANJA</button>
+            <button class="btn" style="background:#cc7700; color:#fff; margin-top:10px;" onclick="abrirModalMensaje()">💬 ENVIAR MENSAJE A PISTA</button>
 
             <div id="panel-lectura">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <span style="font-size:0.7em; color:#888; font-weight:bold;">ESTADO LECTURA PISTAS:</span>
-                    <button onclick="borrarMensajePista()" style="background:#000; color:#ff4444; border:1px solid #ff4444; padding:4px 10px; border-radius:5px; font-size:0.7em; font-weight:bold; cursor:pointer;">QUITAR MENSAJE X</button>
+                    <span style="font-size:0.7em; color:#888; font-weight:bold;">CONFIRMACIÓN DE LECTURA:</span>
+                    <button onclick="borrarMensajePista()" style="background:#cc0000; color:#fff; border:none; padding:4px 10px; border-radius:5px; font-size:0.7em; font-weight:bold; cursor:pointer;">BORRAR MENSAJE X</button>
                 </div>
-                <div id="lista-pistas" style="display:flex; gap:6px; flex-wrap:wrap;">
-                    <span style="color:#444; font-size:0.8em;">Esperando conexión de pistas...</span>
-                </div>
+                <div id="lista-pistas" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
             </div>
 
-            <button class="btn btn-cargar" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
+            <button class="btn btn-cargar" style="background:#222; border:1px dashed #444; color:#888; font-size:0.75em; margin-top:20px; padding:10px;" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
             <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
             
             <p style="font-size:0.75em; color:#ffcc00; text-align:center; margin: 10px 0;">
                 Inscritos: <span id="cnt-drift">0</span>
             </p>
 
-            <button class="btn btn-reset" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
+            <button class="btn" style="background:#444; opacity:1; font-size:0.7em; margin-top:5px;" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
         </div>
     </div>
 
@@ -127,6 +122,7 @@
 
         let inscritosD = {};
         let seleccionados = [];
+        let mensajeActivoGlobal = "";
 
         // --- LÓGICA MENSAJERÍA ---
         window.abrirModalMensaje = () => {
@@ -148,21 +144,20 @@
             set(ref(db, 'copilotajes/mensaje_pista'), "");
         };
 
-        // Escuchar quién lee el mensaje
+        // Escuchar si hay mensaje y quién lo lee
+        onValue(ref(db, 'copilotajes/mensaje_pista'), (snap) => {
+            mensajeActivoGlobal = snap.val() || "";
+            document.getElementById('panel-lectura').style.display = mensajeActivoGlobal !== "" ? "block" : "none";
+        });
+
         onValue(ref(db, 'presencia_pistas'), (snap) => {
             const container = document.getElementById('lista-pistas');
             container.innerHTML = "";
             const pistas = snap.val() || {};
-            const keys = Object.keys(pistas);
             
-            if(keys.length === 0) {
-                container.innerHTML = '<span style="color:#444; font-size:0.8em;">Sin pistas activas</span>';
-                return;
-            }
-
-            keys.forEach(id => {
+            Object.keys(pistas).forEach(id => {
                 const p = pistas[id];
-                const color = p.leido ? "#28a745" : "#ff4444";
+                const color = p.leido ? "#28a745" : "#666"; // Verde si leyó, gris si no
                 const tag = document.createElement('div');
                 tag.className = 'pista-tag';
                 tag.style.backgroundColor = color;
@@ -171,7 +166,7 @@
             });
         });
 
-        // --- LÓGICA PILOTOS Y PISTA ---
+        // --- RESTO DE LÓGICA (PILOTOS, PISTA, VOTOS) ---
         window.abrirSelector = () => {
             const grid = document.getElementById('lista-botones-pilotos');
             grid.innerHTML = ""; seleccionados = [];

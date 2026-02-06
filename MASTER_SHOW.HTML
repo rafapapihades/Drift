@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MASTER DRIFT SHOW V1.0 - CONTROL</title>
     <style>
-        /* RESET Y BÁSICOS */
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
         
@@ -28,39 +27,44 @@
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
         .btn-cargar { background: #222; border: 1px dashed #444; color: #888; font-size: 0.75em; margin-top: 20px; padding: 10px; }
 
-        /* MODAL SELECTOR OPTIMIZADO */
+        /* MODAL SELECTOR - 2 COLUMNAS */
         #modal-selector { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #000; z-index: 1000; flex-direction: column; padding: 15px; 
+            background: #000; z-index: 1000; flex-direction: column; padding: 10px; 
         }
-        .modal-header { display: flex; gap: 10px; margin-bottom: 15px; height: 60px; }
+        .modal-header { display: flex; gap: 10px; margin-bottom: 10px; height: 50px; flex-shrink: 0; }
+        
         .grid-pilotos { 
-            display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; /* DOS COLUMNAS */
+            gap: 8px; 
+            overflow-y: auto; 
+            flex: 1; 
+            padding-bottom: 10px;
         }
         
-        /* BOTÓN DE PILOTO EN LISTA */
+        /* BOTÓN DE PILOTO EN GRID */
         .btn-piloto-selec { 
-            background: #111; border: 1px solid #333; color: #fff; padding: 12px; 
-            border-radius: 8px; display: flex; align-items: center; gap: 15px; text-align: left;
+            background: #111; border: 1px solid #333; color: #fff; padding: 10px; 
+            border-radius: 8px; display: flex; flex-direction: column; gap: 4px; text-align: center;
+            justify-content: center; min-height: 70px;
         }
-        .btn-piloto-selec .dorsal-tag { background: #333; color: #ffcc00; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-family: monospace; font-size: 1.2em; min-width: 60px; text-align: center; }
-        .btn-piloto-selec .info-tag { display: flex; flex-direction: column; }
-        .btn-piloto-selec .p-name { font-weight: bold; font-size: 1em; }
-        .btn-piloto-selec .p-car { font-size: 0.8em; color: #888; }
+        .btn-piloto-selec .dorsal-tag { color: #ffcc00; font-weight: bold; font-family: monospace; font-size: 1.1em; }
+        .btn-piloto-selec .p-name { font-weight: bold; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-piloto-selec .p-car { font-size: 0.7em; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
-        .btn-piloto-selec.selected .dorsal-tag { background: #ffcc00; color: #000; }
+        .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; box-shadow: inset 0 0 10px rgba(255,204,0,0.2); }
         
-        .btn-confirmar { background: #008800; color: white; border-radius: 8px; border: none; font-weight: bold; flex: 1; font-size: 1.1em; }
-        .btn-cancelar { background: #444; color: white; border-radius: 8px; border: none; font-weight: bold; flex: 1; font-size: 1.1em; }
+        .btn-confirmar { background: #008800; color: white; border-radius: 8px; border: none; font-weight: bold; flex: 1; font-size: 1em; }
+        .btn-cancelar { background: #444; color: white; border-radius: 8px; border: none; font-weight: bold; flex: 1; font-size: 1em; }
     </style>
 </head>
 <body>
 
     <div id="modal-selector">
         <div class="modal-header">
-            <button class="btn-cancelar" onclick="cerrarSelector()">CANCELAR</button>
-            <button class="btn-confirmar" onclick="confirmarSeleccion()">ACEPTAR</button>
+            <button class="btn-cancelar" onclick="cerrarSelector()">✕</button>
+            <button class="btn-confirmar" onclick="confirmarSeleccion()">✓ ACEPTAR</button>
         </div>
         <div id="lista-botones-pilotos" class="grid-pilotos">
             </div>
@@ -107,7 +111,6 @@
         let inscritosD = {};
         let seleccionados = [];
 
-        // --- LÓGICA DEL SELECTOR ---
         window.abrirSelector = () => {
             const grid = document.getElementById('lista-botones-pilotos');
             grid.innerHTML = "";
@@ -121,10 +124,8 @@
                 btn.className = 'btn-piloto-selec';
                 btn.innerHTML = `
                     <div class="dorsal-tag">${d}</div>
-                    <div class="info-tag">
-                        <span class="p-name">${p.piloto}</span>
-                        <span class="p-car">${p.coche || '---'}</span>
-                    </div>
+                    <div class="p-name">${p.piloto}</div>
+                    <div class="p-car">${p.coche || ''}</div>
                 `;
                 btn.onclick = () => {
                     btn.classList.toggle('selected');
@@ -147,16 +148,14 @@
             cerrarSelector();
         };
 
-        // --- LÓGICA DE CONTROL ---
+        // El resto de la lógica (abrirVoto, setEstado, cargarCSV, etc.) se mantiene igual
         window.abrirVoto = async () => {
             const inputElt = document.getElementById('d-show');
             const val = inputElt.value.trim();
             if (!val) return alert("Introduce dorsal");
-            
             const dorsalesArr = val.split(/\s+/);
             let infoConcat = [];
             let acumuladoInicial = { ap: 0, up: 0, dw: 0 };
-
             const histSnap = await get(ref(db, 'historial_votos'));
             if (histSnap.exists()) {
                 const historial = Object.values(histSnap.val());
@@ -168,18 +167,15 @@
                     });
                 });
             }
-
             dorsalesArr.forEach(d => {
                 const p = inscritosD[d];
                 infoConcat.push(p ? `${p.piloto}${p.coche ? ' ('+p.coche+')' : ''}` : "P" + d);
             });
-
             set(ref(db, 'votacion_activa'), {
                 dorsal: val, info: infoConcat.join(' / '),
                 aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw,
                 activa: true, timer: 0
             });
-
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             inputElt.value = "";
         };

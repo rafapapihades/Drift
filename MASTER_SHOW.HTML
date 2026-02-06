@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,31 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MASTER DRIFT SHOW - CONTROL TOTAL</title>
     <style>
-        /* Estilos previos se mantienen igual */
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
         .header-border { border-bottom: 1px solid #333; padding: 10px 0; margin-bottom: 15px; }
+
         .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; }
+        
         .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
         .btn-pista { opacity: 0.25; }
         .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        
         input { width: 100%; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
         .input-group { display: flex; gap: 8px; }
         .btn-lupa { width: 60px; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        
-        /* Ajuste de visualización de votos para mostrar acumulados */
+
+        /* VOTOS Y ACUMULADOS */
         .vote-stats { display: flex; justify-content: space-around; font-size: 1.2em; margin: 10px 0; background: #222; padding: 10px; border-radius: 8px; color: #ffcc00; }
         .vote-item { display: flex; flex-direction: column; align-items: center; }
         .vote-total { font-size: 0.6em; color: #888; text-transform: uppercase; margin-top: 4px; }
-        
+
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
         .info-preview { color: #fff; font-size: 1.1em; font-weight: bold; margin-top: 15px; text-align: center; min-height: 1.2em; text-transform: uppercase; }
+        
         #timer-display { color: #ff4444; font-weight: bold; text-align: center; font-size: 0.9em; margin-bottom: 5px; height: 1.2em; }
-        #modal-selector, #modal-mensaje { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; padding: 10px; align-items: center; justify-content: center; }
+
+        /* MODALES */
+        #modal-selector, #modal-mensaje { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; padding: 10px; align-items: center; justify-content: center;
+        }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #a36a00; width: 95%; max-width: 450px; text-align: center; }
+
         #panel-lectura { display: none; background: #1a150a; border-radius: 10px; margin-top: 10px; padding: 12px; border: 1px solid #a36a00; }
         .pista-tag { padding: 5px 10px; border-radius: 5px; color: #fff; font-weight: bold; font-size: 0.75em; border: 1px solid rgba(255,255,255,0.1); }
+
         .grid-pilotos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; width: 100%; margin-top: 10px; }
         .btn-piloto-selec { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; text-align: center; justify-content: center; min-height: 70px; }
         .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
@@ -121,7 +130,6 @@
 
         let inscritosD = {};
         let seleccionados = [];
-        let acumuladoPiloto = { ap: 0, up: 0, dw: 0 }; // Votos de rondas anteriores
 
         // --- BUSCADOR Y SELECTOR ---
         window.buscarPilotoShow = (val) => {
@@ -188,28 +196,22 @@
             const val = document.getElementById('d-show').value.trim();
             if (!val) return;
 
-            // 1. Calcular votos acumulados del historial para este dorsal
-            acumuladoPiloto = { ap: 0, up: 0, dw: 0 };
+            // Calcular acumulados antes de abrir
+            let acum = { ap: 0, up: 0, dw: 0 };
             const histSnap = await get(ref(db, 'historial_votos'));
             if (histSnap.exists()) {
                 Object.values(histSnap.val()).forEach(h => {
                     if (h.dorsal === val) {
-                        acumuladoPiloto.ap += (h.ap || 0);
-                        acumuladoPiloto.up += (h.up || 0);
-                        acumuladoPiloto.dw += (h.dw || 0);
+                        acum.ap += (h.ap || 0); acum.up += (h.up || 0); acum.dw += (h.dw || 0);
                     }
                 });
             }
 
-            // 2. Abrir votación
             const infoText = document.getElementById('preview-show').innerText;
             set(ref(db, 'votacion_activa'), {
                 dorsal: val, info: infoText,
                 aplausos: 0, up: 0, down: 0, activa: true, timer: 0,
-                // Guardamos el acumulado en la nube para que el público también lo vea
-                hist_ap: acumuladoPiloto.ap,
-                hist_up: acumuladoPiloto.up,
-                hist_dw: acumuladoPiloto.dw
+                hist_ap: acum.ap, hist_up: acum.up, hist_dw: acum.dw
             });
 
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
@@ -223,14 +225,7 @@
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
-                    push(ref(db, 'historial_votos'), { 
-                        dorsal: v.dorsal, 
-                        info: v.info, 
-                        ap: v.aplausos, 
-                        up: v.up, 
-                        dw: v.down, 
-                        ts: Date.now() 
-                    });
+                    push(ref(db, 'historial_votos'), { dorsal: v.dorsal, info: v.info, ap: v.aplausos, up: v.up, dw: v.down, ts: Date.now() });
                     let count = 5;
                     let interval = setInterval(() => {
                         count--;
@@ -249,42 +244,27 @@
             const v = snap.val();
             const infoElt = document.getElementById('info-pista-drift');
             const timerElt = document.getElementById('timer-display');
-            
             if (v && v.activa) {
-                // Rondas actuales
-                const curAp = v.aplausos || 0;
-                const curUp = v.up || 0;
-                const curDw = v.down || 0;
-                
-                // Acumulados previos (los traemos de la nube)
-                const hAp = v.hist_ap || 0;
-                const hUp = v.hist_up || 0;
-                const hDw = v.hist_dw || 0;
+                const ap = v.aplausos || 0, up = v.up || 0, dw = v.down || 0;
+                const hAp = v.hist_ap || 0, hUp = v.hist_up || 0, hDw = v.hist_dw || 0;
 
-                document.getElementById('m-ap').innerText = curAp;
-                document.getElementById('m-up').innerText = curUp;
-                document.getElementById('m-dw').innerText = curDw;
-
-                // Mostramos la suma total (Histórico + Actual)
-                document.getElementById('t-ap').innerText = hAp + curAp;
-                document.getElementById('t-up').innerText = hUp + curUp;
-                document.getElementById('t-dw').innerText = hDw + curDw;
+                document.getElementById('m-ap').innerText = ap;
+                document.getElementById('m-up').innerText = up;
+                document.getElementById('m-dw').innerText = dw;
+                document.getElementById('t-ap').innerText = hAp + ap;
+                document.getElementById('t-up').innerText = hUp + up;
+                document.getElementById('t-dw').innerText = hDw + dw;
 
                 infoElt.innerText = v.info || "";
                 timerElt.innerText = v.timer > 0 ? `CERRANDO VOTACIÓN EN ${v.timer}...` : "";
             } else {
-                infoElt.innerText = "PISTA LIBRE";
-                timerElt.innerText = "";
-                document.getElementById('m-ap').innerText = 0;
-                document.getElementById('m-up').innerText = 0;
-                document.getElementById('m-dw').innerText = 0;
-                document.getElementById('t-ap').innerText = 0;
-                document.getElementById('t-up').innerText = 0;
-                document.getElementById('t-dw').innerText = 0;
+                infoElt.innerText = "PISTA LIBRE"; timerElt.innerText = "";
+                document.getElementById('m-ap').innerText = 0; document.getElementById('m-up').innerText = 0; document.getElementById('m-dw').innerText = 0;
+                document.getElementById('t-ap').innerText = 0; document.getElementById('t-up').innerText = 0; document.getElementById('t-dw').innerText = 0;
             }
         });
 
-        // --- RESTO DE FUNCIONES SE MANTIENEN ---
+        // --- EXPORTACIÓN Y CSV ---
         window.cargarCSV = (event) => {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
@@ -302,13 +282,26 @@
 
         window.exportarVotos = async () => {
             const snap = await get(ref(db, 'historial_votos'));
-            if (!snap.exists()) return alert("Sin datos.");
-            let csv = "\uFEFFDorsal;Piloto;Ap;Up;Down;TS\n";
-            Object.values(snap.val()).forEach(v => { csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw};${new Date(v.ts).toLocaleString()}\n`; });
-            const blob = new Blob([csv], { type: 'text/csv' });
+            if (!snap.exists()) return alert("No hay datos para exportar.");
+            
+            // sep=; obliga a Excel a separar por columnas inmediatamente
+            let csv = "sep=;\n";
+            csv += "Dorsal;Piloto e Info;Aplausos;Likes;Dislikes;Fecha y Hora\n";
+            
+            Object.values(snap.val()).forEach(v => {
+                let infoLimpia = v.info ? v.info.replace(/;/g, "-") : "";
+                csv += `${v.dorsal};${infoLimpia};${v.ap};${v.up};${v.dw};${new Date(v.ts).toLocaleString()}\n`;
+            });
+
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob); link.download = "votos.csv"; link.click();
-            if(confirm("¿Borrar nube?")) remove(ref(db, 'historial_votos'));
+            link.href = URL.createObjectURL(blob);
+            link.download = `votos_drift_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+
+            if(confirm("¿Votos descargados correctamente? ¿Quieres LIMPIAR la nube ahora?")) {
+                remove(ref(db, 'historial_votos'));
+            }
         };
 
         onValue(ref(db, 'inscritos_drift'), s => { 

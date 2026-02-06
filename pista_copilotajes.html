@@ -22,32 +22,12 @@
             border-bottom: 3px solid var(--red); margin-bottom: 15px; 
         }
 
-        /* ESTILO DE LOGO UNIFICADO */
-        .header-logo { 
-            display: block; 
-            margin: 0 auto; 
-            width: 100%;       
-            max-width: 400px; 
-            height: auto; 
-            object-fit: contain;
-        }
+        .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
 
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
 
-        /* MATRÍCULA FORMATO REAL */
-        .matricula {
-            display: inline-flex;
-            align-items: center;
-            background: #fff;
-            color: #000;
-            border-radius: 4px;
-            overflow: hidden;
-            font-family: 'Arial', sans-serif;
-            font-weight: 900;
-            border: 1px solid #fff;
-            margin-top: 5px;
-        }
+        .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; font-family: 'Arial', sans-serif; font-weight: 900; border: 1px solid #fff; margin-top: 5px; }
         .m-bandera { background: var(--blue); color: white; padding: 4px 5px; font-size: 0.6em; text-align: center; line-height: 1; }
         .m-num { padding: 2px 12px; font-size: 1.4em; min-width: 35px; text-align: center; }
 
@@ -60,12 +40,26 @@
         .btn-salida { background: var(--orange); color: white; border: none; padding: 12px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e; }
         .btn-change { background: #222; color: var(--accent); border: 1px solid #444; padding: 10px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 10px; text-transform: uppercase; width: 100%; font-weight: bold; }
 
-        #modal-cambio { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
+        /* MODALES UNIFICADOS */
+        #modal-cambio, #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 450px; text-align: center; }
         .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; font-size: 1.1em; }
+        
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-modal { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; color: white; }
     </style>
 </head>
 <body>
+
+    <div id="custom-confirm">
+        <div class="modal-content" style="border-color: var(--orange);">
+            <h2 id="confirm-text" style="color:white; margin:0; font-size: 1.2em;">¿ACOMPAÑADO A LA SALIDA?</h2>
+            <div class="modal-btns">
+                <button class="btn-modal" style="background:#444;" onclick="handleConfirm(false)">CANCELAR</button>
+                <button class="btn-modal" style="background:var(--orange);" onclick="handleConfirm(true)">CONFIRMAR</button>
+            </div>
+        </div>
+    </div>
 
     <div class="header">
         <img src="logotaxi.jpg" alt="Logo Taxi Drift" class="header-logo">
@@ -88,8 +82,8 @@
             <h3 style="color: var(--accent); margin-bottom:5px;">REASIGNAR COCHE</h3>
             <select id="nuevo-piloto-select" class="select-modal"></select>
             <div style="display: flex; gap: 10px;">
-                <button class="btn-pista" style="background: var(--blue); box-shadow: 0 4px 0 #002266;" onclick="ejecutarCambio()">REASIGNAR</button>
-                <button class="btn-pista" style="background: #333; box-shadow: 0 4px 0 #111;" onclick="cerrarModal()">VOLVER</button>
+                <button class="btn-modal" style="background: var(--blue);" onclick="ejecutarCambio()">REASIGNAR</button>
+                <button class="btn-modal" style="background: #333;" onclick="cerrarModal()">VOLVER</button>
             </div>
         </div>
     </div>
@@ -103,23 +97,32 @@
         const db = getDatabase(app);
 
         let idSeleccionado = null;
+        let confirmAction = null;
         let estadisticasViajes = {};
         let listaPilotosFB = [];
+
+        // LÓGICA MODAL DE CONFIRMACIÓN
+        window.showConfirm = (texto, callback) => {
+            document.getElementById('confirm-text').innerText = texto;
+            document.getElementById('custom-confirm').style.display = 'flex';
+            confirmAction = callback;
+        };
+
+        window.handleConfirm = (valor) => {
+            document.getElementById('custom-confirm').style.display = 'none';
+            if (valor && confirmAction) confirmAction();
+            confirmAction = null;
+        };
 
         function generarMatriculaHTML(pilotoData) {
             const dorsalMatch = pilotoData.match(/\[#(\d+)\]/) || pilotoData.match(/^(\d+)/);
             const num = dorsalMatch ? dorsalMatch[1] : "??";
             let nombreLimpio = pilotoData.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
-
             return `
                 <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
-                    <div class="matricula">
-                        <div class="m-bandera">E</div>
-                        <div class="m-num">${num}</div>
-                    </div>
+                    <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
                     <span style="font-size:1.1em; color:#fff;">${nombreLimpio}</span>
-                </div>
-            `;
+                </div>`;
         }
 
         window.confirmarSubida = async (id) => {
@@ -132,10 +135,10 @@
             }
         };
 
-        window.confirmarSalidaRecinto = async (id) => {
-            if(confirm("¿ACOMPAÑADO A LA SALIDA?")) {
+        window.confirmarSalidaRecinto = (id) => {
+            showConfirm("¿ACOMPAÑADO A LA SALIDA?", async () => {
                 await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
-            }
+            });
         };
 
         window.abrirModalCambio = (id) => {
@@ -208,4 +211,3 @@
     </script>
 </body>
 </html>
-

@@ -70,7 +70,7 @@
             </div>
     </div>
 
-    <div class="header-title">PANEL DE CONTROL SHOW / DRIFT</div>
+    <div class="header-title">PANEL DE CONTROL DRIFTSHOW</div>
 
     <div id="tab-show">
         <div class="card">
@@ -259,7 +259,7 @@
                 document.getElementById('m-up').innerText = v.up || 0;
                 document.getElementById('m-dw').innerText = v.down || 0;
                 document.getElementById('info-pista-drift').innerText = v.info || "";
-                preview.innerText = v.timer > 0 ? `Cerrando (${v.timer}s)...` : "Votación abierta...";
+                preview.innerText = v.timer > 0 ? `Cerrando votos en (${v.timer}s)...` : "Votación abierta...";
             } else {
                 document.getElementById('info-pista-drift').innerText = "Pista libre";
                 if (!document.getElementById('d-show').value) preview.innerText = "Introduce dorsal...";

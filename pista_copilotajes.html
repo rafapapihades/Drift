@@ -21,7 +21,16 @@
             background: rgba(0,0,0,0.9); border-radius: 12px;
             border-bottom: 3px solid var(--red); margin-bottom: 15px; 
         }
-        .header h2 { margin: 0; color: var(--red); text-transform: uppercase; font-size: 1.4em; }
+
+        /* ESTILO DE LOGO UNIFICADO */
+        .header-logo { 
+            display: block; 
+            margin: 0 auto; 
+            width: 100%;       
+            max-width: 400px; 
+            height: auto; 
+            object-fit: contain;
+        }
 
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
@@ -59,7 +68,7 @@
 <body>
 
     <div class="header">
-        <h2>CONTROL PISTA TAXI DRIFT</h2>
+        <img src="logotaxi.jpg" alt="Logo Taxi Drift" class="header-logo">
     </div>
 
     <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR DORSAL O NOMBRE..." oninput="filtrar()">
@@ -97,14 +106,9 @@
         let estadisticasViajes = {};
         let listaPilotosFB = [];
 
-        // Función para procesar el string y devolver la matrícula HTML
         function generarMatriculaHTML(pilotoData) {
-            // El formato esperado es "Dorsal, Piloto, Coche..." o lo que guarde Logística
-            // Intentamos extraer el dorsal: si hay un [#XX] lo usamos, si no, buscamos el primer número
             const dorsalMatch = pilotoData.match(/\[#(\d+)\]/) || pilotoData.match(/^(\d+)/);
             const num = dorsalMatch ? dorsalMatch[1] : "??";
-            
-            // Limpiamos el nombre para quitar el dorsal del texto
             let nombreLimpio = pilotoData.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
 
             return `
@@ -136,7 +140,6 @@
 
         window.abrirModalCambio = (id) => {
             idSeleccionado = id;
-            // Ordenar por el que menos viajes tenga
             const sugerido = listaPilotosFB.reduce((prev, curr) => (estadisticasViajes[prev] || 0) <= (estadisticasViajes[curr] || 0) ? prev : curr, listaPilotosFB[0]);
             document.getElementById('nuevo-piloto-select').value = sugerido;
             document.getElementById('modal-cambio').style.display = 'flex';
@@ -152,8 +155,6 @@
 
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
-            
-            // Llenar selector de reasignación
             const sel = document.getElementById('nuevo-piloto-select');
             sel.innerHTML = ""; listaPilotosFB = [];
             if(data.config_pilotos) {
@@ -161,7 +162,6 @@
                     listaPilotosFB.push(p);
                     let opt = document.createElement('option');
                     opt.value = p;
-                    // Mostrar "Dorsal X - Nombre" en el select
                     const dMatch = p.match(/\[#(\d+)\]/) || p.match(/^(\d+)/);
                     const nLimpio = p.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
                     opt.innerText = `DORSAL ${dMatch ? dMatch[1] : '?' } - ${nLimpio}`;
@@ -169,12 +169,10 @@
                 });
             }
 
-            // Calcular estadísticas para orden lógico
             estadisticasViajes = {};
             const todos = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
             todos.forEach(v => { estadisticasViajes[v.piloto] = (estadisticasViajes[v.piloto] || 0) + 1; });
 
-            // Dibujar Lista Espera
             const tEspera = document.getElementById('lista-espera'); tEspera.innerHTML = "";
             if(data.espera) {
                 Object.keys(data.espera).forEach(id => {
@@ -189,7 +187,6 @@
                 });
             }
 
-            // Dibujar Lista Pista
             const tPista = document.getElementById('lista-pista-activa'); tPista.innerHTML = "";
             if(data.completados) {
                 Object.keys(data.completados).forEach(id => {
@@ -211,3 +208,4 @@
     </script>
 </body>
 </html>
+

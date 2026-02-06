@@ -281,28 +281,32 @@
         };
 
         window.exportarVotos = async () => {
-            const snap = await get(ref(db, 'historial_votos'));
-            if (!snap.exists()) return alert("No hay datos para exportar.");
-            
-            // sep=; obliga a Excel a separar por columnas inmediatamente
-            let csv = "sep=;\n";
-            csv += "Dorsal;Piloto e Info;Aplausos;Likes;Dislikes;Fecha y Hora\n";
-            
-            Object.values(snap.val()).forEach(v => {
-                let infoLimpia = v.info ? v.info.replace(/;/g, "-") : "";
-                csv += `${v.dorsal};${infoLimpia};${v.ap};${v.up};${v.dw};${new Date(v.ts).toLocaleString()}\n`;
-            });
+    const snap = await get(ref(db, 'historial_votos'));
+    if (!snap.exists()) return alert("No hay datos para exportar.");
+    
+    // Usamos el Tabulador (\t) como separador, es el más compatible en móviles
+    const TAB = "\t";
+    let csv = `Dorsal${TAB}Piloto e Info${TAB}Aplausos${TAB}Likes${TAB}Dislikes${TAB}Fecha y Hora\n`;
+    
+    Object.values(snap.val()).forEach(v => {
+        let infoLimpia = v.info ? v.info.replace(/\t/g, " ") : ""; // Evitar que rompa columnas
+        csv += `${v.dorsal}${TAB}${infoLimpia}${TAB}${v.ap}${TAB}${v.up}${TAB}${v.dw}${TAB}${new Date(v.ts).toLocaleString()}\n`;
+    });
 
-            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `votos_drift_${new Date().toISOString().slice(0,10)}.csv`;
-            link.click();
+    // Cambiamos la extensión a .xls para "engañar" al móvil y que lo abra como tabla directamente
+    const blob = new Blob(["\ufeff" + csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    
+    const fecha = new Date().toISOString().slice(0,10);
+    link.download = `votos_drift_${fecha}.xls`; 
+    link.click();
 
-            if(confirm("¿Votos descargados correctamente? ¿Quieres LIMPIAR la nube ahora?")) {
-                remove(ref(db, 'historial_votos'));
-            }
-        };
+    if(confirm("¿Exportación completada? ¿Quieres borrar la nube?")) {
+        remove(ref(db, 'historial_votos'));
+    }
+};
+
 
         onValue(ref(db, 'inscritos_drift'), s => { 
             inscritosD = s.val() || {}; 

@@ -20,7 +20,16 @@
             padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; 
             border: 2px solid #333; margin-bottom: 15px; gap: 12px; 
         }
-        .brand { color: var(--red); font-size: 2.5em; font-weight: 900; letter-spacing: -1px; text-shadow: 2px 2px 0 #000; }
+
+        /* ESTILO DE LOGO ADAPTADO DE LA OTRA PÁGINA */
+        .header-logo { 
+            display: block; 
+            margin: 0 auto; 
+            width: 100%;       
+            max-width: 400px;  /* Tamaño máximo para que no se descontrole en PC */
+            height: auto; 
+            object-fit: contain;
+        }
         
         .event-name-input { 
             background: transparent; border: none; border-bottom: 2px solid #444; 
@@ -68,7 +77,8 @@
 <body>
 
     <div class="header-top">
-        <span class="brand">TAXI DRIFT</span>
+        <img src="logotaxi.jpg" alt="Logo Taxi Drift" class="header-logo">
+        
         <input type="text" id="nombre-evento" class="event-name-input" placeholder="NOMBRE DEL EVENTO">
         <div class="controls-row">
             <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (<span id="count-tag">0</span>)</button>
@@ -107,6 +117,7 @@
     </div>
 
     <script type="module">
+        /* El script se mantiene exactamente igual... */
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, push, remove, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -123,37 +134,27 @@
         const btnAdd = document.getElementById('btn-add');
         const selPiloto = document.getElementById('c-piloto');
 
-        // FUNCIÓN VALIDAR BOTÓN
         const fnValidar = () => { 
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
         };
 
-        // BÚSQUEDA DE DUPLICADOS EN TIEMPO REAL
         nombreInput.addEventListener('input', async () => {
             const nombreBusqueda = nombreInput.value.trim().toLowerCase();
-            
             if (nombreBusqueda.length < 3) {
                 avisoBox.style.display = 'none';
                 registroRecuperado = null;
                 fnValidar();
                 return;
             }
-
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
-            
-            // Buscar en ambos nodos
             const todos = [
                 ...Object.values(data.espera || {}), 
                 ...Object.values(data.completados || {})
             ];
-            
             const encontrado = todos.find(r => r.copiloto.toLowerCase() === nombreBusqueda);
-
             if (encontrado) {
-                avisoBox.innerHTML = `⚠️ <b>¡YA REGISTRADO!</b><br>
-                    Tiene el <b>Ticket #${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>
-                    No necesita firmar otra vez.`;
+                avisoBox.innerHTML = `⚠️ <b>¡YA REGISTRADO!</b><br>Tiene el <b>Ticket #${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>No necesita firmar otra vez.`;
                 avisoBox.style.display = 'block';
                 firmaChk.checked = true;
                 registroRecuperado = encontrado;
@@ -166,19 +167,13 @@
 
         firmaChk.onchange = fnValidar;
 
-        // OBTENER DATOS Y SUGERIR PILOTO AUTOMÁTICAMENTE
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
-            
-            // Actualizar número correlativo y contador
             document.getElementById('v-proximo-numero').innerText = ((data.ultimo_numero || 0) + 1).toString().padStart(3, '0');
             document.getElementById('count-tag').innerText = data.config_pilotos ? Object.keys(data.config_pilotos).length : 0;
-
-            // --- LÓGICA DE SUGERENCIA DE PILOTO ---
             const todosViajes = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
             const conteo = {};
             todosViajes.forEach(v => { conteo[v.piloto] = (conteo[v.piloto] || 0) + 1; });
-
             if(pilotosArray.length > 0) {
                 let sugerido = pilotosArray[0];
                 let min = conteo[sugerido] || 0;
@@ -187,8 +182,6 @@
                 });
                 if(document.activeElement.id !== 'c-piloto') selPiloto.value = sugerido;
             }
-
-            // RENDER TABLA ESPERA
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
@@ -216,8 +209,6 @@
                     };
                 });
             }
-
-            // RENDER TABLA COMPLETADOS
             const tComp = document.getElementById('tabla-completados');
             tComp.innerHTML = "";
             if(data.completados) {
@@ -236,21 +227,17 @@
             }
         });
 
-        // BOTÓN AÑADIR (CONFIRMAR)
         btnAdd.onclick = async () => {
             const nombreNuevo = nombreInput.value.trim();
             const pilotoSeleccionado = selPiloto.value;
             const horaActual = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
-
             if (registroRecuperado) {
-                // Si repetía de completados, lo borramos de allá primero
                 const snapC = await get(ref(db, 'copilotajes/completados'));
                 if(snapC.exists()){
                     Object.entries(snapC.val()).forEach(([id, reg]) => {
                         if(reg.nPapel === registroRecuperado.nPapel) remove(ref(db, `copilotajes/completados/${id}`));
                     });
                 }
-                // Insertar en espera manteniendo el número original
                 await push(ref(db, 'copilotajes/espera'), {
                     ...registroRecuperado,
                     piloto: pilotoSeleccionado,
@@ -258,7 +245,6 @@
                     horaRegistro: horaActual
                 });
             } else {
-                // Registro totalmente nuevo
                 const snapNum = await get(ref(db, 'copilotajes/ultimo_numero'));
                 const num = (snapNum.val() || 0) + 1;
                 await push(ref(db, 'copilotajes/espera'), {
@@ -270,8 +256,6 @@
                 });
                 await set(ref(db, 'copilotajes/ultimo_numero'), num);
             }
-
-            // Limpiar todo
             nombreInput.value = "";
             firmaChk.checked = false;
             avisoBox.style.display = 'none';
@@ -279,7 +263,6 @@
             fnValidar();
         };
 
-        // CARGA DE CSV
         document.getElementById('csv-pilotos').onchange = (e) => {
             const r = new FileReader();
             r.onload = (ev) => {
@@ -296,7 +279,6 @@
             r.readAsText(e.target.files[0]);
         };
 
-        // ACTUALIZAR SELECT DE PILOTOS
         onValue(ref(db, 'copilotajes/config_pilotos'), (snap) => {
             selPiloto.innerHTML = ''; 
             pilotosArray = [];
@@ -310,7 +292,6 @@
             }
         });
 
-        // REINICIO DE EVENTO
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             if (!snap.exists()) return;
@@ -328,12 +309,12 @@
             }, 500);
         };
 
-        // NOMBRE DEL EVENTO
         onValue(ref(db, 'copilotajes/nombre_evento'), s => document.getElementById('nombre-evento').value = s.val() || "");
         document.getElementById('nombre-evento').onchange = (e) => set(ref(db, 'copilotajes/nombre_evento'), e.target.value);
     </script>
 </body>
 </html>
+
 
 
 

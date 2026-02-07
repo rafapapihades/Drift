@@ -3,43 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VOTACIÓN</title>
+    <title>VOTACIÓN PÚBLICO</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 10px; }
-        
-        /* LOGO GRANDE COMO EN LAS OTRAS PAGINAS */
+        body { 
+            /* FONO CON LOGO REPETIDO */
+            background-image: url('logo2.jpg');
+            background-repeat: repeat;
+            background-size: 100px; /* Tamaño de los logos del fondo */
+            background-color: #000;
+            color: #fff; 
+            font-family: 'Arial Black', sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            padding: 10px; 
+        }
+
+        /* CAPA OSCURA PARA QUE SE LEA BIEN SOBRE EL FONDO REPETIDO */
+        .overlay {
+            background: rgba(0, 0, 0, 0.85);
+            min-height: 100vh;
+            width: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            padding-top: 20px;
+        }
+
         .header-logo { 
             display: block; 
             margin: 0 auto 20px auto; 
             width: 100%;       
-            max-width: 400px; 
+            max-width: 400px; /* Logo grande */
             height: auto; 
-            object-fit: contain;
         }
 
-        .btn-voto { width: 100%; max-width: 300px; padding: 25px; margin: 10px 0; border: none; border-radius: 10px; color: #fff; font-size: 1.5em; font-weight: bold; cursor: pointer; }
+        .btn-voto { 
+            width: 90%; 
+            max-width: 350px; 
+            padding: 25px; 
+            margin: 10px 0; 
+            border: none; 
+            border-radius: 15px; 
+            color: #fff; 
+            font-size: 1.6em; 
+            font-weight: bold; 
+            text-transform: uppercase;
+            cursor: pointer; 
+            box-shadow: 0 6px 0 rgba(0,0,0,0.5);
+        }
+        
         .btn-azul { background: #007bff; }
         .btn-verde { background: #28a745; }
         .btn-rojo { background: #dc3545; }
         
-        #p-nombre { font-size: 2em; font-weight: bold; margin: 20px 0 5px 0; }
-        /* LINEA DEL COCHE */
-        #p-coche { font-size: 1.2em; color: #ffcc00; margin-bottom: 20px; font-weight: bold; }
+        #p-nombre { font-size: 2.5em; color: #fff; margin: 10px 0; text-shadow: 2px 2px #000; }
+        #p-coche { font-size: 1.5em; color: #ffcc00; margin-bottom: 20px; text-shadow: 2px 2px #000; }
+
+        #div-espera h2 { margin-top: 50px; color: #666; }
     </style>
 </head>
 <body>
 
-    <img src="logotaxi.jpg" alt="Logo" class="header-logo">
+    <div class="overlay">
+        <img src="logo2.jpg" alt="Logo" class="header-logo">
 
-    <div id="div-votar" style="display:none;">
-        <div id="p-nombre"></div>
-        <div id="p-coche"></div> <button class="btn-voto btn-azul" onclick="votar('aplausos')">BRUTAL 👏</button><br>
-        <button class="btn-voto btn-verde" onclick="votar('up')">ME GUSTA 👍</button><br>
-        <button class="btn-voto btn-rojo" onclick="votar('down')">NO ME GUSTA 👎</button>
-    </div>
+        <div id="div-votar" style="display:none;">
+            <div id="p-nombre"></div>
+            <div id="p-coche"></div>
+            
+            <button class="btn-voto btn-azul" onclick="votar('aplausos')">BRUTAL 👏</button><br>
+            <button class="btn-voto btn-verde" onclick="votar('up')">ME GUSTA 👍</button><br>
+            <button class="btn-voto btn-rojo" onclick="votar('down')">NO ME GUSTA 👎</button>
+        </div>
 
-    <div id="div-espera">
-        <h2>ESPERANDO COCHE EN PISTA...</h2>
+        <div id="div-espera">
+            <h2>ESPERANDO COCHE...</h2>
+        </div>
     </div>
 
     <script type="module">
@@ -56,11 +94,16 @@
                 document.getElementById('div-votar').style.display = 'block';
                 document.getElementById('div-espera').style.display = 'none';
                 
-                // Lógica simple para separar Nombre | Coche
                 const info = data.info || "";
-                const partes = info.split('|');
-                document.getElementById('p-nombre').innerText = partes[0] || "";
-                document.getElementById('p-coche').innerText = partes[1] || "";
+                // Separamos por el carácter "|"
+                if (info.includes('|')) {
+                    const partes = info.split('|');
+                    document.getElementById('p-nombre').innerText = partes[0].trim();
+                    document.getElementById('p-coche').innerText = partes[1].trim();
+                } else {
+                    document.getElementById('p-nombre').innerText = info;
+                    document.getElementById('p-coche').innerText = "";
+                }
             } else {
                 document.getElementById('div-votar').style.display = 'none';
                 document.getElementById('div-espera').style.display = 'block';
@@ -71,7 +114,7 @@
             const updates = {};
             updates['votacion_activa/' + tipo] = increment(1);
             update(ref(db), updates);
-            alert("¡Voto enviado!");
+            alert("¡Votado!");
         };
     </script>
 </body>

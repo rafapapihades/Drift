@@ -244,32 +244,37 @@
             reader.readAsText(file);
         };
 
-        window.exportarVotos = async () => {
+    window.exportarVotos = async () => {
     const snap = await get(ref(db, 'historial_votos'));
     if (!snap.exists()) return alert("No hay historial acumulado");
     
-    // ESTA LÍNEA ES LA CLAVE: Indica a Excel que use el punto y coma como separador
-    let csvContent = "sep=;\n"; 
-    csvContent += "Dorsal;Piloto;Aplausos;Up;Down;Fecha_Hora\n";
+    // Forzamos el separador de dos puntos (:) que es el que tu Excel reconoce
+    let csvContent = "sep=:\n"; 
+    csvContent += "Dorsal:Piloto:Aplausos:Up:Down:Fecha_Hora\n";
     
     Object.values(snap.val()).forEach(v => {
         const fecha = new Date(v.ts).toLocaleString('es-ES');
-        // Limpiamos el nombre de posibles puntos y coma que rompan las columnas
-        const nombreLimpio = v.info.replace(/;/g, ' ');
-        csvContent += `${v.dorsal};${nombreLimpio};${v.ap};${v.up};${v.dw};${fecha}\n`;
+        
+        // LIMPIEZA CLAVE: Quitamos los ":" del nombre del piloto para que no rompa las columnas
+        const nombreLimpio = v.info.replace(/:/g, '-'); 
+        // Quitamos también ";" por si acaso
+        const nombreFinal = nombreLimpio.replace(/;/g, ' ');
+
+        // Construimos la línea usando exclusivamente los dos puntos (:)
+        csvContent += `${v.dorsal}:${nombreFinal}:${v.ap}:${v.up}:${v.dw}:${fecha}\n`;
     });
 
-    // Usamos el encoding correcto para que las tildes y la Ñ se vean bien
     const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Votos_Drift_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
+    link.download = `Votos_Drift_Final.csv`;
     link.click();
     
     if(confirm("¿Deseas BORRAR el historial de la nube ahora que lo has descargado?")) {
         remove(ref(db, 'historial_votos'));
     }
 };
+
 
 
         onValue(ref(db, 'estado_pista'), s => {

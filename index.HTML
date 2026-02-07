@@ -45,39 +45,61 @@
             border-radius: 15px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
+        .voto-block.batalla {
+            background: linear-gradient(145deg, #001a33, #000);
+            border: 1px solid #007bff;
+        }
         .voto-title {
-            font-size: 1.3em;
+            font-size: 1.2em;
             font-weight: bold;
             color: #ffcc00;
-            margin-bottom: 2px;
+            margin-bottom: 2px; /* Ajustado para el coche */
             text-transform: uppercase;
         }
-
-        /* ESTILO DEL COCHE */
+        
+        /* ESTILO PARA EL COCHE (AÑADIDO) */
         .voto-coche {
             font-size: 1.1em;
             color: #ffffff;
-            margin-bottom: 12px;
             font-style: italic;
-            display: block;
+            margin-bottom: 10px;
             font-weight: bold;
         }
 
+        .voto-block.batalla .voto-title { color: #00bfff; }
+
         .v-btn { font-size: 3.5em; filter: grayscale(1); margin: 0 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
         .v-act { filter: grayscale(0) !important; transform: scale(1.2); text-shadow: 0 0 15px rgba(255,255,0,0.5); }
+        
         #timer-box { color: #ff4444; font-weight: bold; font-size: 1.4em; margin-top: 10px; height: 30px; }
+        
+        .rank-card { 
+            background: rgba(255, 255, 255, 0.05); 
+            padding: 12px; border-radius: 8px; width: 100%; margin: 8px 0; 
+            border-left: 4px solid #ffcc00; display: flex; justify-content: space-between; text-align: left;
+        }
     </style>
 </head>
 <body>
     <div class="overlay">
         <div class="glass-panel">
+            
             <div id="ui-show" style="display:none; width: 100%;">
                 <h1 id="s-mensaje" style="font-size: 2.2em; margin: 0 0 15px 0; text-shadow: 2px 2px 4px #000;"></h1>
+                
                 <div id="contenedor-votos"></div>
+
                 <div id="timer-box"></div>
             </div>
+
+            <div id="ui-esc" style="display:none; width: 100%">
+                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">RANKING dB</h2>
+                <div id="l-db"></div>
+                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 20px;">RANKING SONORIDAD</h2>
+                <div id="l-hz"></div>
             </div>
+
+        </div>
     </div>
 
     <script type="module">
@@ -85,42 +107,51 @@
         import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
+
         let misVotos = {}; 
 
         onValue(ref(db, 'modo_actual'), s => {
             const m = s.val() || 'tab-show';
             document.getElementById('ui-show').style.display = m==='tab-show'?'block':'none';
+            document.getElementById('ui-esc').style.display = m==='tab-esc'?'block':'none';
+        });
+
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            const msg = document.getElementById('s-mensaje');
+            msg.innerText = e?.mensaje || "";
+            msg.style.color = e?.color || "white";
         });
 
         onValue(ref(db, 'votacion_activa'), s => {
             const v = s.val();
             const container = document.getElementById('contenedor-votos');
+            const timerDisplay = document.getElementById('timer-box');
 
             if (v?.activa && v.items) {
                 const idsActuales = Object.keys(v.items).join(',');
                 if (container.dataset.currentIds !== idsActuales) {
                     container.innerHTML = "";
                     for (const id_voto in v.items) {
+                        const esBatalla = id_voto === "BATALLA";
                         const item = v.items[id_voto];
-                        let pNombre = item.nombre || "";
-                        let pCoche = "";
-
-                        // DETECTOR AUTOMÁTICO DE COCHE
-                        if (pNombre.includes('|')) {
-                            let partes = pNombre.split('|');
-                            pNombre = partes[0].trim();
-                            pCoche = partes[1].trim();
-                        } else if (pNombre.includes('(')) {
-                            let partes = pNombre.split('(');
-                            pNombre = partes[0].trim();
-                            pCoche = partes[1].replace(')', '').trim();
+                        
+                        // LÓGICA PARA SEPARAR PILOTO Y COCHE (Usa el formato "Nombre | Coche")
+                        let textoTotal = item.nombre || "";
+                        let nombrePiloto = textoTotal;
+                        let nombreCoche = "";
+                        
+                        if (textoTotal.includes('|')) {
+                            let partes = textoTotal.split('|');
+                            nombrePiloto = partes[0].trim();
+                            nombreCoche = partes[1].trim();
                         }
 
                         const block = document.createElement('div');
-                        block.className = `voto-block`;
+                        block.className = `voto-block ${esBatalla ? 'batalla' : ''}`;
                         block.innerHTML = `
-                            <div class="voto-title">${pNombre}</div>
-                            ${pCoche ? `<div class="voto-coche">${pCoche}</div>` : ''}
+                            <div class="voto-title">${nombrePiloto}</div>
+                            ${nombreCoche ? `<div class="voto-coche">${nombreCoche}</div>` : ''}
                             <div class="emoji-row">
                                 <span class="v-btn" id="btn-${id_voto}-ap" onclick="votar('${id_voto}', 'ap')">👏</span>
                                 <span class="v-btn" id="btn-${id_voto}-up" onclick="votar('${id_voto}', 'up')">👍</span>
@@ -132,9 +163,14 @@
                     container.dataset.currentIds = idsActuales;
                     actualizarIconos();
                 }
+
+                if (v.timer > 0) timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
+                else timerDisplay.innerText = "";
+
             } else {
                 container.innerHTML = "";
                 container.dataset.currentIds = "";
+                timerDisplay.innerText = "";
                 misVotos = {};
             }
         });
@@ -142,7 +178,9 @@
         window.votar = (id_voto, tipo) => {
             if (misVotos[id_voto] === tipo) return;
             const updates = {};
-            if (misVotos[id_voto]) updates[`votacion_activa/items/${id_voto}/${misVotos[id_voto]}`] = increment(-1);
+            if (misVotos[id_voto]) {
+                updates[`votacion_activa/items/${id_voto}/${misVotos[id_voto]}`] = increment(-1);
+            }
             updates[`votacion_activa/items/${id_voto}/${tipo}`] = increment(1);
             update(ref(db), updates);
             misVotos[id_voto] = tipo;
@@ -151,11 +189,23 @@
 
         function actualizarIconos() {
             document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
-            for (const id in misVotos) {
-                const btn = document.getElementById(`btn-${id}-${misVotos[id]}`);
+            for (const id_voto in misVotos) {
+                const tipo = misVotos[id_voto];
+                const btn = document.getElementById(`btn-${id_voto}-${tipo}`);
                 if (btn) btn.classList.add('v-act');
             }
         }
+
+        onValue(ref(db, 'ranking_escapes'), s => {
+            if(!s.exists()) return;
+            const data = Object.values(s.val());
+            const render = (arr, tId, sFn, u) => {
+                document.getElementById(tId).innerHTML = arr.sort(sFn).slice(0,10).map(p => 
+                    `<div class="rank-card"><span><b>${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[u.toLowerCase()==='db'?'db':'hz']}${u}</b></div>`).join('');
+            };
+            render([...data], 'l-db', (a,b)=>b.db-a.db, 'dB');
+            render([...data], 'l-hz', (a,b)=>a.hz-b.hz, 'Hz');
+        });
     </script>
 </body>
 </html>

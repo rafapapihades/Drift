@@ -8,18 +8,16 @@
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
         
-        /* LOGO CENTRADO MAXIMIZADO */
         .header-logo { 
             display: block; 
             margin: 0 auto 15px auto; 
             width: 100%; 
-            max-width: 400px;
+            max-width: 600px;
             height: auto; 
             object-fit: contain;
         }
 
         .header-border { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-
         .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; width: 100%; }
         
         .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
@@ -30,10 +28,9 @@
         input { flex: 1; min-width: 0; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
         .btn-lupa { width: 60px; flex-shrink: 0; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* VOTOS EN VIVO DESGLOSADOS */
         .vote-stats-container { margin: 10px 0; }
         .piloto-voto-row { background: #222; padding: 10px; border-radius: 8px; margin-bottom: 5px; border-left: 4px solid #ffcc00; }
-        .p-info { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; color: #fff; }
+        .p-info { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; color: #fff; text-transform: uppercase; }
         .p-stats { display: flex; justify-content: space-around; color: #ffcc00; font-size: 1.1em; }
 
         .timer-master { background:#ff4444; color:white; padding:10px; border-radius:8px; font-weight:bold; margin-bottom:10px; font-size:1.2em; animation: parpadeo 1s infinite; text-align: center; }
@@ -59,7 +56,7 @@
     </div>
 
     <div class="header-border">
-        <img src="logo2.jpg" alt="Logo ROOW" class="header-logo">
+        <img src="logo2.jpg" alt="Logo" class="header-logo">
     </div>
 
     <div class="card">
@@ -93,13 +90,11 @@
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
         let inscritosD = {}; let seleccionados = [];
 
-        // ESCUCHAR INSCRITOS
         onValue(ref(db, 'inscritos_drift'), s => { 
             inscritosD = s.val() || {}; 
             document.getElementById('preview-show').innerText = "Pilotos cargados: " + Object.keys(inscritosD).length;
         });
 
-        // LANZAR VOTACIÓN
         window.abrirVoto = async () => {
             const val = document.getElementById('d-show').value.trim();
             if (!val) return;
@@ -138,19 +133,21 @@
             document.getElementById('d-show').value = "";
         };
 
-        // ESCUCHAR VOTOS EN TIEMPO REAL Y CUENTA ATRÁS
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
             const container = document.getElementById('votos-en-vivo');
             
+            // Si no hay votación activa globalmente, limpiar
             if (!v || !v.activa) {
                 container.innerHTML = "";
                 return;
             }
 
+            // Si estamos en cuenta atrás, mostramos el timer en Master
             let html = "";
             if (v.timer > 0) {
                 html += `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>`;
+                // No retornamos aquí para que los nombres se vean mientras dure el timer
             }
 
             if (v.items) {
@@ -164,18 +161,21 @@
                         </div>
                     </div>
                 `).join('');
+                container.innerHTML = html;
             }
-            container.innerHTML = html;
         });
 
-        // CONTROL DE ESTADOS DE PISTA
         window.setEstado = async (msg, col, id) => {
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
+
             if (id === 'btn-libre') {
+                // LIMPIEZA VISUAL INMEDIATA EN MASTER
+                document.getElementById('votos-en-vivo').innerHTML = "";
+
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
-                    // Guardar en historial
+                    // Guardar datos en historial
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
                             push(ref(db, 'historial_votos'), {
@@ -186,19 +186,19 @@
                     });
                     
                     let count = 5;
+                    update(ref(db, 'votacion_activa'), { timer: count }); // Iniciar timer en DB
                     let interval = setInterval(() => {
                         count--;
                         update(ref(db, 'votacion_activa'), { timer: count });
                         if (count <= 0) {
                             clearInterval(interval);
-                            set(ref(db, 'votacion_activa'), { activa: false });
+                            set(ref(db, 'votacion_activa'), { activa: false, timer: 0 });
                         }
                     }, 1000);
                 }
             }
         };
 
-        // LÓGICA DE BÚSQUEDA Y MODAL
         window.buscarPilotoShow = (val) => {
             const dorsales = val.trim().split(/\s+/);
             const encontrados = dorsales.map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : "")).filter(x=>x);
@@ -246,17 +246,16 @@
 
         window.exportarVotos = async () => {
             const snap = await get(ref(db, 'historial_votos'));
-            if (!snap.exists()) return alert("No hay historial de votos");
+            if (!snap.exists()) return alert("No hay historial");
             let csv = "Dorsal;Piloto;AP;UP;DW;Fecha\n";
             Object.values(snap.val()).forEach(v => { csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw};${new Date(v.ts).toLocaleString()}\n`; });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
             link.download = "votos_drift.csv";
             link.click();
-            if(confirm("¿Borrar historial de Firebase para empezar de cero?")) remove(ref(db, 'historial_votos'));
+            if(confirm("¿Borrar historial de la nube?")) remove(ref(db, 'historial_votos'));
         };
 
-        // INDICADOR VISUAL DE BOTÓN ACTIVO
         onValue(ref(db, 'estado_pista'), s => {
             document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
             if(s.val()?.id) document.getElementById(s.val().id)?.classList.add('pista-activa');

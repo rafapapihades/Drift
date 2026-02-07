@@ -6,55 +6,20 @@
     <title>PISTA - DRIFT SHOW</title>
     <style>
         * { box-sizing: border-box; }
-        body { 
-            background: #000; 
-            margin: 0; 
-            padding: 10px; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px;
-            font-family: sans-serif;
-        }
-
-        .btn-pista {
-            flex: 1;
-            border: none;
-            border-radius: 15px;
-            color: white;
-            font-size: 1.8em;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: opacity 0.3s, transform 0.1s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 10px;
-        }
-
+        body { background: #000; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; gap: 10px; font-family: sans-serif; }
+        .btn-pista { flex: 1; border: none; border-radius: 15px; color: white; font-size: 1.8em; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; }
         .btn-libre { background: #008000; }
         .btn-coche { background: #007bff; }
         .btn-obs   { background: #ffcc00; color: #000; }
         .btn-acc   { background: #cc0000; }
-
-        .active-now {
-            opacity: 1 !important;
-            outline: 6px solid #fff;
-            outline-offset: -6px;
-            box-shadow: 0 0 40px rgba(255,255,255,0.3);
-            z-index: 2;
-        }
-        
+        .active-now { opacity: 1 !important; outline: 6px solid #fff; outline-offset: -6px; box-shadow: 0 0 40px rgba(255,255,255,0.3); z-index: 2; }
         .inactive { opacity: 0.15; transform: scale(0.95); }
-        .btn-pista:active { transform: scale(0.92); }
     </style>
 </head>
 <body>
 
     <button id="btn-libre" class="btn-pista btn-libre" onclick="enviarEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
-    <button id="btn-coche" class="btn-pista btn-coche" onclick="enviarEstado('🏎️ COCHE EN PISTA', '#007bff', 'btn-coche')">COCHE EN PISTA</button>
+    <button id="btn-coche" class="btn-pista btn-coche" onclick="intentarCocheEnPista()">COCHE EN PISTA</button>
     <button id="btn-obs" class="btn-pista btn-obs" onclick="enviarEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
     <button id="btn-acc" class="btn-pista btn-acc" onclick="enviarEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
 
@@ -64,6 +29,7 @@
 
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
+        // Sincronizar botones resaltados
         onValue(ref(db, 'estado_pista'), (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -79,44 +45,43 @@
             }
         });
 
+        // Función especial para Coche en Pista
+        window.intentarCocheEnPista = async () => {
+            // Verificamos si hay una votación activa o dorsales listos en el Máster
+            const snapVot = await get(ref(db, 'votacion_activa'));
+            const vot = snapVot.val();
+
+            if (!vot || !vot.activa || vot.dorsal === "") {
+                alert("⚠️ NO HAY COCHE ASIGNADO. El Máster debe introducir un dorsal primero.");
+                return;
+            }
+            enviarEstado('🏎️ COCHE EN PISTA: ' + vot.dorsal, '#007bff', 'btn-coche');
+        };
+
         window.enviarEstado = async (msg, col, id) => {
             if (navigator.vibrate) navigator.vibrate(60);
-
-            // 1. Actualizar estado de pista
+            
+            // 1. Cambiar estado
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
 
             if (id === 'btn-libre') {
-                // 2. Avisar al Máster que debe limpiar sus inputs
-                set(ref(db, 'control_remoto/limpiar_master'), Date.now());
+                // ORDEN DE LIMPIEZA AL MÁSTER
+                set(ref(db, 'comando_limpiar'), Date.now());
 
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
-
                 if (v && v.activa) {
-                    // 3. Guardar historial
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
-                            push(ref(db, 'historial_votos'), {
-                                dorsal: idItem,
-                                info: data.nombre,
-                                ap: data.ap || 0,
-                                up: data.up || 0,
-                                dw: data.dw || 0,
-                                ts: Date.now()
-                            });
+                            push(ref(db, 'historial_votos'), { dorsal: idItem, info: data.nombre, ap: data.ap || 0, up: data.up || 0, dw: data.dw || 0, ts: Date.now() });
                         }
                     });
-
-                    // 4. Iniciar cuenta atrás
                     let count = 5;
                     update(ref(db, 'votacion_activa'), { timer: count });
                     let interval = setInterval(() => {
                         count--;
                         update(ref(db, 'votacion_activa'), { timer: count });
-                        if (count <= 0) {
-                            clearInterval(interval);
-                            set(ref(db, 'votacion_activa'), { activa: false, timer: 0 });
-                        }
+                        if (count <= 0) { clearInterval(interval); set(ref(db, 'votacion_activa'), { activa: false, timer: 0, dorsal: "" }); }
                     }, 1000);
                 }
             }

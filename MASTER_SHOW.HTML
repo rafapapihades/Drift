@@ -92,7 +92,6 @@
 
         onValue(ref(db, 'inscritos_drift'), s => { 
             inscritosD = s.val() || {}; 
-            document.getElementById('preview-show').innerText = "Pilotos cargados: " + Object.keys(inscritosD).length;
         });
 
         window.abrirVoto = async () => {
@@ -131,23 +130,23 @@
             });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             document.getElementById('d-show').value = "";
+            // No reseteamos preview-show aquí porque queremos que se vea quién entró hasta que se pulse Pista Libre
         };
 
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
             const container = document.getElementById('votos-en-vivo');
+            const preview = document.getElementById('preview-show');
             
-            // Si no hay votación activa globalmente, limpiar
             if (!v || !v.activa) {
                 container.innerHTML = "";
+                preview.innerText = "Introduce dorsal...";
                 return;
             }
 
-            // Si estamos en cuenta atrás, mostramos el timer en Master
             let html = "";
             if (v.timer > 0) {
                 html += `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>`;
-                // No retornamos aquí para que los nombres se vean mientras dure el timer
             }
 
             if (v.items) {
@@ -171,11 +170,11 @@
             if (id === 'btn-libre') {
                 // LIMPIEZA VISUAL INMEDIATA EN MASTER
                 document.getElementById('votos-en-vivo').innerHTML = "";
+                document.getElementById('preview-show').innerText = "Introduce dorsal...";
 
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
-                    // Guardar datos en historial
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
                             push(ref(db, 'historial_votos'), {
@@ -186,7 +185,7 @@
                     });
                     
                     let count = 5;
-                    update(ref(db, 'votacion_activa'), { timer: count }); // Iniciar timer en DB
+                    update(ref(db, 'votacion_activa'), { timer: count });
                     let interval = setInterval(() => {
                         count--;
                         update(ref(db, 'votacion_activa'), { timer: count });
@@ -200,9 +199,13 @@
         };
 
         window.buscarPilotoShow = (val) => {
+            if (!val.trim()) {
+                document.getElementById('preview-show').innerText = "Introduce dorsal...";
+                return;
+            }
             const dorsales = val.trim().split(/\s+/);
             const encontrados = dorsales.map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : "")).filter(x=>x);
-            document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Introduce dorsal...";
+            document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
         };
 
         window.abrirSelector = () => {

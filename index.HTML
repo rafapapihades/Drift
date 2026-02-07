@@ -45,31 +45,27 @@
             border-radius: 15px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .voto-block.batalla {
-            background: linear-gradient(145deg, #001a33, #000);
-            border: 1px solid #007bff;
-        }
+
         .voto-title {
             font-size: 1.2em;
             font-weight: bold;
             color: #ffcc00;
-            margin-bottom: 2px;
+            margin-bottom: 5px;
             text-transform: uppercase;
         }
 
-        /* ESTILO PARA EL COCHE VISIBLE */
+        /* ESTILO ESPECÍFICO PARA EL COCHE */
         .voto-coche {
             font-size: 1em;
             color: #ffffff;
-            font-weight: normal;
-            margin-bottom: 10px;
-            opacity: 0.8;
+            margin-bottom: 15px;
             font-style: italic;
+            display: block;
         }
 
-        .voto-block.batalla .voto-title { color: #00bfff; }
         .v-btn { font-size: 3.5em; filter: grayscale(1); margin: 0 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
         .v-act { filter: grayscale(0) !important; transform: scale(1.2); text-shadow: 0 0 15px rgba(255,255,0,0.5); }
+        
         #timer-box { color: #ff4444; font-weight: bold; font-size: 1.4em; margin-top: 10px; height: 30px; }
         
         .rank-card { 
@@ -87,6 +83,7 @@
                 <div id="contenedor-votos"></div>
                 <div id="timer-box"></div>
             </div>
+
             <div id="ui-esc" style="display:none; width: 100%">
                 <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">RANKING dB</h2>
                 <div id="l-db"></div>
@@ -101,6 +98,7 @@
         import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
+
         let misVotos = {}; 
 
         onValue(ref(db, 'modo_actual'), s => {
@@ -126,23 +124,23 @@
                 if (container.dataset.currentIds !== idsActuales) {
                     container.innerHTML = "";
                     for (const id_voto in v.items) {
-                        const esBatalla = id_voto === "BATALLA";
                         const item = v.items[id_voto];
                         
-                        // SEPARAR NOMBRE Y COCHE
+                        // LÓGICA DE SEPARACIÓN PARA MOSTRAR EL COCHE
                         let nombrePiloto = item.nombre || "";
-                        let nombreCoche = "";
+                        let htmlCoche = "";
+                        
                         if (nombrePiloto.includes('|')) {
                             const partes = nombrePiloto.split('|');
                             nombrePiloto = partes[0].trim();
-                            nombreCoche = partes[1].trim();
+                            htmlCoche = `<div class="voto-coche">${partes[1].trim()}</div>`;
                         }
 
                         const block = document.createElement('div');
-                        block.className = `voto-block ${esBatalla ? 'batalla' : ''}`;
+                        block.className = `voto-block ${id_voto === "BATALLA" ? 'batalla' : ''}`;
                         block.innerHTML = `
                             <div class="voto-title">${nombrePiloto}</div>
-                            ${nombreCoche ? `<div class="voto-coche">${nombreCoche}</div>` : ''}
+                            ${htmlCoche}
                             <div class="emoji-row">
                                 <span class="v-btn" id="btn-${id_voto}-ap" onclick="votar('${id_voto}', 'ap')">👏</span>
                                 <span class="v-btn" id="btn-${id_voto}-up" onclick="votar('${id_voto}', 'up')">👍</span>
@@ -180,17 +178,6 @@
                 if (btn) btn.classList.add('v-act');
             }
         }
-
-        onValue(ref(db, 'ranking_escapes'), s => {
-            if(!s.exists()) return;
-            const data = Object.values(s.val());
-            const render = (arr, tId, sFn, u) => {
-                document.getElementById(tId).innerHTML = arr.sort(sFn).slice(0,10).map(p => 
-                    `<div class="rank-card"><span><b>${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[u.toLowerCase()==='db'?'db':'hz']}${u}</b></div>`).join('');
-            };
-            render([...data], 'l-db', (a,b)=>b.db-a.db, 'dB');
-            render([...data], 'l-hz', (a,b)=>a.hz-b.hz, 'Hz');
-        });
     </script>
 </body>
 </html>

@@ -7,7 +7,6 @@
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 15px; text-align: center; }
         
-        /* BANNER DE ESTADO DE PISTA */
         #pista-status {
             padding: 15px;
             border-radius: 10px;
@@ -15,29 +14,23 @@
             font-size: 1.4em;
             margin-bottom: 20px;
             text-transform: uppercase;
-            border: 2px solid rgba(255,255,255,0.2);
         }
 
         .container { max-width: 600px; margin: 0 auto; }
 
-        /* RECUADROS DE VOTACIÓN */
         .piloto-card {
-            background: #1a1a1a; /* Menos transparencia, más sólido */
-            border: 2px solid #333;
+            background: rgba(255, 255, 255, 0.1); /* Volvemos a la transparencia original */
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 20px;
-            transition: 0.3s;
         }
 
-        /* COLOR ESPECIAL PARA BATALLAS */
-        .es-batalla {
-            border-color: #ff4444 !important;
-            background: #2a0505 !important; /* Fondo rojizo oscuro sólido */
-            box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
-        }
-
+        /* ESTILO PARA PILOTO NORMAL (AMARILLO) */
         .nombre { font-size: 1.6em; font-weight: bold; margin-bottom: 15px; color: #ffcc00; text-transform: uppercase; }
+
+        /* ESTILO PARA BATALLA (ROJO) */
+        .es-batalla { border-color: rgba(255, 0, 0, 0.5); background: rgba(255, 0, 0, 0.1); }
         .es-batalla .nombre { color: #ff4444; }
 
         .btn-voto {
@@ -58,7 +51,7 @@
         }
 
         .v:active { transform: scale(0.9); }
-        .ap { background: #444; }
+        .ap { background: rgba(255, 255, 255, 0.2); }
         .up { background: #008000; }
         .dw { background: #cc0000; }
 
@@ -85,7 +78,6 @@
 
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-        // Escuchar estado de pista
         onValue(ref(db, 'estado_pista'), s => {
             const d = s.val();
             if(d) {
@@ -96,7 +88,6 @@
             }
         });
 
-        // Escuchar votación activa
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
             const area = document.getElementById('voto-area');
@@ -110,11 +101,12 @@
 
             if (v.items) {
                 html += Object.entries(v.items).map(([id, data]) => {
-                    const claseBatalla = id === 'BATALLA' ? 'es-batalla' : '';
+                    // Si el ID es BATALLA, aplicamos la clase roja, si no, nada
+                    const claseEspecial = id === 'BATALLA' ? 'es-batalla' : '';
                     const nombreDisplay = id === 'BATALLA' ? "🔥 BATALLA 🔥" : `#${id} ${data.nombre}`;
                     
                     return `
-                        <div class="piloto-card ${claseBatalla}">
+                        <div class="piloto-card ${claseEspecial}">
                             <div class="nombre">${nombreDisplay}</div>
                             <div class="btn-voto">
                                 <button class="v ap" onclick="votar('${id}', 'ap')">👏</button>
@@ -132,10 +124,6 @@
             if (navigator.vibrate) navigator.vibrate(40);
             const path = `votacion_activa/items/${id}/${tipo}`;
             update(ref(db), { [path]: increment(1) });
-            
-            // Efecto visual simple al votar
-            event.target.style.opacity = "0.5";
-            setTimeout(() => { event.target.style.opacity = "1"; }, 100);
         };
     </script>
 </body>

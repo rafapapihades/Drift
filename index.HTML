@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DRIFT SHOW</title>
+    <title>DRIFT SHOW - VOTA!</title>
     <style>
         body { 
             background-image: url('logo2.jpg'); 
@@ -17,43 +17,57 @@
         }
         .overlay { 
             min-height: 100vh; 
-            padding: 20px; 
+            padding: 15px; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center; 
-            background: rgba(0, 0, 0, 0.4); /* Capa base muy sutil */
+            background: rgba(0, 0, 0, 0.4);
             box-sizing: border-box;
         }
 
-        /* EL RECUADRO QUE OPACA EL FONDO */
         .glass-panel {
-            background: rgba(0, 0, 0, 0.8); /* Fondo negro bastante opaco */
-            backdrop-filter: blur(10px);    /* Efecto de desenfoque para el mosaico */
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            padding: 30px;
+            padding: 20px;
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            width: 95%;
-            max-width: 450px;
+            width: 100%;
+            max-width: 480px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .v-btn { font-size: 4.5em; filter: grayscale(1); margin: 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
-        .v-act { filter: grayscale(0) !important; transform: scale(1.2); }
-        #timer-box { color: #ff0000; font-weight: bold; font-size: 1.5em; margin-top: 15px; height: 25px; }
+        /* DISEÑO DE BLOQUE DE VOTACIÓN */
+        .voto-block {
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .voto-block.batalla {
+            background: linear-gradient(145deg, #001a33, #000);
+            border: 1px solid #007bff;
+        }
+        .voto-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffcc00;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .voto-block.batalla .voto-title { color: #00bfff; }
+
+        .v-btn { font-size: 3.5em; filter: grayscale(1); margin: 0 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
+        .v-act { filter: grayscale(0) !important; transform: scale(1.2); text-shadow: 0 0 15px rgba(255,255,0,0.5); }
+        
+        #timer-box { color: #ff4444; font-weight: bold; font-size: 1.4em; margin-top: 10px; height: 30px; }
         
         .rank-card { 
             background: rgba(255, 255, 255, 0.05); 
-            padding: 12px; 
-            border-radius: 8px; 
-            width: 100%; 
-            margin: 8px 0; 
-            border-left: 4px solid #ffcc00; 
-            display: flex; 
-            justify-content: space-between; 
-            text-align: left;
-            box-sizing: border-box;
+            padding: 12px; border-radius: 8px; width: 100%; margin: 8px 0; 
+            border-left: 4px solid #ffcc00; display: flex; justify-content: space-between; text-align: left;
         }
     </style>
 </head>
@@ -61,16 +75,12 @@
     <div class="overlay">
         <div class="glass-panel">
             
-            <div id="ui-show" style="display:none; width: 90%;">
-                <h1 id="s-mensaje" style="font-size: 2.8em; margin: 0; text-shadow: 2px 2px 4px #000;"></h1>
-                <h2 id="s-info" style="color:#007bff; margin: 15px 0; min-height: 1.2em; font-size: 1.8em;"></h2>
+            <div id="ui-show" style="display:none; width: 100%;">
+                <h1 id="s-mensaje" style="font-size: 2.2em; margin: 0 0 15px 0; text-shadow: 2px 2px 4px #000;"></h1>
                 
-                <div id="voto-box" style="display:none;">
-                    <span id="v-ap" class="v-btn" onclick="votar('aplausos')">👏</span>
-                    <span id="v-up" class="v-btn" onclick="votar('up')">👍</span>
-                    <span id="v-down" class="v-btn" onclick="votar('down')">👎</span>
-                    <div id="timer-box"></div>
-                </div>
+                <div id="contenedor-votos"></div>
+
+                <div id="timer-box"></div>
             </div>
 
             <div id="ui-esc" style="display:none; width: 100%">
@@ -89,7 +99,7 @@
         
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-        let miVoto = "";
+        let misVotos = {}; // Guardamos el voto para cada ID { "12": "up", "BATALLA": "aplausos" }
 
         onValue(ref(db, 'modo_actual'), s => {
             const m = s.val() || 'tab-show';
@@ -106,38 +116,71 @@
 
         onValue(ref(db, 'votacion_activa'), s => {
             const v = s.val();
-            const box = document.getElementById('voto-box');
+            const container = document.getElementById('contenedor-votos');
             const timerDisplay = document.getElementById('timer-box');
 
-            if(v?.activa) {
-                box.style.display = 'block';
-                document.getElementById('s-info').innerText = v.info || "";
-                if(v.timer !== undefined && v.timer > 0) {
-                    timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
-                } else {
-                    timerDisplay.innerText = "";
+            if (v?.activa && v.items) {
+                // Solo regenerar el HTML si cambia el número de items
+                const idsActuales = Object.keys(v.items).join(',');
+                if (container.dataset.currentIds !== idsActuales) {
+                    container.innerHTML = "";
+                    for (const id_voto in v.items) {
+                        const esBatalla = id_voto === "BATALLA";
+                        const item = v.items[id_voto];
+                        
+                        const block = document.createElement('div');
+                        block.className = `voto-block ${esBatalla ? 'batalla' : ''}`;
+                        block.innerHTML = `
+                            <div class="voto-title">${item.nombre}</div>
+                            <div class="emoji-row">
+                                <span class="v-btn" id="btn-${id_voto}-ap" onclick="votar('${id_voto}', 'ap')">👏</span>
+                                <span class="v-btn" id="btn-${id_voto}-up" onclick="votar('${id_voto}', 'up')">👍</span>
+                                <span class="v-btn" id="btn-${id_voto}-dw" onclick="votar('${id_voto}', 'dw')">👎</span>
+                            </div>
+                        `;
+                        container.appendChild(block);
+                    }
+                    container.dataset.currentIds = idsActuales;
+                    actualizarIconos();
                 }
+
+                if (v.timer > 0) timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
+                else timerDisplay.innerText = "";
+
             } else {
-                box.style.display = 'none';
-                document.getElementById('s-info').innerText = "";
-                miVoto = "";
-                resetIconos();
+                container.innerHTML = "";
+                container.dataset.currentIds = "";
+                timerDisplay.innerText = "";
+                misVotos = {};
             }
         });
 
-        window.votar = (tipo) => {
-            if(miVoto) {
-                update(ref(db, 'votacion_activa'), { [miVoto]: increment(-1) });
+        window.votar = (id_voto, tipo) => {
+            // Si ya votó esto mismo en este bloque, no hacer nada
+            if (misVotos[id_voto] === tipo) return;
+
+            const updates = {};
+            // Si ya había votado algo en este bloque, restamos el voto anterior
+            if (misVotos[id_voto]) {
+                updates[`votacion_activa/items/${id_voto}/${misVotos[id_voto]}`] = increment(-1);
             }
-            update(ref(db, 'votacion_activa'), { [tipo]: increment(1) });
-            miVoto = tipo;
-            resetIconos();
-            const idMapeo = { 'aplausos': 'v-ap', 'up': 'v-up', 'down': 'v-down' };
-            document.getElementById(idMapeo[tipo]).classList.add('v-act');
+            // Sumamos el nuevo voto
+            updates[`votacion_activa/items/${id_voto}/${tipo}`] = increment(1);
+            
+            update(ref(db), updates);
+            misVotos[id_voto] = tipo;
+            actualizarIconos();
         };
 
-        function resetIconos() {
+        function actualizarIconos() {
+            // Quitamos la clase activa de todos
             document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
+            // La ponemos solo en los que el usuario ha marcado
+            for (const id_voto in misVotos) {
+                const tipo = misVotos[id_voto];
+                const btn = document.getElementById(`btn-${id_voto}-${tipo}`);
+                if (btn) btn.classList.add('v-act');
+            }
         }
 
         onValue(ref(db, 'ranking_escapes'), s => {
@@ -152,20 +195,4 @@
         });
     </script>
 </body>
-
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

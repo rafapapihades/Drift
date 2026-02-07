@@ -53,24 +53,23 @@
             font-size: 1.2em;
             font-weight: bold;
             color: #ffcc00;
-            margin-bottom: 2px; /* Reducido para que el coche quede cerca */
+            margin-bottom: 2px;
             text-transform: uppercase;
         }
-        
-        /* ESTILO PARA EL COCHE AÑADIDO */
+
+        /* ESTILO PARA EL COCHE VISIBLE */
         .voto-coche {
             font-size: 1em;
-            color: #fff;
+            color: #ffffff;
+            font-weight: normal;
             margin-bottom: 10px;
+            opacity: 0.8;
             font-style: italic;
-            opacity: 0.9;
         }
 
         .voto-block.batalla .voto-title { color: #00bfff; }
-
         .v-btn { font-size: 3.5em; filter: grayscale(1); margin: 0 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
         .v-act { filter: grayscale(0) !important; transform: scale(1.2); text-shadow: 0 0 15px rgba(255,255,0,0.5); }
-        
         #timer-box { color: #ff4444; font-weight: bold; font-size: 1.4em; margin-top: 10px; height: 30px; }
         
         .rank-card { 
@@ -83,22 +82,17 @@
 <body>
     <div class="overlay">
         <div class="glass-panel">
-            
             <div id="ui-show" style="display:none; width: 100%;">
                 <h1 id="s-mensaje" style="font-size: 2.2em; margin: 0 0 15px 0; text-shadow: 2px 2px 4px #000;"></h1>
-                
                 <div id="contenedor-votos"></div>
-
                 <div id="timer-box"></div>
             </div>
-
             <div id="ui-esc" style="display:none; width: 100%">
                 <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">RANKING dB</h2>
                 <div id="l-db"></div>
                 <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 20px;">RANKING SONORIDAD</h2>
                 <div id="l-hz"></div>
             </div>
-
         </div>
     </div>
 
@@ -107,7 +101,6 @@
         import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
-
         let misVotos = {}; 
 
         onValue(ref(db, 'modo_actual'), s => {
@@ -136,7 +129,7 @@
                         const esBatalla = id_voto === "BATALLA";
                         const item = v.items[id_voto];
                         
-                        // LÓGICA PARA SEPARAR NOMBRE Y COCHE
+                        // SEPARAR NOMBRE Y COCHE
                         let nombrePiloto = item.nombre || "";
                         let nombreCoche = "";
                         if (nombrePiloto.includes('|')) {
@@ -161,10 +154,7 @@
                     container.dataset.currentIds = idsActuales;
                     actualizarIconos();
                 }
-
-                if (v.timer > 0) timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
-                else timerDisplay.innerText = "";
-
+                timerDisplay.innerText = v.timer > 0 ? `CIERRE EN: ${v.timer}...` : "";
             } else {
                 container.innerHTML = "";
                 container.dataset.currentIds = "";
@@ -176,9 +166,7 @@
         window.votar = (id_voto, tipo) => {
             if (misVotos[id_voto] === tipo) return;
             const updates = {};
-            if (misVotos[id_voto]) {
-                updates[`votacion_activa/items/${id_voto}/${misVotos[id_voto]}`] = increment(-1);
-            }
+            if (misVotos[id_voto]) updates[`votacion_activa/items/${id_voto}/${misVotos[id_voto]}`] = increment(-1);
             updates[`votacion_activa/items/${id_voto}/${tipo}`] = increment(1);
             update(ref(db), updates);
             misVotos[id_voto] = tipo;
@@ -188,8 +176,7 @@
         function actualizarIconos() {
             document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
             for (const id_voto in misVotos) {
-                const tipo = misVotos[id_voto];
-                const btn = document.getElementById(`btn-${id_voto}-${tipo}`);
+                const btn = document.getElementById(`btn-${id_voto}-${misVotos[id_voto]}`);
                 if (btn) btn.classList.add('v-act');
             }
         }

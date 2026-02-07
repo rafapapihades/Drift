@@ -5,16 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DRIFT SHOW LIVE - PÚBLICO</title>
     <style>
+        /* Centrado vertical y horizontal del contenedor */
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
         body { 
-            margin: 0; padding: 15px; font-family: sans-serif; color: white; text-align: center;
-            background-image: url('logo2.jpg'); background-repeat: repeat; background-size: 200px; 
+            padding: 15px; font-family: sans-serif; color: white; text-align: center;
+            background-image: url('logo2.jpg'); background-repeat: repeat; background-size: 80px; 
+            display: flex;
+            align-items: center; /* Centrado vertical */
+            justify-content: center; /* Centrado horizontal */
+            box-sizing: border-box;
         }
 
         .contenedor-principal {
             background: rgba(0, 0, 0, 0.97); 
             border: 2px solid #ffcc00; border-radius: 20px;
-            padding: 20px; max-width: 500px; margin: 20px auto; min-height: 200px;
-            box-shadow: 0 0 20px rgba(0,0,0,1);
+            padding: 20px; 
+            width: 100%;
+            max-width: 500px; 
+            min-height: 200px;
+            box-shadow: 0 0 30px rgba(0,0,0,1);
+            position: relative;
         }
 
         #banner-estado {
@@ -75,7 +89,6 @@
             const p = s.val();
             const b = document.getElementById('banner-estado');
             if(p) { 
-                // Eliminamos el emoji si viene del Master o de Pista
                 b.innerText = p.mensaje.replace('🏎️ ', ''); 
                 b.style.background = p.color; 
             }

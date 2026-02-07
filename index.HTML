@@ -3,127 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VOTA - DRIFT SHOW</title>
+    <title>DRIFT SHOW LIVE - PÚBLICO</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 15px; text-align: center; }
-        
-        #pista-status {
-            padding: 15px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 1.4em;
-            margin-bottom: 20px;
-            text-transform: uppercase;
+        body { 
+            margin: 0; padding: 15px; font-family: sans-serif; color: white; text-align: center;
+            background-image: url('logo2.jpg'); background-repeat: repeat; background-size: 80px; 
         }
 
-        .container { max-width: 600px; margin: 0 auto; }
-
-        .piloto-card {
-            background: rgba(255, 255, 255, 0.1); /* Volvemos a la transparencia original */
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
+        .contenedor-principal {
+            background: rgba(0, 0, 0, 0.9); border: 2px solid #ffcc00; border-radius: 20px;
+            padding: 20px; max-width: 500px; margin: 20px auto; min-height: 200px;
+            box-shadow: 0 0 20px rgba(0,0,0,1);
         }
 
-        /* ESTILO PARA PILOTO NORMAL (AMARILLO) */
-        .nombre { font-size: 1.6em; font-weight: bold; margin-bottom: 15px; color: #ffcc00; text-transform: uppercase; }
+        #banner-estado {
+            padding: 15px; font-weight: bold; border-radius: 10px; margin-bottom: 20px;
+            text-transform: uppercase; font-size: 1.2em; border: 1px solid rgba(255,255,255,0.2);
+        }
 
-        /* ESTILO PARA BATALLA (ROJO) */
-        .es-batalla { border-color: rgba(255, 0, 0, 0.5); background: rgba(255, 0, 0, 0.1); }
-        .es-batalla .nombre { color: #ff4444; }
+        .voto-card {
+            background: rgba(255, 255, 255, 0.1); margin-bottom: 15px; padding: 15px;
+            border-radius: 12px; border-left: 5px solid #ffcc00;
+        }
+
+        /* CLASE ESPECIAL PARA BATALLAS (ROJO) */
+        .voto-card.es-batalla {
+            border-left: 5px solid #ff4444;
+            background: rgba(255, 0, 0, 0.1);
+        }
+        .voto-card.es-batalla .nombre-piloto { color: #ff4444; }
+
+        .nombre-piloto { font-weight: bold; font-size: 1.2em; color: #ffcc00; text-transform: uppercase; }
+        .coche-piloto { font-size: 0.9em; color: #aaa; margin-bottom: 10px; font-style: italic; }
+
+        .v-btns { display: flex; justify-content: space-around; font-size: 3em; margin-top: 10px; }
 
         .btn-voto {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
+            cursor: pointer; filter: grayscale(100%); transition: 0.2s; opacity: 0.3;
         }
 
-        .v {
-            padding: 20px 10px;
-            border-radius: 10px;
-            border: none;
-            color: #fff;
-            font-size: 1.5em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.1s;
+        /* Forzamos el color cuando está seleccionado */
+        .btn-voto.seleccionado {
+            filter: grayscale(0%) !important; opacity: 1 !important; transform: scale(1.2);
         }
 
-        .v:active { transform: scale(0.9); }
-        .ap { background: rgba(255, 255, 255, 0.2); }
-        .up { background: #008000; }
-        .dw { background: #cc0000; }
-
-        .timer {
-            background: #ff4444;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1.2em;
-            margin-bottom: 15px;
-        }
+        .timer-alerta { color: #ff4444; font-weight: bold; margin-top: 15px; font-size: 1.4em; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div id="pista-status">CARGANDO ESTADO...</div>
-        <div id="voto-area"></div>
+    <div class="contenedor-principal">
+        <div id="banner-estado">CONECTANDO...</div>
+        <div id="seccion-votos" style="display:none">
+            <div id="lista-votables"></div>
+            <div id="cuenta-atras" class="timer-alerta"></div>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let misVotos = {}; 
+        let currentDorsalGlobal = "";
 
         onValue(ref(db, 'estado_pista'), s => {
-            const d = s.val();
-            if(d) {
-                const b = document.getElementById('pista-status');
-                b.innerText = d.mensaje;
-                b.style.backgroundColor = d.color;
-                b.style.color = (d.color === '#ffcc00') ? 'black' : 'white';
+            const p = s.val();
+            const b = document.getElementById('banner-estado');
+            if(p) { b.innerText = p.mensaje; b.style.background = p.color; }
+        });
+
+        onValue(ref(db, 'votacion_activa'), s => {
+            const v = s.val();
+            const divVotos = document.getElementById('seccion-votos');
+            const lista = document.getElementById('lista-votables');
+            const timerDiv = document.getElementById('cuenta-atras');
+
+            if(v && v.activa) {
+                if (currentDorsalGlobal !== v.dorsal) {
+                    misVotos = {};
+                    currentDorsalGlobal = v.dorsal;
+                }
+
+                divVotos.style.display = 'block';
+                
+                if (lista.innerHTML === "") {
+                    if (v.items) {
+                        Object.entries(v.items).forEach(([id, data]) => {
+                            crearTarjetaUI(id, data.nombre, data.coche || "", lista);
+                        });
+                    } else if (v.dorsal) {
+                        crearTarjetaUI(v.dorsal, v.info || ("DORSAL " + v.dorsal), "", lista);
+                    }
+                }
+
+                timerDiv.innerText = (v.timer > 0) ? `¡CIERRE EN ${v.timer}s!` : "";
+            } else {
+                divVotos.style.display = 'none';
+                lista.innerHTML = "";
+                misVotos = {};
+                currentDorsalGlobal = "";
             }
         });
 
-        onValue(ref(db, 'votacion_activa'), snap => {
-            const v = snap.val();
-            const area = document.getElementById('voto-area');
+        function crearTarjetaUI(id, nombre, coche, contenedor) {
+            const card = document.createElement('div');
+            // Si el ID es BATALLA, añade la clase 'es-batalla' para que se vea roja
+            card.className = 'voto-card' + (id === 'BATALLA' ? ' es-batalla' : '');
+            card.id = "card-" + id;
+            card.innerHTML = `
+                <div class="nombre-piloto">${nombre}</div>
+                <div class="coche-piloto">${coche}</div>
+                <div class="v-btns">
+                    <span class="btn-voto v-ap ${misVotos[id] === 'ap' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'ap')">👏</span>
+                    <span class="btn-voto v-up ${misVotos[id] === 'up' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'up')">👍</span>
+                    <span class="btn-voto v-dw ${misVotos[id] === 'dw' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'dw')">👎</span>
+                </div>
+            `;
+            contenedor.appendChild(card);
+        }
+
+        window.enviarVoto = (idVotable, tipoVoto) => {
+            if (misVotos[idVotable] === tipoVoto) return;
+
+            const updates = {};
+            const anterior = misVotos[idVotable];
+
+            if (anterior) {
+                updates[`votacion_activa/items/${idVotable}/${anterior}`] = increment(-1);
+            }
+            updates[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
             
-            if (!v || !v.activa) {
-                area.innerHTML = "<h2 style='color:#666; margin-top:50px;'>ESPERANDO SIGUIENTE COCHE...</h2>";
-                return;
+            update(ref(db), updates);
+
+            misVotos[idVotable] = tipoVoto;
+            const card = document.getElementById("card-" + idVotable);
+            if (card) {
+                card.querySelectorAll('.btn-voto').forEach(b => b.classList.remove('seleccionado'));
+                card.querySelector('.v-' + tipoVoto).classList.add('seleccionado');
             }
-
-            let html = v.timer > 0 ? `<div class="timer">CIERRE EN: ${v.timer}s</div>` : "";
-
-            if (v.items) {
-                html += Object.entries(v.items).map(([id, data]) => {
-                    // Si el ID es BATALLA, aplicamos la clase roja, si no, nada
-                    const claseEspecial = id === 'BATALLA' ? 'es-batalla' : '';
-                    const nombreDisplay = id === 'BATALLA' ? "🔥 BATALLA 🔥" : `#${id} ${data.nombre}`;
-                    
-                    return `
-                        <div class="piloto-card ${claseEspecial}">
-                            <div class="nombre">${nombreDisplay}</div>
-                            <div class="btn-voto">
-                                <button class="v ap" onclick="votar('${id}', 'ap')">👏</button>
-                                <button class="v up" onclick="votar('${id}', 'up')">👍</button>
-                                <button class="v dw" onclick="votar('${id}', 'dw')">👎</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                area.innerHTML = html;
-            }
-        });
-
-        window.votar = (id, tipo) => {
-            if (navigator.vibrate) navigator.vibrate(40);
-            const path = `votacion_activa/items/${id}/${tipo}`;
-            update(ref(db), { [path]: increment(1) });
         };
     </script>
 </body>

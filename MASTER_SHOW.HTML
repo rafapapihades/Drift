@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW - CONTROL TOTAL</title>
+    <title>MASTER DRIFT SHOW - MULTI CONTROL</title>
     <style>
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
@@ -20,14 +20,17 @@
         .input-group { display: flex; gap: 8px; }
         .btn-lupa { width: 60px; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* VOTOS Y ACUMULADOS */
-        .vote-stats { display: flex; justify-content: space-around; font-size: 1.2em; margin: 10px 0; background: #222; padding: 10px; border-radius: 8px; color: #ffcc00; }
-        .vote-item { display: flex; flex-direction: column; align-items: center; }
-        .vote-total { font-size: 0.6em; color: #888; text-transform: uppercase; margin-top: 4px; }
+        /* NUEVA ESTRUCTURA DE VOTOS MULTIPLES */
+        .votos-container { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
+        .voto-row { background: #222; padding: 10px; border-radius: 10px; border-left: 4px solid #ffcc00; }
+        .voto-row.batalla { border-left-color: #007bff; background: #1a2533; }
+        .row-label { font-size: 0.8em; color: #aaa; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .row-stats { display: flex; justify-content: space-around; font-size: 1.1em; color: #ffcc00; }
+        .stat-box { display: flex; flex-direction: column; align-items: center; }
+        .stat-total { font-size: 0.6em; color: #888; }
 
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
         .info-preview { color: #fff; font-size: 1.1em; font-weight: bold; margin-top: 15px; text-align: center; min-height: 1.2em; text-transform: uppercase; }
-        
         #timer-display { color: #ff4444; font-weight: bold; text-align: center; font-size: 0.9em; margin-bottom: 5px; height: 1.2em; }
 
         /* MODALES */
@@ -36,10 +39,6 @@
             background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; padding: 10px; align-items: center; justify-content: center;
         }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #a36a00; width: 95%; max-width: 450px; text-align: center; }
-
-        #panel-lectura { display: none; background: #1a150a; border-radius: 10px; margin-top: 10px; padding: 12px; border: 1px solid #a36a00; }
-        .pista-tag { padding: 5px 10px; border-radius: 5px; color: #fff; font-weight: bold; font-size: 0.75em; border: 1px solid rgba(255,255,255,0.1); }
-
         .grid-pilotos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; width: 100%; margin-top: 10px; }
         .btn-piloto-selec { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; text-align: center; justify-content: center; min-height: 70px; }
         .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
@@ -73,50 +72,26 @@
     <div id="tab-show">
         <div class="card">
             <div class="input-group">
-                <input type="text" id="d-show" placeholder="DORSALES" oninput="buscarPilotoShow(this.value)">
+                <input type="text" id="d-show" placeholder="DORSALES (ej: 12 45)" oninput="buscarPilotoShow(this.value)">
                 <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
             </div>
             <div id="preview-show" class="info-preview">Introduce dorsal...</div>
         </div>
 
         <div class="card">
-            <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
+            <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE(S) EN PISTA</button>
             <div id="info-pista-drift" class="info-pista"></div>
             <div id="timer-display"></div>
             
-            <div class="vote-stats">
-                <div class="vote-item">
-                    <span>👏 <b id="m-ap">0</b></span>
-                    <span class="vote-total">Total: <span id="t-ap">0</span></span>
-                </div>
-                <div class="vote-item">
-                    <span>👍 <b id="m-up">0</b></span>
-                    <span class="vote-total">Total: <span id="t-up">0</span></span>
-                </div>
-                <div class="vote-item">
-                    <span>👎 <b id="m-dw">0</b></span>
-                    <span class="vote-total">Total: <span id="t-dw">0</span></span>
-                </div>
-            </div>
+            <div id="votos-pista" class="votos-container"></div>
 
             <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
             <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
             <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
             
             <button class="btn" style="background:#a36a00; color:#fff; margin-top:10px;" onclick="abrirModalMensaje()">ENVIAR MENSAJE A PISTA</button>
-
-            <div id="panel-lectura">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <span style="font-size:0.7em; color:#a36a00; font-weight:bold;">CONFIRMACIÓN DE LECTURA:</span>
-                    <button onclick="borrarMensajePista()" style="background:#cc0000; color:#fff; border:none; padding:4px 10px; border-radius:5px; font-size:0.7em; font-weight:bold; cursor:pointer;">BORRAR MENSAJE X</button>
-                </div>
-                <div id="lista-pistas" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
-            </div>
-
-            <button class="btn" style="background:#222; border:1px dashed #444; color:#888; font-size:0.75em; margin-top:20px; padding:10px;" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
-            <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event)">
             <p style="font-size:0.75em; color:#ffcc00; text-align:center;">Inscritos: <span id="cnt-drift">0</span></p>
-            <button class="btn" style="background:#444; font-size:0.7em; margin-top:5px;" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
+            <button class="btn" style="background:#444; font-size:0.7em; margin-top:5px;" onclick="exportarVotos()">💾 DESCARGAR VOTOS (XLS) Y LIMPIAR</button>
         </div>
     </div>
 
@@ -131,25 +106,23 @@
         let inscritosD = {};
         let seleccionados = [];
 
-        // --- BUSCADOR Y SELECTOR ---
+        // --- BUSCADOR ---
         window.buscarPilotoShow = (val) => {
-            const dorsales = val.trim().split(/\s+/);
+            const dorsales = val.trim().split(/\s+/).filter(d => d);
             const encontrados = dorsales.map(d => {
                 const p = inscritosD[d];
-                return p ? (p.coche ? `${p.piloto} (${p.coche})` : p.piloto) : (d ? d + ": ?" : "");
+                return p ? `${d}: ${p.piloto}` : `${d}: ?`;
             });
-            document.getElementById('preview-show').innerText = val ? encontrados.filter(x => x).join(' | ') : "Introduce dorsal...";
+            document.getElementById('preview-show').innerText = val ? encontrados.join(' | ') : "Introduce dorsal...";
         };
 
         window.abrirSelector = () => {
             const grid = document.getElementById('lista-botones-pilotos');
             grid.innerHTML = ""; seleccionados = [];
-            const dorsales = Object.keys(inscritosD).sort((a,b) => a - b);
-            dorsales.forEach(d => {
-                const p = inscritosD[d];
+            Object.keys(inscritosD).sort((a,b) => a - b).forEach(d => {
                 const btn = document.createElement('div');
                 btn.className = 'btn-piloto-selec';
-                btn.innerHTML = `<strong>${d}</strong><small>${p.piloto}</small>`;
+                btn.innerHTML = `<strong>${d}</strong><small>${inscritosD[d].piloto}</small>`;
                 btn.onclick = () => {
                     btn.classList.toggle('selected');
                     const idx = seleccionados.indexOf(d);
@@ -167,56 +140,50 @@
             cerrarSelector();
         };
 
-        // --- MENSAJERÍA ---
-        window.abrirModalMensaje = () => { document.getElementById('modal-mensaje').style.display = 'flex'; document.getElementById('input-mensaje-pista').focus(); };
-        window.cerrarModalMensaje = () => document.getElementById('modal-mensaje').style.display = 'none';
-        window.enviarMensajePista = () => {
-            const m = document.getElementById('input-mensaje-pista').value;
-            if(m.trim()) { set(ref(db, 'copilotajes/mensaje_pista'), m.toUpperCase()); cerrarModalMensaje(); document.getElementById('input-mensaje-pista').value = ""; }
-        };
-        window.borrarMensajePista = () => set(ref(db, 'copilotajes/mensaje_pista'), "");
-
-        onValue(ref(db, 'copilotajes/mensaje_pista'), (snap) => {
-            document.getElementById('panel-lectura').style.display = snap.val() ? "block" : "none";
-        });
-
-        onValue(ref(db, 'presencia_pistas'), (snap) => {
-            const container = document.getElementById('lista-pistas'); container.innerHTML = "";
-            const pistas = snap.val() || {};
-            Object.keys(pistas).forEach(id => {
-                const tag = document.createElement('div'); tag.className = 'pista-tag';
-                tag.style.backgroundColor = pistas[id].leido ? "#28a745" : "#444";
-                tag.innerText = id + (pistas[id].leido ? " ✓" : " ...");
-                container.appendChild(tag);
-            });
-        });
-
-        // --- VOTOS Y PISTA ---
+        // --- LÓGICA DE VOTACIÓN MULTI ---
         window.abrirVoto = async () => {
             const val = document.getElementById('d-show').value.trim();
             if (!val) return;
 
-            // Calcular acumulados antes de abrir
-            let acum = { ap: 0, up: 0, dw: 0 };
-            const histSnap = await get(ref(db, 'historial_votos'));
-            if (histSnap.exists()) {
-                Object.values(histSnap.val()).forEach(h => {
-                    if (h.dorsal === val) {
-                        acum.ap += (h.ap || 0); acum.up += (h.up || 0); acum.dw += (h.dw || 0);
-                    }
-                });
+            const dorsales = val.split(/\s+/).filter(d => d);
+            let votables = {}; // Aquí guardaremos cada entidad votable
+
+            // 1. Si hay más de un dorsal, crear la entidad "BATALLA"
+            if (dorsales.length > 1) {
+                votables["BATALLA"] = { 
+                    nombre: `¡¡¡ BATALLA A ${dorsales.length} !!!`, 
+                    ap: 0, up: 0, dw: 0, 
+                    h_ap: 0, h_up: 0, h_dw: 0 // Histórico batalla (opcional)
+                };
             }
 
-            const infoText = document.getElementById('preview-show').innerText;
+            // 2. Crear entidades individuales con sus acumulados
+            const histSnap = await get(ref(db, 'historial_votos'));
+            const historial = histSnap.val() || {};
+
+            for (const d of dorsales) {
+                let h_ap = 0, h_up = 0, h_dw = 0;
+                Object.values(historial).forEach(h => {
+                    if (h.dorsal === d) { h_ap += (h.ap || 0); h_up += (h.up || 0); h_dw += (h.dw || 0); }
+                });
+
+                votables[d] = {
+                    nombre: inscritosD[d] ? inscritosD[d].piloto : `Piloto ${d}`,
+                    ap: 0, up: 0, dw: 0,
+                    h_ap: h_ap, h_up: h_up, h_dw: h_dw
+                };
+            }
+
+            // 3. Subir a Firebase
             set(ref(db, 'votacion_activa'), {
-                dorsal: val, info: infoText,
-                aplausos: 0, up: 0, down: 0, activa: true, timer: 0,
-                hist_ap: acum.ap, hist_up: acum.up, hist_dw: acum.dw
+                activa: true,
+                timer: 0,
+                items: votables,
+                dorsales_raw: val 
             });
 
-            set(ref(db, 'estado_pista'), { mensaje: 'EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
+            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             document.getElementById('d-show').value = "";
-            document.getElementById('preview-show').innerText = "Introduce dorsal...";
         };
 
         window.setEstado = async (msg, col, id) => {
@@ -225,13 +192,25 @@
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
-                    push(ref(db, 'historial_votos'), { dorsal: v.dorsal, info: v.info, ap: v.aplausos, up: v.up, dw: v.down, ts: Date.now() });
+                    // Guardar cada item en el historial por separado
+                    for (const id_voto in v.items) {
+                        const item = v.items[id_voto];
+                        if (item.ap > 0 || item.up > 0 || item.dw > 0) {
+                            push(ref(db, 'historial_votos'), {
+                                dorsal: id_voto, // Puede ser "12" o "BATALLA"
+                                info: item.nombre,
+                                ap: item.ap, up: item.up, dw: item.dw,
+                                ts: Date.now()
+                            });
+                        }
+                    }
+
                     let count = 5;
                     let interval = setInterval(() => {
                         count--;
                         if (count <= 0) {
                             clearInterval(interval);
-                            set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
+                            set(ref(db, 'votacion_activa'), { activa: false });
                         } else {
                             update(ref(db, 'votacion_activa'), { timer: count });
                         }
@@ -240,73 +219,77 @@
             }
         };
 
+        // Renderizado dinámico de la interfaz del controlador
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
-            const infoElt = document.getElementById('info-pista-drift');
+            const container = document.getElementById('votos-pista');
             const timerElt = document.getElementById('timer-display');
-            if (v && v.activa) {
-                const ap = v.aplausos || 0, up = v.up || 0, dw = v.down || 0;
-                const hAp = v.hist_ap || 0, hUp = v.hist_up || 0, hDw = v.hist_dw || 0;
+            const infoElt = document.getElementById('info-pista-drift');
+            container.innerHTML = "";
 
-                document.getElementById('m-ap').innerText = ap;
-                document.getElementById('m-up').innerText = up;
-                document.getElementById('m-dw').innerText = dw;
-                document.getElementById('t-ap').innerText = hAp + ap;
-                document.getElementById('t-up').innerText = hUp + up;
-                document.getElementById('t-dw').innerText = hDw + dw;
+            if (v && v.activa && v.items) {
+                timerElt.innerText = v.timer > 0 ? `CERRANDO EN ${v.timer}...` : "";
+                infoElt.innerText = "ESPERANDO VOTOS...";
 
-                infoElt.innerText = v.info || "";
-                timerElt.innerText = v.timer > 0 ? `CERRANDO VOTACIÓN EN ${v.timer}...` : "";
+                for (const id_voto in v.items) {
+                    const item = v.items[id_voto];
+                    const esBatalla = id_voto === "BATALLA";
+                    
+                    const row = document.createElement('div');
+                    row.className = `voto-row ${esBatalla ? 'batalla' : ''}`;
+                    row.innerHTML = `
+                        <div class="row-label">
+                            <strong>${esBatalla ? '' : 'Dorsal ' + id_voto + ': '} ${item.nombre}</strong>
+                        </div>
+                        <div class="row-stats">
+                            <div class="stat-box">👏 <b>${item.ap}</b> <span class="stat-total">T: ${item.h_ap + item.ap}</span></div>
+                            <div class="stat-box">👍 <b>${item.up}</b> <span class="stat-total">T: ${item.h_up + item.up}</span></div>
+                            <div class="stat-box">👎 <b>${item.dw}</b> <span class="stat-total">T: ${item.h_dw + item.dw}</span></div>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                }
             } else {
-                infoElt.innerText = "PISTA LIBRE"; timerElt.innerText = "";
-                document.getElementById('m-ap').innerText = 0; document.getElementById('m-up').innerText = 0; document.getElementById('m-dw').innerText = 0;
-                document.getElementById('t-ap').innerText = 0; document.getElementById('t-up').innerText = 0; document.getElementById('t-dw').innerText = 0;
+                infoElt.innerText = "PISTA LIBRE";
+                timerElt.innerText = "";
             }
         });
 
-        // --- EXPORTACIÓN Y CSV ---
-        window.cargarCSV = (event) => {
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
-                let obj = {};
-                lines.forEach(line => {
-                    const columns = line.split(line.includes(';') ? ';' : ',');
-                    if (columns[0]) obj[columns[0].trim()] = { piloto: columns[1]?.trim() || "P" + columns[0], coche: columns[2]?.trim() || "" };
-                });
-                set(ref(db, 'inscritos_drift'), obj).then(() => alert("Cargados " + Object.keys(obj).length + " pilotos."));
-            };
-            reader.readAsText(file, "UTF-8");
+        // --- EXPORTACIÓN XLS (TABULADA) ---
+        window.exportarVotos = async () => {
+            const snap = await get(ref(db, 'historial_votos'));
+            if (!snap.exists()) return alert("Sin datos.");
+            
+            const TAB = "\t";
+            let csv = `ID/Dorsal${TAB}Piloto/Tipo${TAB}Aplausos${TAB}Likes${TAB}Dislikes${TAB}Fecha\n`;
+            
+            Object.values(snap.val()).forEach(v => {
+                csv += `${v.dorsal}${TAB}${v.info}${TAB}${v.ap}${TAB}${v.up}${TAB}${v.dw}${TAB}${new Date(v.ts).toLocaleString()}\n`;
+            });
+
+            const blob = new Blob(["\ufeff" + csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `drift_votos_${new Date().toISOString().slice(0,10)}.xls`;
+            link.click();
+
+            if(confirm("¿Borrar historial de la nube?")) remove(ref(db, 'historial_votos'));
         };
 
-        window.exportarVotos = async () => {
-    const snap = await get(ref(db, 'historial_votos'));
-    if (!snap.exists()) return alert("No hay datos para exportar.");
-    
-    // Usamos el Tabulador (\t) como separador, es el más compatible en móviles
-    const TAB = "\t";
-    let csv = `Dorsal${TAB}Piloto e Info${TAB}Aplausos${TAB}Likes${TAB}Dislikes${TAB}Fecha y Hora\n`;
-    
-    Object.values(snap.val()).forEach(v => {
-        let infoLimpia = v.info ? v.info.replace(/\t/g, " ") : ""; // Evitar que rompa columnas
-        csv += `${v.dorsal}${TAB}${infoLimpia}${TAB}${v.ap}${TAB}${v.up}${TAB}${v.dw}${TAB}${new Date(v.ts).toLocaleString()}\n`;
-    });
-
-    // Cambiamos la extensión a .xls para "engañar" al móvil y que lo abra como tabla directamente
-    const blob = new Blob(["\ufeff" + csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    
-    const fecha = new Date().toISOString().slice(0,10);
-    link.download = `votos_drift_${fecha}.xls`; 
-    link.click();
-
-    if(confirm("¿Exportación completada? ¿Quieres borrar la nube?")) {
-        remove(ref(db, 'historial_votos'));
-    }
-};
-
+        window.cargarCSV = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
+                let obj = {};
+                lines.forEach(l => {
+                    const c = l.split(l.includes(';') ? ';' : ',');
+                    if (c[0]) obj[c[0].trim()] = { piloto: c[1]?.trim() || "Piloto "+c[0] };
+                });
+                set(ref(db, 'inscritos_drift'), obj);
+            };
+            reader.readAsText(file);
+        };
 
         onValue(ref(db, 'inscritos_drift'), s => { 
             inscritosD = s.val() || {}; 
@@ -314,12 +297,17 @@
         });
 
         onValue(ref(db, 'estado_pista'), s => {
-            const e = s.val();
             document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-            if (e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
+            if (s.val()?.id) document.getElementById(s.val().id)?.classList.add('pista-activa');
         });
 
-        set(ref(db, 'modo_actual'), 'tab-show');
+        // --- MENSAJERÍA ---
+        window.abrirModalMensaje = () => { document.getElementById('modal-mensaje').style.display = 'flex'; };
+        window.cerrarModalMensaje = () => document.getElementById('modal-mensaje').style.display = 'none';
+        window.enviarMensajePista = () => {
+            const m = document.getElementById('input-mensaje-pista').value;
+            if(m) { set(ref(db, 'copilotajes/mensaje_pista'), m.toUpperCase()); cerrarModalMensaje(); document.getElementById('input-mensaje-pista').value = ""; }
+        };
     </script>
 </body>
 </html>

@@ -3,7 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DRIFT SHOW LIVE</title>
+    <title>DRIFT SHOW LIVE - PÚBLICO</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 15px; 
+            font-family: sans-serif; 
+            color: white; 
+            text-align: center;
+            /* Fondo en mosaico repetido */
+            background-image: url('logo2.jpg');
+            background-repeat: repeat;
+            background-size: 100px; /* Ajusta el tamaño del logo en el mosaico */
+        }
+
+        /* Marco centrado transparente */
+        .contenedor-principal {
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #ffcc00;
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 500px;
+            margin: 20px auto;
+            min-height: 200px;
+        }
+
+        #banner-estado {
+            padding: 15px;
+            font-weight: bold;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            font-size: 1.2em;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* Estilo de los bloques de votación */
+        .voto-card {
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid #ffcc00;
+        }
+
+        .nombre-piloto { font-weight: bold; font-size: 1.1em; color: #ffcc00; }
+        .coche-piloto { font-size: 0.85em; color: #bbb; margin-bottom: 10px; }
+
+        /* Iconos de votos */
+        .v-btns { 
+            display: flex; 
+            justify-content: space-around; 
+            font-size: 2.5em; 
+            margin-top: 5px;
+        }
+
+        .btn-voto {
+            cursor: pointer;
+            filter: grayscale(100%); /* Blanco y negro por defecto */
+            transition: 0.3s;
+            opacity: 0.5;
+        }
+
+        .btn-voto.seleccionado {
+            filter: grayscale(0%); /* Color al seleccionar */
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .timer-alerta {
+            color: #ff4444;
+            font-weight: bold;
+            margin-top: 10px;
+            animation: parpadeo 1s infinite;
+        }
+
+        @keyframes parpadeo { 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor-principal">
+        <div id="banner-estado">CONECTANDO...</div>
+
+        <div id="seccion-votos" style="display:none">
+            <div id="lista-votables"></div>
+            <div id="cuenta-atras" class="timer-alerta"></div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -12,63 +100,90 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Estado de Pista
+        let misVotos = {}; // Para permitir cambiar el voto
+
+        // 1. Escuchar Estado de Pista
         onValue(ref(db, 'estado_pista'), s => {
             const p = s.val();
-            const b = document.getElementById('banner');
-            b.innerText = p.mensaje; b.style.background = p.color;
-        });
-
-        // Ranking Escapes
-        onValue(ref(db, 'ranking_escapes'), s => {
-            const data = s.val();
-            const list = document.getElementById('lista');
-            list.innerHTML = '';
-            if(data) {
-                Object.values(data).sort((a,b)=>b.db - a.db).forEach((e, i) => {
-                    list.innerHTML += `<div class="item"><b>#${i+1}</b> ${e.piloto} <span>${e.db} dB</span></div>`;
-                });
+            const b = document.getElementById('banner-estado');
+            if(p) {
+                b.innerText = p.mensaje;
+                b.style.background = p.color;
             }
         });
 
-        // Votación Drift
-        let yaVoto = false;
+        // 2. Escuchar Votación Activa
         onValue(ref(db, 'votacion_activa'), s => {
             const v = s.val();
-            const div = document.getElementById('votos');
-            if(v?.activa) {
-                div.style.display = 'block';
-                document.getElementById('v-info').innerText = "VOTAR DORSAL: " + v.dorsal;
-                yaVoto = false;
-            } else div.style.display = 'none';
+            const divVotos = document.getElementById('seccion-votos');
+            const lista = document.getElementById('lista-votables');
+            const timerDiv = document.getElementById('cuenta-atras');
+
+            if(v && v.activa) {
+                divVotos.style.display = 'block';
+                
+                // Si el objeto de votables ha cambiado o es nuevo, dibujamos
+                // Esperamos que el Master envíe 'items' (pilotos individuales y batalla)
+                if (v.items) {
+                    lista.innerHTML = '';
+                    Object.entries(v.items).forEach(([id, data]) => {
+                        const card = document.createElement('div');
+                        card.className = 'voto-card';
+                        
+                        // Diferenciar si es Batalla o Piloto
+                        const nombreMostrar = id === 'BATALLA' ? "🔥 BATALLA " + v.dorsal : data.nombre;
+                        const cocheMostrar = id === 'BATALLA' ? "" : (data.coche || "");
+
+                        card.innerHTML = `
+                            <div class="nombre-piloto">${nombreMostrar}</div>
+                            <div class="coche-piloto">${cocheMostrar}</div>
+                            <div class="v-btns">
+                                <span class="btn-voto ${misVotos[id] === 'aplausos' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'aplausos')">👏</span>
+                                <span class="btn-voto ${misVotos[id] === 'up' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'up')">👍</span>
+                                <span class="btn-voto ${misVotos[id] === 'down' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'down')">👎</span>
+                            </div>
+                        `;
+                        lista.appendChild(card);
+                    });
+                }
+
+                // Mostrar cuenta atrás si el Master la activa (timer > 0)
+                if(v.timer > 0) {
+                    timerDiv.innerText = `CERRANDO EN ${v.timer}s...`;
+                } else {
+                    timerDiv.innerText = "";
+                }
+
+            } else {
+                divVotos.style.display = 'none';
+                misVotos = {}; // Resetear mis votos al cerrar
+            }
         });
 
-        window.votar = (t) => {
-            if(yaVoto) return alert("Ya votaste");
-            update(ref(db, 'votacion_activa'), { [t]: increment(1) });
-            yaVoto = true; alert("¡Gracias!");
+        window.enviarVoto = (idVotable, tipoVoto) => {
+            // Lógica para poder cambiar el voto:
+            // Si ya votó algo en este piloto, restamos el anterior y sumamos el nuevo
+            const actualizaciones = {};
+            const anteriorVoto = misVotos[idVotable];
+
+            if (anteriorVoto === tipoVoto) return; // Ya está seleccionado
+
+            if (anteriorVoto) {
+                // Restar el voto anterior en la base de datos
+                actualizaciones[`votacion_activa/items/${idVotable}/${anteriorVoto}`] = increment(-1);
+            }
+
+            // Sumar el nuevo voto
+            actualizaciones[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
+            
+            update(ref(db), actualizaciones);
+            misVotos[idVotable] = tipoVoto;
+            
+            // Forzar refresco visual de los iconos seleccionados
+            document.querySelectorAll(`.voto-card`).forEach(() => {
+                // El onValue se encargará de redibujar con las clases correctas
+            });
         };
     </script>
-    <style>
-        body { background: #000; color: white; font-family: sans-serif; text-align: center; margin:0; padding:10px;}
-        #banner { padding: 15px; font-weight: bold; position: sticky; top: 0; z-index: 100; border-radius: 0 0 10px 10px; margin-bottom: 10px;}
-        .item { background: #111; padding: 15px; margin-bottom: 5px; border-radius: 8px; display: flex; justify-content: space-between; border-left: 4px solid #ffcc00;}
-        #votos { background: #222; padding: 20px; border-radius: 20px; border: 2px solid #ffcc00; margin: 10px 0; }
-        .v-btns { display: flex; justify-content: space-around; font-size: 3em; }
-    </style>
-</head>
-<body>
-    <div id="banner">ESPERANDO PISTA...</div>
-    
-    <div id="votos" style="display:none">
-        <h2 id="v-info">VOTAR</h2>
-        <div class="v-btns">
-            <span onclick="votar('aplausos')">👏</span>
-            <span onclick="votar('like')">👍</span>
-            <span onclick="votar('dislike')">👎</span>
-        </div>
-    </div>
-
 </body>
 </html>
-

@@ -8,7 +8,6 @@
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 0 10px 10px 10px; margin: 0; overflow-x: hidden; }
         
-        /* LOGO SIN ESPACIOS */
         .header-logo { 
             display: block; 
             margin: 0 auto; 
@@ -39,7 +38,6 @@
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
         .btn-cargar { background: #222; border: 1px dashed #444; color: #bbb; font-size: 0.8em; margin-top: 5px; padding: 12px; margin-bottom: 5px; }
         
-        /* CONTADOR ALINEADO */
         .pilotos-count { color: #888; font-size: 0.75em; margin: 2px 0 12px 0; text-align: center; text-transform: uppercase; font-weight: bold; }
 
         #modal-selector { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; padding: 10px; }
@@ -114,7 +112,7 @@
                 });
 
                 items[d] = { 
-                    nombre: p ? p.piloto : "Dorsal " + d, 
+                    nombre: p ? p.piloto : "PILOTO DESCONOCIDO", 
                     coche: p ? p.coche : "", 
                     ap: 0, up: 0, dw: 0,
                     h_ap, h_up, h_dw 
@@ -126,10 +124,7 @@
             }
 
             set(ref(db, 'votacion_activa'), {
-                dorsal: val,
-                activa: true,
-                timer: 0,
-                items: items
+                dorsal: val, activa: true, timer: 0, items: items
             });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             document.getElementById('d-show').value = "";
@@ -146,10 +141,7 @@
                 return;
             }
 
-            let html = "";
-            if (v.timer > 0) {
-                html += `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>`;
-            }
+            let html = v.timer > 0 ? `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>` : "";
 
             if (v.items) {
                 html += Object.entries(v.items).map(([id, data]) => `
@@ -179,8 +171,12 @@
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
                             push(ref(db, 'historial_votos'), {
-                                dorsal: idItem, info: data.nombre,
-                                ap: data.ap || 0, up: data.up || 0, dw: data.dw || 0, ts: Date.now()
+                                dorsal: idItem, 
+                                info: data.nombre.split('(')[0].trim(), // Limpia el nombre para la tabla dinámica
+                                ap: data.ap || 0, 
+                                up: data.up || 0, 
+                                dw: data.dw || 0, 
+                                ts: Date.now()
                             });
                         }
                     });
@@ -250,14 +246,27 @@
 
         window.exportarVotos = async () => {
             const snap = await get(ref(db, 'historial_votos'));
-            if (!snap.exists()) return alert("No hay historial");
-            let csv = "Dorsal;Piloto;AP;UP;DW;Fecha\n";
-            Object.values(snap.val()).forEach(v => { csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw};${new Date(v.ts).toLocaleString()}\n`; });
+            if (!snap.exists()) return alert("No hay historial acumulado");
+            
+            // CABECERA OPTIMIZADA PARA TABLA DINÁMICA
+            let csvContent = "Dorsal;Piloto;Aplausos;Up;Down;Fecha_Hora\n";
+            
+            Object.values(snap.val()).forEach(v => {
+                const fecha = new Date(v.ts).toLocaleString('es-ES');
+                // Reemplazamos posibles puntos y coma internos por comas para no romper las columnas
+                const nombreLimpio = v.info.replace(/;/g, ',');
+                csvContent += `${v.dorsal};${nombreLimpio};${v.ap};${v.up};${v.dw};${fecha}\n`;
+            });
+
+            const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-            link.download = "votos_drift.csv";
+            link.href = URL.createObjectURL(blob);
+            link.download = `Votos_Evento_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
             link.click();
-            if(confirm("¿Borrar historial de la nube?")) remove(ref(db, 'historial_votos'));
+            
+            if(confirm("¿Deseas BORRAR el historial de la nube ahora que lo has descargado?")) {
+                remove(ref(db, 'historial_votos'));
+            }
         };
 
         onValue(ref(db, 'estado_pista'), s => {

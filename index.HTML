@@ -47,32 +47,26 @@
         }
 
         .voto-title {
-            font-size: 1.2em;
+            font-size: 1.3em;
             font-weight: bold;
             color: #ffcc00;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
             text-transform: uppercase;
         }
 
-        /* ESTILO ESPECÍFICO PARA EL COCHE */
+        /* ESTILO DEL COCHE */
         .voto-coche {
-            font-size: 1em;
+            font-size: 1.1em;
             color: #ffffff;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             font-style: italic;
             display: block;
+            font-weight: bold;
         }
 
         .v-btn { font-size: 3.5em; filter: grayscale(1); margin: 0 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
         .v-act { filter: grayscale(0) !important; transform: scale(1.2); text-shadow: 0 0 15px rgba(255,255,0,0.5); }
-        
         #timer-box { color: #ff4444; font-weight: bold; font-size: 1.4em; margin-top: 10px; height: 30px; }
-        
-        .rank-card { 
-            background: rgba(255, 255, 255, 0.05); 
-            padding: 12px; border-radius: 8px; width: 100%; margin: 8px 0; 
-            border-left: 4px solid #ffcc00; display: flex; justify-content: space-between; text-align: left;
-        }
     </style>
 </head>
 <body>
@@ -83,14 +77,7 @@
                 <div id="contenedor-votos"></div>
                 <div id="timer-box"></div>
             </div>
-
-            <div id="ui-esc" style="display:none; width: 100%">
-                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">RANKING dB</h2>
-                <div id="l-db"></div>
-                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 20px;">RANKING SONORIDAD</h2>
-                <div id="l-hz"></div>
             </div>
-        </div>
     </div>
 
     <script type="module">
@@ -98,26 +85,16 @@
         import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
-
         let misVotos = {}; 
 
         onValue(ref(db, 'modo_actual'), s => {
             const m = s.val() || 'tab-show';
             document.getElementById('ui-show').style.display = m==='tab-show'?'block':'none';
-            document.getElementById('ui-esc').style.display = m==='tab-esc'?'block':'none';
-        });
-
-        onValue(ref(db, 'estado_pista'), s => {
-            const e = s.val();
-            const msg = document.getElementById('s-mensaje');
-            msg.innerText = e?.mensaje || "";
-            msg.style.color = e?.color || "white";
         });
 
         onValue(ref(db, 'votacion_activa'), s => {
             const v = s.val();
             const container = document.getElementById('contenedor-votos');
-            const timerDisplay = document.getElementById('timer-box');
 
             if (v?.activa && v.items) {
                 const idsActuales = Object.keys(v.items).join(',');
@@ -125,22 +102,25 @@
                     container.innerHTML = "";
                     for (const id_voto in v.items) {
                         const item = v.items[id_voto];
-                        
-                        // LÓGICA DE SEPARACIÓN PARA MOSTRAR EL COCHE
-                        let nombrePiloto = item.nombre || "";
-                        let htmlCoche = "";
-                        
-                        if (nombrePiloto.includes('|')) {
-                            const partes = nombrePiloto.split('|');
-                            nombrePiloto = partes[0].trim();
-                            htmlCoche = `<div class="voto-coche">${partes[1].trim()}</div>`;
+                        let pNombre = item.nombre || "";
+                        let pCoche = "";
+
+                        // DETECTOR AUTOMÁTICO DE COCHE
+                        if (pNombre.includes('|')) {
+                            let partes = pNombre.split('|');
+                            pNombre = partes[0].trim();
+                            pCoche = partes[1].trim();
+                        } else if (pNombre.includes('(')) {
+                            let partes = pNombre.split('(');
+                            pNombre = partes[0].trim();
+                            pCoche = partes[1].replace(')', '').trim();
                         }
 
                         const block = document.createElement('div');
-                        block.className = `voto-block ${id_voto === "BATALLA" ? 'batalla' : ''}`;
+                        block.className = `voto-block`;
                         block.innerHTML = `
-                            <div class="voto-title">${nombrePiloto}</div>
-                            ${htmlCoche}
+                            <div class="voto-title">${pNombre}</div>
+                            ${pCoche ? `<div class="voto-coche">${pCoche}</div>` : ''}
                             <div class="emoji-row">
                                 <span class="v-btn" id="btn-${id_voto}-ap" onclick="votar('${id_voto}', 'ap')">👏</span>
                                 <span class="v-btn" id="btn-${id_voto}-up" onclick="votar('${id_voto}', 'up')">👍</span>
@@ -152,11 +132,9 @@
                     container.dataset.currentIds = idsActuales;
                     actualizarIconos();
                 }
-                timerDisplay.innerText = v.timer > 0 ? `CIERRE EN: ${v.timer}...` : "";
             } else {
                 container.innerHTML = "";
                 container.dataset.currentIds = "";
-                timerDisplay.innerText = "";
                 misVotos = {};
             }
         });
@@ -173,8 +151,8 @@
 
         function actualizarIconos() {
             document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
-            for (const id_voto in misVotos) {
-                const btn = document.getElementById(`btn-${id_voto}-${misVotos[id_voto]}`);
+            for (const id in misVotos) {
+                const btn = document.getElementById(`btn-${id}-${misVotos[id]}`);
                 if (btn) btn.classList.add('v-act');
             }
         }

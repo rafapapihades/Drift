@@ -5,17 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DRIFT SHOW LIVE - PÚBLICO</title>
     <style>
-        /* Centrado Absoluto Vertical y Horizontal */
+        /* Centrado Absoluto y Fondo Corregido */
         html, body {
             min-height: 100vh;
             margin: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Logo de fondo al doble de tamaño (160px) */
+            
+            /* Ajuste del Mosaico */
             background-image: url('logo2.jpg'); 
             background-repeat: repeat; 
-            background-size: 160px;
+            background-size: 200px auto; /* Tamaño exacto solicitado */
+            background-position: center;
+            background-attachment: fixed; /* El fondo se queda fijo mientras haces scroll */
+            
             font-family: sans-serif;
         }
 
@@ -29,7 +33,7 @@
             box-shadow: 0 0 30px rgba(0,0,0,1);
             color: white;
             text-align: center;
-            margin: 20px; /* Margen de seguridad para móviles */
+            margin: 20px auto;
         }
 
         #banner-estado {
@@ -51,10 +55,11 @@
             order: 2; 
         }
 
+        /* CLASE BATALLA: Siempre arriba y en rojo */
         .voto-card.es-batalla {
             border-left: 5px solid #ff4444;
             background: rgba(255, 0, 0, 0.2);
-            order: 1; /* Sigue saliendo arriba */
+            order: 1; 
             margin-bottom: 10px;
         }
         .voto-card.es-batalla .nombre-piloto { color: #ff4444; }
@@ -64,7 +69,7 @@
 
         .v-btns { display: flex; justify-content: space-around; font-size: 3em; margin-top: 10px; }
 
-        /* Iconos Blancos Sólidos */
+        /* Iconos Blancos Sólidos por defecto */
         .btn-voto {
             cursor: pointer; 
             filter: brightness(0) invert(1); 
@@ -72,6 +77,7 @@
             transition: 0.2s;
         }
 
+        /* Color real cuando se selecciona */
         .btn-voto.seleccionado {
             filter: none !important; 
             transform: scale(1.3);

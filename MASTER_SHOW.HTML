@@ -245,35 +245,34 @@
         };
 
     window.exportarVotos = async () => {
+window.exportarVotos = async () => {
     const snap = await get(ref(db, 'historial_votos'));
     if (!snap.exists()) return alert("No hay historial acumulado");
     
-    // Forzamos el separador de dos puntos (:) que es el que tu Excel reconoce
-    let csvContent = "sep=:\n"; 
-    csvContent += "Dorsal:Piloto:Aplausos:Up:Down:Fecha_Hora\n";
+    // Usamos coma, el estándar mundial para CSV
+    let csvContent = "Dorsal,Piloto,Aplausos,Up,Down,Fecha_Hora\n";
     
     Object.values(snap.val()).forEach(v => {
         const fecha = new Date(v.ts).toLocaleString('es-ES');
+        // Quitamos comillas dobles del nombre para que no rompa el formato
+        const nombreLimpio = v.info.replace(/"/g, ''); 
         
-        // LIMPIEZA CLAVE: Quitamos los ":" del nombre del piloto para que no rompa las columnas
-        const nombreLimpio = v.info.replace(/:/g, '-'); 
-        // Quitamos también ";" por si acaso
-        const nombreFinal = nombreLimpio.replace(/;/g, ' ');
-
-        // Construimos la línea usando exclusivamente los dos puntos (:)
-        csvContent += `${v.dorsal}:${nombreFinal}:${v.ap}:${v.up}:${v.dw}:${fecha}\n`;
+        // Al poner el nombre entre "", permitimos que lleve comas o puntos dentro sin romper columnas
+        csvContent += `${v.dorsal},"${nombreLimpio}",${v.ap},${v.up},${v.dw},"${fecha}"\n`;
     });
 
+    // El prefijo \ufeff ayuda a Excel a entender que es texto UTF-8 (acentos y ñ)
     const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `Votos_Drift_Final.csv`;
     link.click();
     
-    if(confirm("¿Deseas BORRAR el historial de la nube ahora que lo has descargado?")) {
+    if(confirm("¿Deseas BORRAR el historial de la nube?")) {
         remove(ref(db, 'historial_votos'));
     }
 };
+
 
 
 

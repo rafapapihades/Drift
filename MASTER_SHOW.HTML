@@ -7,23 +7,39 @@
     <style>
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 0 10px 10px 10px; margin: 0; overflow-x: hidden; }
-        .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 500px; height: auto; padding: 5px 0; }
+        
+        .header-logo { 
+            display: block; 
+            margin: 0 auto; 
+            width: 100%; 
+            max-width: 500px;
+            height: auto; 
+            padding: 5px 0;
+        }
+
         .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; width: 100%; }
+        
         .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
         .btn-pista { opacity: 0.25; }
         .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        
         .input-group { display: flex; gap: 8px; width: 100%; }
         input { flex: 1; min-width: 0; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
         .btn-lupa { width: 60px; flex-shrink: 0; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
         .vote-stats-container { margin: 10px 0; }
         .piloto-voto-row { background: #222; padding: 10px; border-radius: 8px; margin-bottom: 5px; border-left: 4px solid #ffcc00; }
         .p-info { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; color: #fff; text-transform: uppercase; }
         .p-stats { display: flex; justify-content: space-around; color: #ffcc00; font-size: 1.1em; }
+
         .timer-master { background:#ff4444; color:white; padding:10px; border-radius:8px; font-weight:bold; margin-bottom:10px; font-size:1.2em; animation: parpadeo 1s infinite; text-align: center; }
         @keyframes parpadeo { 50% { opacity: 0.5; } }
+
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
         .btn-cargar { background: #222; border: 1px dashed #444; color: #bbb; font-size: 0.8em; margin-top: 5px; padding: 12px; margin-bottom: 5px; }
+        
         .pilotos-count { color: #888; font-size: 0.75em; margin: 2px 0 12px 0; text-align: center; text-transform: uppercase; font-weight: bold; }
+
         #modal-selector { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; padding: 10px; }
         .grid-pilotos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; }
         .btn-piloto-selec { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; text-align: center; min-height: 70px; display: flex; flex-direction: column; justify-content: center; }
@@ -52,7 +68,9 @@
 
     <div class="card">
         <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
+        
         <div id="votos-en-vivo" class="vote-stats-container"></div>
+
         <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
         <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
         <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
@@ -72,44 +90,25 @@
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
         let inscritosD = {}; let seleccionados = [];
 
+        // 1. Cargar inscritos
         onValue(ref(db, 'inscritos_drift'), s => { 
             inscritosD = s.val() || {}; 
             document.getElementById('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
         });
 
-        window.cargarCSV = (event) => {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const content = e.target.result;
-                const lines = content.split(/\r?\n/);
-                let obj = {};
-                
-                // Detectar separador (coma o punto y coma)
-                const header = lines[0];
-                const sep = header.includes(';') ? ';' : ',';
+        // 2. ESCUCHAR ORDEN DE LIMPIEZA REMOTA (Desde Ventana Pista)
+        onValue(ref(db, 'comando_limpiar'), (snapshot) => {
+            if (snapshot.exists()) {
+                document.getElementById('d-show').value = "";
+                document.getElementById('preview-show').innerText = "Introduce dorsal...";
+            }
+        });
 
-                lines.slice(1).forEach(l => {
-                    if (!l.trim()) return;
-                    const cols = l.split(sep);
-                    const dorsal = cols[0]?.trim();
-                    if (dorsal) {
-                        obj[dorsal] = { 
-                            piloto: cols[1]?.trim() || "Piloto " + dorsal,
-                            coche: cols[2]?.trim() || ""
-                        };
-                    }
-                });
-                set(ref(db, 'inscritos_drift'), obj)
-                    .then(() => alert("CSV Cargado: " + Object.keys(obj).length + " pilotos."))
-                    .catch(() => alert("Error al subir a la nube."));
-            };
-            reader.readAsText(file);
-        };
-
+        // 3. Lógica para abrir votación
         window.abrirVoto = async () => {
             const val = document.getElementById('d-show').value.trim();
-            if (!val) return;
+            if (!val) return alert("Introduce un dorsal primero");
+            
             const dorsalesArr = val.split(/\s+/);
             let items = {};
             const histSnap = await get(ref(db, 'historial_votos'));
@@ -132,9 +131,10 @@
 
             set(ref(db, 'votacion_activa'), { dorsal: val, activa: true, timer: 0, items: items });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
-            document.getElementById('d-show').value = "";
+            // NO borramos el input aquí, esperamos a "Pista Libre"
         };
 
+        // 4. Visualización de votos en vivo
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
             const container = document.getElementById('votos-en-vivo');
@@ -155,11 +155,14 @@
             }
         });
 
+        // 5. Cambio de estados de pista
         window.setEstado = async (msg, col, id) => {
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
             if (id === 'btn-libre') {
-                document.getElementById('votos-en-vivo').innerHTML = "";
+                // Limpiar localmente
+                document.getElementById('d-show').value = "";
                 document.getElementById('preview-show').innerText = "Introduce dorsal...";
+                
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
@@ -173,28 +176,50 @@
                     let interval = setInterval(() => {
                         count--;
                         update(ref(db, 'votacion_activa'), { timer: count });
-                        if (count <= 0) { clearInterval(interval); set(ref(db, 'votacion_activa'), { activa: false, timer: 0 }); }
+                        if (count <= 0) { 
+                            clearInterval(interval); 
+                            set(ref(db, 'votacion_activa'), { activa: false, timer: 0, dorsal: "" }); 
+                        }
                     }, 1000);
                 }
             }
         };
 
+        // 6. Carga de CSV
+        window.cargarCSV = (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const lines = e.target.result.split(/\r?\n/);
+                let obj = {};
+                const sep = lines[0].includes(';') ? ';' : ',';
+                lines.slice(1).forEach(l => {
+                    if(!l.trim()) return;
+                    const c = l.split(sep);
+                    if(c[0]) obj[c[0].trim()] = { piloto: c[1]?.trim(), coche: c[2]?.trim() };
+                });
+                set(ref(db, 'inscritos_drift'), obj).then(() => alert("Cargados " + Object.keys(obj).length + " pilotos"));
+            };
+            reader.readAsText(file);
+        };
+
+        // 7. Exportación optimizada
         window.exportarVotos = async () => {
             const snap = await get(ref(db, 'historial_votos'));
             if (!snap.exists()) return alert("No hay historial");
-            let csvContent = "Dorsal,Piloto,Aplausos,Up,Down,Fecha_Hora\n";
+            let csv = "Dorsal,Piloto,Aplausos,Up,Down,Fecha_Hora\n";
             Object.values(snap.val()).forEach(v => {
                 const fecha = new Date(v.ts).toLocaleString('es-ES').replace(/,/g, '');
-                csvContent += `${v.dorsal},"${v.info.replace(/"/g, '')}",${v.ap},${v.up},${v.dw},"${fecha}"\n`;
+                csv += `${v.dorsal},"${v.info.replace(/"/g, '')}",${v.ap},${v.up},${v.dw},"${fecha}"\n`;
             });
-            const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Votos_Drift_Export.csv`;
+            link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:'text/csv;charset=utf-8;'}));
+            link.download = "votos_drift.csv";
             link.click();
             if(confirm("¿Borrar historial de la nube?")) remove(ref(db, 'historial_votos'));
         };
 
+        // 8. Utilidades de búsqueda y selector
         window.buscarPilotoShow = (val) => {
             if (!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
             const dorsales = val.trim().split(/\s+/);
@@ -216,11 +241,19 @@
         };
 
         window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
-        window.confirmarSeleccion = () => { document.getElementById('d-show').value = seleccionados.join(" "); buscarPilotoShow(seleccionados.join(" ")); cerrarSelector(); };
+        window.confirmarSeleccion = () => { 
+            document.getElementById('d-show').value = seleccionados.join(" "); 
+            buscarPilotoShow(seleccionados.join(" ")); 
+            cerrarSelector(); 
+        };
 
+        // 9. Resaltar botón de estado activo
         onValue(ref(db, 'estado_pista'), s => {
             document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-            if(s.val()?.id) document.getElementById(s.val().id)?.classList.add('pista-activa');
+            if(s.val()?.id) {
+                const active = document.getElementById(s.val().id);
+                if(active) active.classList.add('pista-activa');
+            }
         });
     </script>
 </body>

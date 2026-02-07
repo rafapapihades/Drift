@@ -3,119 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VOTACIÓN PÚBLICO</title>
+    <title>DRIFT SHOW - VOTA!</title>
     <style>
         body { 
-            /* FONO CON LOGO REPETIDO */
-            background-image: url('logo2.jpg');
-            background-repeat: repeat;
-            background-size: 100px; /* Tamaño de los logos del fondo */
-            background-color: #000;
+            background-image: url('logo2.jpg'); 
+            background-repeat: repeat; 
+            background-size: 195px; 
+            background-color: #000; 
             color: #fff; 
-            font-family: 'Arial Black', sans-serif; 
-            text-align: center; 
+            font-family: sans-serif; 
             margin: 0; 
-            padding: 10px; 
+            text-align: center; 
+        }
+        .overlay { 
+            min-height: 100vh; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            background: rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
         }
 
-        /* CAPA OSCURA PARA QUE SE LEA BIEN SOBRE EL FONDO REPETIDO */
-        .overlay {
+        .glass-panel {
             background: rgba(0, 0, 0, 0.85);
-            min-height: 100vh;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             width: 100%;
-            position: absolute;
-            top: 0; left: 0;
-            padding-top: 20px;
+            max-width: 480px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .header-logo { 
-            display: block; 
-            margin: 0 auto 20px auto; 
-            width: 100%;       
-            max-width: 400px; /* Logo grande */
-            height: auto; 
+        /* DISEÑO DE BLOQUE DE VOTACIÓN */
+        .voto-block {
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        .btn-voto { 
-            width: 90%; 
-            max-width: 350px; 
-            padding: 25px; 
-            margin: 10px 0; 
-            border: none; 
-            border-radius: 15px; 
-            color: #fff; 
-            font-size: 1.6em; 
-            font-weight: bold; 
+        .voto-block.batalla {
+            background: linear-gradient(145deg, #001a33, #000);
+            border: 1px solid #007bff;
+        }
+        .voto-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffcc00;
+            margin-bottom: 10px;
             text-transform: uppercase;
-            cursor: pointer; 
-            box-shadow: 0 6px 0 rgba(0,0,0,0.5);
         }
-        
-        .btn-azul { background: #007bff; }
-        .btn-verde { background: #28a745; }
-        .btn-rojo { background: #dc3545; }
-        
-        #p-nombre { font-size: 2.5em; color: #fff; margin: 10px 0; text-shadow: 2px 2px #000; }
-        #p-coche { font-size: 1.5em; color: #ffcc00; margin-bottom: 20px; text-shadow: 2px 2px #000; }
+        .voto-block.batalla .voto-title { color: #00bfff; }
 
-        #div-espera h2 { margin-top: 50px; color: #666; }
+        .v-btn { font-size: 3.5em; filter: grayscale(1); margin: 0 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
+        .v-act { filter: grayscale(0) !important; transform: scale(1.2); text-shadow: 0 0 15px rgba(255,255,0,0.5); }
+        
+        #timer-box { color: #ff4444; font-weight: bold; font-size: 1.4em; margin-top: 10px; height: 30px; }
+        
+        .rank-card { 
+            background: rgba(255, 255, 255, 0.05); 
+            padding: 12px; border-radius: 8px; width: 100%; margin: 8px 0; 
+            border-left: 4px solid #ffcc00; display: flex; justify-content: space-between; text-align: left;
+        }
     </style>
 </head>
 <body>
-
     <div class="overlay">
-        <img src="logo2.jpg" alt="Logo" class="header-logo">
-
-        <div id="div-votar" style="display:none;">
-            <div id="p-nombre"></div>
-            <div id="p-coche"></div>
+        <div class="glass-panel">
             
-            <button class="btn-voto btn-azul" onclick="votar('aplausos')">BRUTAL 👏</button><br>
-            <button class="btn-voto btn-verde" onclick="votar('up')">ME GUSTA 👍</button><br>
-            <button class="btn-voto btn-rojo" onclick="votar('down')">NO ME GUSTA 👎</button>
-        </div>
+            <div id="ui-show" style="display:none; width: 100%;">
+                <h1 id="s-mensaje" style="font-size: 2.2em; margin: 0 0 15px 0; text-shadow: 2px 2px 4px #000;"></h1>
+                
+                <div id="contenedor-votos"></div>
 
-        <div id="div-espera">
-            <h2>ESPERANDO COCHE...</h2>
+                <div id="timer-box"></div>
+            </div>
+
+            <div id="ui-esc" style="display:none; width: 100%">
+                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">RANKING dB</h2>
+                <div id="l-db"></div>
+                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 20px;">RANKING SONORIDAD</h2>
+                <div id="l-hz"></div>
+            </div>
+
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        
+        const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        let misVotos = {}; // Guardamos el voto para cada ID { "12": "up", "BATALLA": "aplausos" }
 
-        onValue(ref(db, 'votacion_activa'), (snap) => {
-            const data = snap.val();
-            if (data && data.activa) {
-                document.getElementById('div-votar').style.display = 'block';
-                document.getElementById('div-espera').style.display = 'none';
-                
-                const info = data.info || "";
-                // Separamos por el carácter "|"
-                if (info.includes('|')) {
-                    const partes = info.split('|');
-                    document.getElementById('p-nombre').innerText = partes[0].trim();
-                    document.getElementById('p-coche').innerText = partes[1].trim();
-                } else {
-                    document.getElementById('p-nombre').innerText = info;
-                    document.getElementById('p-coche').innerText = "";
+        onValue(ref(db, 'modo_actual'), s => {
+            const m = s.val() || 'tab-show';
+            document.getElementById('ui-show').style.display = m==='tab-show'?'block':'none';
+            document.getElementById('ui-esc').style.display = m==='tab-esc'?'block':'none';
+        });
+
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            const msg = document.getElementById('s-mensaje');
+            msg.innerText = e?.mensaje || "";
+            msg.style.color = e?.color || "white";
+        });
+
+        onValue(ref(db, 'votacion_activa'), s => {
+            const v = s.val();
+            const container = document.getElementById('contenedor-votos');
+            const timerDisplay = document.getElementById('timer-box');
+
+            if (v?.activa && v.items) {
+                // Solo regenerar el HTML si cambia el número de items
+                const idsActuales = Object.keys(v.items).join(',');
+                if (container.dataset.currentIds !== idsActuales) {
+                    container.innerHTML = "";
+                    for (const id_voto in v.items) {
+                        const esBatalla = id_voto === "BATALLA";
+                        const item = v.items[id_voto];
+                        
+                        const block = document.createElement('div');
+                        block.className = `voto-block ${esBatalla ? 'batalla' : ''}`;
+                        block.innerHTML = `
+                            <div class="voto-title">${item.nombre}</div>
+                            <div class="emoji-row">
+                                <span class="v-btn" id="btn-${id_voto}-ap" onclick="votar('${id_voto}', 'ap')">👏</span>
+                                <span class="v-btn" id="btn-${id_voto}-up" onclick="votar('${id_voto}', 'up')">👍</span>
+                                <span class="v-btn" id="btn-${id_voto}-dw" onclick="votar('${id_voto}', 'dw')">👎</span>
+                            </div>
+                        `;
+                        container.appendChild(block);
+                    }
+                    container.dataset.currentIds = idsActuales;
+                    actualizarIconos();
                 }
+
+                if (v.timer > 0) timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
+                else timerDisplay.innerText = "";
+
             } else {
-                document.getElementById('div-votar').style.display = 'none';
-                document.getElementById('div-espera').style.display = 'block';
+                container.innerHTML = "";
+                container.dataset.currentIds = "";
+                timerDisplay.innerText = "";
+                misVotos = {};
             }
         });
 
-        window.votar = (tipo) => {
+        window.votar = (id_voto, tipo) => {
+            // Si ya votó esto mismo en este bloque, no hacer nada
+            if (misVotos[id_voto] === tipo) return;
+
             const updates = {};
-            updates['votacion_activa/' + tipo] = increment(1);
+            // Si ya había votado algo en este bloque, restamos el voto anterior
+            if (misVotos[id_voto]) {
+                updates[`votacion_activa/items/${id_voto}/${misVotos[id_voto]}`] = increment(-1);
+            }
+            // Sumamos el nuevo voto
+            updates[`votacion_activa/items/${id_voto}/${tipo}`] = increment(1);
+            
             update(ref(db), updates);
-            alert("¡Votado!");
+            misVotos[id_voto] = tipo;
+            actualizarIconos();
         };
+
+        function actualizarIconos() {
+            // Quitamos la clase activa de todos
+            document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
+            // La ponemos solo en los que el usuario ha marcado
+            for (const id_voto in misVotos) {
+                const tipo = misVotos[id_voto];
+                const btn = document.getElementById(`btn-${id_voto}-${tipo}`);
+                if (btn) btn.classList.add('v-act');
+            }
+        }
+
+        onValue(ref(db, 'ranking_escapes'), s => {
+            if(!s.exists()) return;
+            const data = Object.values(s.val());
+            const render = (arr, tId, sFn, u) => {
+                document.getElementById(tId).innerHTML = arr.sort(sFn).slice(0,10).map(p => 
+                    `<div class="rank-card"><span><b>${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[u.toLowerCase()==='db'?'db':'hz']}${u}</b></div>`).join('');
+            };
+            render([...data], 'l-db', (a,b)=>b.db-a.db, 'dB');
+            render([...data], 'l-hz', (a,b)=>a.hz-b.hz, 'Hz');
+        });
     </script>
 </body>
 </html>

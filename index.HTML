@@ -31,12 +31,14 @@
 
         .v-btns { display: flex; justify-content: space-around; font-size: 3em; margin-top: 10px; }
 
+        /* Iconos: Blanco y negro por defecto */
         .btn-voto {
             cursor: pointer; filter: grayscale(100%); transition: 0.3s; opacity: 0.3;
         }
 
+        /* Resaltado cuando se selecciona */
         .btn-voto.seleccionado {
-            filter: grayscale(0%); opacity: 1; transform: scale(1.2);
+            filter: grayscale(0%) !important; opacity: 1 !important; transform: scale(1.2);
         }
 
         .timer-alerta { color: #ff4444; font-weight: bold; margin-top: 15px; font-size: 1.4em; }
@@ -62,6 +64,7 @@
         const db = getDatabase(app);
 
         let misVotos = {}; 
+        let currentVotacionId = ""; // Para detectar si la votación ha cambiado y resetear misVotos
 
         onValue(ref(db, 'estado_pista'), s => {
             const p = s.val();
@@ -76,37 +79,42 @@
             const timerDiv = document.getElementById('cuenta-atras');
 
             if(v && v.activa) {
+                // Si el ID de votación (dorsal) cambia, reseteamos los votos locales
+                if (currentVotacionId !== v.dorsal) {
+                    misVotos = {};
+                    currentVotacionId = v.dorsal;
+                }
+
                 divVotos.style.display = 'block';
                 lista.innerHTML = '';
 
-                // Si hay items desglosados (Batallas)
                 if (v.items) {
                     Object.entries(v.items).forEach(([id, data]) => {
                         crearTarjetaVoto(id, data.nombre, data.coche || "", lista);
                     });
-                } 
-                // Si es un solo piloto (modo antiguo o fallback)
-                else if (v.dorsal) {
+                } else if (v.dorsal) {
                     crearTarjetaVoto(v.dorsal, v.info || "PILOTO " + v.dorsal, "", lista);
                 }
 
                 timerDiv.innerText = (v.timer > 0) ? `¡CIERRE EN ${v.timer}s!` : "";
             } else {
                 divVotos.style.display = 'none';
-                misVotos = {}; 
+                misVotos = {};
+                currentVotacionId = "";
             }
         });
 
         function crearTarjetaVoto(id, nombre, coche, contenedor) {
             const card = document.createElement('div');
             card.className = 'voto-card';
+            card.id = "card-" + id;
             card.innerHTML = `
                 <div class="nombre-piloto">${nombre}</div>
                 <div class="coche-piloto">${coche}</div>
                 <div class="v-btns">
-                    <span class="btn-voto ${misVotos[id] === 'ap' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'ap')">👏</span>
-                    <span class="btn-voto ${misVotos[id] === 'up' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'up')">👍</span>
-                    <span class="btn-voto ${misVotos[id] === 'dw' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'dw')">👎</span>
+                    <span class="btn-voto v-ap ${misVotos[id] === 'ap' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'ap')">👏</span>
+                    <span class="btn-voto v-up ${misVotos[id] === 'up' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'up')">👍</span>
+                    <span class="btn-voto v-dw ${misVotos[id] === 'dw' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'dw')">👎</span>
                 </div>
             `;
             contenedor.appendChild(card);
@@ -117,24 +125,32 @@
             if (anteriorVoto === tipoVoto) return;
 
             const updates = {};
-            // Si el Master usa la estructura nueva de "items"
+            
+            // 1. Restar el anterior si existe
             if (anteriorVoto) {
                 updates[`votacion_activa/items/${idVotable}/${anteriorVoto}`] = increment(-1);
-            }
-            updates[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
-            
-            // Compatibilidad por si el Master es antiguo (votos globales)
-            if (anteriorVoto) {
+                // Fallback para Master antiguo
                 if(anteriorVoto === 'ap') updates[`votacion_activa/aplausos`] = increment(-1);
                 if(anteriorVoto === 'up') updates[`votacion_activa/up`] = increment(-1);
                 if(anteriorVoto === 'dw') updates[`votacion_activa/down`] = increment(-1);
             }
+
+            // 2. Sumar el nuevo
+            updates[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
+            // Fallback para Master antiguo
             if(tipoVoto === 'ap') updates[`votacion_activa/aplausos`] = increment(1);
             if(tipoVoto === 'up') updates[`votacion_activa/up`] = increment(1);
             if(tipoVoto === 'dw') updates[`votacion_activa/down`] = increment(1);
 
             update(ref(db), updates);
+
+            // 3. ACTUALIZACIÓN VISUAL INMEDIATA
             misVotos[idVotable] = tipoVoto;
+            const contenedor = document.getElementById("card-" + idVotable);
+            if (contenedor) {
+                contenedor.querySelectorAll('.btn-voto').forEach(btn => btn.classList.remove('seleccionado'));
+                contenedor.querySelector('.v-' + tipoVoto).classList.add('seleccionado');
+            }
         };
     </script>
 </body>

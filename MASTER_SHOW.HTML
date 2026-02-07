@@ -20,6 +20,10 @@
         .input-group { display: flex; gap: 8px; }
         .btn-lupa { width: 60px; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
+        /* PRE-PISTA (LISTA ANTES DE LANZAR) */
+        #pre-pista-lista { margin-top: 10px; font-size: 0.9em; color: #ffcc00; text-align: center; font-weight: bold; min-height: 1.2em; }
+        .pre-pista-item { background: #222; padding: 4px 8px; border-radius: 5px; margin: 2px; display: inline-block; border: 1px solid #444; color: #fff; }
+
         /* VISTA MASTER: UNA SOLA LÍNEA DE VOTOS */
         .master-stats { background: #1a1a1a; padding: 15px; border-radius: 10px; border: 1px solid #444; margin: 10px 0; }
         .master-label { font-size: 0.9em; color: #007bff; font-weight: bold; text-align: center; margin-bottom: 10px; text-transform: uppercase; }
@@ -71,6 +75,7 @@
                 <input type="text" id="d-show" placeholder="DORSALES" oninput="buscarPilotoShow(this.value)">
                 <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
             </div>
+            <div id="pre-pista-lista"></div>
         </div>
 
         <div class="card">
@@ -109,8 +114,22 @@
         let inscritosD = {};
         let seleccionados = [];
 
+        // BUSCADOR EN TIEMPO REAL PARA LA LÍNEA PRE-PISTA
         window.buscarPilotoShow = (val) => {
-            // No hacemos nada visual aquí para limpiar la pantalla Master, solo queda en el input
+            const container = document.getElementById('pre-pista-lista');
+            const dorsales = val.trim().split(/\s+/).filter(d => d);
+            
+            if (dorsales.length === 0) {
+                container.innerHTML = "";
+                return;
+            }
+
+            container.innerHTML = dorsales.map(d => {
+                const p = inscritosD[d];
+                const nombre = p ? p.piloto : "?";
+                const coche = (p && p.coche) ? ` - ${p.coche}` : "";
+                return `<span class="pre-pista-item">#${d} ${nombre}${coche}</span>`;
+            }).join("");
         };
 
         window.abrirSelector = () => {
@@ -132,7 +151,9 @@
 
         window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
         window.confirmarSeleccion = () => {
-            document.getElementById('d-show').value = seleccionados.join(" ");
+            const val = seleccionados.join(" ");
+            document.getElementById('d-show').value = val;
+            buscarPilotoShow(val); // Disparar la visualización
             cerrarSelector();
         };
 
@@ -158,7 +179,10 @@
 
             set(ref(db, 'votacion_activa'), { activa: true, timer: 0, items: votables });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
+            
+            // LIMPIAR INPUT Y LÍNEA PREVIA AL LANZAR
             document.getElementById('d-show').value = "";
+            document.getElementById('pre-pista-lista').innerHTML = "";
         };
 
         window.setEstado = async (msg, col, id) => {
@@ -211,7 +235,7 @@
                 document.getElementById('t-ap').innerText = totAp;
                 document.getElementById('t-up').innerText = totUp;
                 document.getElementById('t-dw').innerText = totDw;
-                timerElt.innerText = v.timer > 0 ? `VOTACIÓN CERRANDO EN ${v.timer}...` : "";
+                timerElt.innerText = v.timer > 0 ? `CERRANDO VOTACIÓN EN ${v.timer}...` : "";
             } else {
                 panel.style.display = 'none';
                 info.innerText = "";

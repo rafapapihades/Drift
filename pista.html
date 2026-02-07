@@ -6,17 +6,42 @@
     <title>PISTA - DRIFT SHOW</title>
     <style>
         * { box-sizing: border-box; }
-        body { background: #000; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; gap: 10px; font-family: sans-serif; }
+        body { background: #000; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; gap: 10px; font-family: sans-serif; overflow: hidden; }
+        
         .btn-pista { flex: 1; border: none; border-radius: 15px; color: white; font-size: 1.8em; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; }
+        
         .btn-libre { background: #008000; }
         .btn-coche { background: #007bff; }
         .btn-obs   { background: #ffcc00; color: #000; }
         .btn-acc   { background: #cc0000; }
+
         .active-now { opacity: 1 !important; outline: 6px solid #fff; outline-offset: -6px; box-shadow: 0 0 40px rgba(255,255,255,0.3); z-index: 2; }
         .inactive { opacity: 0.15; transform: scale(0.95); }
+
+        /* AVISO PERSONALIZADO (En lugar de alert) */
+        #toast {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff4444;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: 0.5s;
+            z-index: 9999;
+            text-transform: uppercase;
+        }
+        #toast.show { top: 20px; }
     </style>
 </head>
 <body>
+
+    <div id="toast">⚠️ Espera a que el Máster asigne piloto</div>
 
     <button id="btn-libre" class="btn-pista btn-libre" onclick="enviarEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
     <button id="btn-coche" class="btn-pista btn-coche" onclick="intentarCocheEnPista()">COCHE EN PISTA</button>
@@ -29,7 +54,6 @@
 
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-        // Sincronizar botones resaltados
         onValue(ref(db, 'estado_pista'), (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -45,14 +69,19 @@
             }
         });
 
-        // Función especial para Coche en Pista
+        window.showToast = () => {
+            const t = document.getElementById('toast');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        };
+
         window.intentarCocheEnPista = async () => {
-            // Verificamos si hay una votación activa o dorsales listos en el Máster
             const snapVot = await get(ref(db, 'votacion_activa'));
             const vot = snapVot.val();
 
-            if (!vot || !vot.activa || vot.dorsal === "") {
-                alert("⚠️ NO HAY COCHE ASIGNADO. El Máster debe introducir un dorsal primero.");
+            if (!vot || !vot.activa || !vot.dorsal) {
+                showToast(); // Llamamos al mensaje visual en lugar del alert
                 return;
             }
             enviarEstado('🏎️ COCHE EN PISTA: ' + vot.dorsal, '#007bff', 'btn-coche');
@@ -60,14 +89,10 @@
 
         window.enviarEstado = async (msg, col, id) => {
             if (navigator.vibrate) navigator.vibrate(60);
-            
-            // 1. Cambiar estado
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
 
             if (id === 'btn-libre') {
-                // ORDEN DE LIMPIEZA AL MÁSTER
                 set(ref(db, 'comando_limpiar'), Date.now());
-
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
@@ -81,7 +106,10 @@
                     let interval = setInterval(() => {
                         count--;
                         update(ref(db, 'votacion_activa'), { timer: count });
-                        if (count <= 0) { clearInterval(interval); set(ref(db, 'votacion_activa'), { activa: false, timer: 0, dorsal: "" }); }
+                        if (count <= 0) { 
+                            clearInterval(interval); 
+                            set(ref(db, 'votacion_activa'), { activa: false, timer: 0, dorsal: "" }); 
+                        }
                     }, 1000);
                 }
             }

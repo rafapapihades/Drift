@@ -6,18 +6,21 @@
     <title>MASTER DRIFT SHOW - CONTROL</title>
     <style>
         * { box-sizing: border-box; }
-        body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
+        body { background: #000; color: #fff; font-family: sans-serif; padding: 5px 10px; margin: 0; overflow-x: hidden; }
         
+        /* LOGO AJUSTADO SIN ESPACIOS EXTRAS */
         .header-logo { 
             display: block; 
-            margin: 0 auto 15px auto; 
+            margin: 0 auto; 
             width: 100%; 
             max-width: 600px;
             height: auto; 
+            max-height: 150px; /* Limita la altura para evitar huecos */
             object-fit: contain;
         }
 
-        .header-border { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        .header-border { border-bottom: 1px solid #333; padding: 0; margin-bottom: 10px; line-height: 0; }
+        
         .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; width: 100%; }
         
         .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
@@ -37,7 +40,10 @@
         @keyframes parpadeo { 50% { opacity: 0.5; } }
 
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
-        .btn-cargar { background: #222; border: 1px dashed #444; color: #888; font-size: 0.75em; margin-top: 20px; padding: 10px; margin-bottom: 5px; }
+        .btn-cargar { background: #222; border: 1px dashed #444; color: #888; font-size: 0.75em; margin-top: 10px; padding: 10px; margin-bottom: 0px; }
+        
+        /* CONTADOR DE PILOTOS */
+        .pilotos-count { color: #666; font-size: 0.7em; margin-bottom: 10px; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
 
         #modal-selector { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; padding: 10px; }
         .grid-pilotos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; }
@@ -79,6 +85,7 @@
 
     <div class="card">
         <button class="btn btn-cargar" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
+        <div id="txt-count" class="pilotos-count">Pilotos cargados: 0</div>
         <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event)">
         <button class="btn btn-reset" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
     </div>
@@ -92,6 +99,7 @@
 
         onValue(ref(db, 'inscritos_drift'), s => { 
             inscritosD = s.val() || {}; 
+            document.getElementById('txt-count').innerText = "Pilotos cargados: " + Object.keys(inscritosD).length;
         });
 
         window.abrirVoto = async () => {
@@ -130,7 +138,6 @@
             });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             document.getElementById('d-show').value = "";
-            // No reseteamos preview-show aquí porque queremos que se vea quién entró hasta que se pulse Pista Libre
         };
 
         onValue(ref(db, 'votacion_activa'), snap => {
@@ -168,7 +175,6 @@
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
 
             if (id === 'btn-libre') {
-                // LIMPIEZA VISUAL INMEDIATA EN MASTER
                 document.getElementById('votos-en-vivo').innerHTML = "";
                 document.getElementById('preview-show').innerText = "Introduce dorsal...";
 

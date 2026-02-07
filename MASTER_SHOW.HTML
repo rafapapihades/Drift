@@ -3,192 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW - CONTROL TOTAL</title>
+    <title>MASTER DRIFT SHOW V1.0 - CONTROL</title>
     <style>
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
-        .header-title { text-align: center; color: #ffcc00; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; }
-        .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; color: white; text-transform: uppercase; }
+        
+        /* CONTENEDOR DEL LOGO */
+        .header-logo { 
+            display: block; 
+            margin: 0 auto 15px auto; 
+            max-width: 100%; 
+            height: auto; 
+            max-height: 80px; /* Ajusta este valor según prefieras el tamaño del logo */
+            object-fit: contain;
+        }
+
+        .header-border { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+
+        .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; width: 100%; }
+        
+        .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
         .btn-pista { opacity: 0.25; }
-        .pista-activa { opacity: 1 !important; outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
-        .input-group { display: flex; gap: 8px; }
-        input { flex: 1; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
-        .btn-lupa { width: 60px; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; display: flex; align-items: center; justify-content: center; }
+        .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        
+        .input-group { display: flex; gap: 8px; width: 100%; }
+        input { flex: 1; min-width: 0; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
+        .btn-lupa { width: 60px; flex-shrink: 0; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* VOTOS INDIVIDUALES DESGLOSADOS */
-        #contenedor-votos-vivos { margin: 10px 0; }
-        .fila-voto { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 6px; border-left: 4px solid #007bff; }
-        .fila-voto-header { font-weight: bold; color: #fff; margin-bottom: 5px; font-size: 0.9em; }
-        .fila-voto-stats { display: flex; justify-content: space-around; color: #ffcc00; font-size: 1.1em; }
+        .vote-stats { display: flex; justify-content: space-around; font-size: 1.2em; margin: 10px 0; background: #222; padding: 10px; border-radius: 8px; color: #ffcc00; }
+        .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
+        .info-preview { color: #fff; font-size: 1.1em; font-weight: bold; margin-top: 15px; text-align: center; min-height: 1.2em; text-transform: uppercase; }
 
-        /* PANEL DISPOSITIVOS (CUADRADITOS) */
-        #panel-dispositivos { display: none; padding: 15px; background: #1a1500; border: 2px solid #ffcc00; border-radius: 12px; margin-bottom: 10px; }
-        .grid-dispositivos { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 15px; }
-        .cuadradito { width: 45px; height: 45px; background: #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; transition: 0.4s; }
-        .cuadradito.ok { background: #28a745; box-shadow: 0 0 15px #28a745; }
+        .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
+        .btn-cargar { background: #222; border: 1px dashed #444; color: #888; font-size: 0.75em; margin-top: 20px; padding: 10px; margin-bottom: 5px; }
 
-        #modal-selector, #modal-msj { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; padding: 10px; }
-        .grid-pilotos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; }
-        .btn-piloto-selec { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center; min-height: 70px; }
-        .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
+        #modal-selector { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #000; z-index: 1000; flex-direction: column; padding: 10px; 
+        }
+        .modal-header { display: flex; gap: 10px; margin-bottom: 10px; height: 50px; flex-shrink: 0; }
+        .grid-pilotos { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 8px; 
+            overflow-y: auto; 
+            flex: 1; 
+            padding-bottom: 10px;
+        }
+        .btn-piloto-selec { 
+            background: #111; border: 1px solid #333; color: #fff; padding: 10px; 
+            border-radius: 8px; display: flex; flex-direction: column; gap: 4px; text-align: center;
+            justify-content: center; min-height: 70px;
+        }
+        .btn-piloto-selec .dorsal-tag { color: #ffcc00; font-weight: bold; font-family: monospace; font-size: 1.1em; }
+        .btn-piloto-selec .p-name { font-weight: bold; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-piloto-selec .p-car { font-size: 0.7em; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; box-shadow: inset 0 0 10px rgba(255,204,0,0.2); }
+        .btn-confirmar { background: #008800; color: white; border-radius: 8px; border: none; font-weight: bold; flex: 1; font-size: 1em; }
+        .btn-cancelar { background: #444; color: white; border-radius: 8px; border: none; font-weight: bold; flex: 1; font-size: 1em; }
     </style>
 </head>
 <body>
 
     <div id="modal-selector">
-        <div style="display:flex; gap:10px; margin-bottom:10px;">
-            <button class="btn" style="background:#444; flex:1" onclick="cerrarSelector()">✕</button>
-            <button class="btn" style="background:green; flex:1" onclick="confirmarSeleccion()">✓ LISTO</button>
+        <div class="modal-header">
+            <button class="btn-cancelar" onclick="cerrarSelector()">✕</button>
+            <button class="btn-confirmar" onclick="confirmarSeleccion()">✓ ACEPTAR</button>
         </div>
         <div id="lista-botones-pilotos" class="grid-pilotos"></div>
     </div>
 
-    <div id="modal-msj">
-        <div class="card" style="max-width:400px; margin:auto; width:100%;">
-            <h3 style="color:#ffcc00; text-align:center;">AVISO A PISTA</h3>
-            <input type="text" id="msg-input-texto" placeholder="Mensaje...">
-            <button class="btn" style="background:green; margin-top:15px;" onclick="enviarMensaje()">ENVIAR A PISTA</button>
-            <button class="btn" style="background:#444" onclick="document.getElementById('modal-msj').style.display='none'">CANCELAR</button>
+    <div class="header-border">
+        <img src="logo2.jpg" alt="Logo ROOW" class="header-logo">
+    </div>
+
+    <div id="tab-show">
+        <div class="card">
+            <div class="input-group">
+                <input type="text" id="d-show" placeholder="DORSALES" oninput="buscarPilotoShow(this.value)">
+                <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
+            </div>
+            <div id="preview-show" class="info-preview">Introduce dorsal...</div>
         </div>
-    </div>
 
-    <div class="header-title">MASTER DRIFT SHOW</div>
+        <div id="drift-controls" class="card">
+            <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
+            <div id="info-pista-drift" class="info-pista"></div>
+            
+            <div class="vote-stats">
+                <span>👏 <b id="m-ap">0</b></span> 
+                <span>👍 <b id="m-up">0</b></span> 
+                <span>👎 <b id="m-dw">0</b></span>
+            </div>
 
-    <div id="panel-dispositivos">
-        <div id="grid-disp" class="grid-dispositivos"></div>
-        <button class="btn" style="background:#dc3545; padding:10px; font-size:0.8em;" onclick="borrarMensaje()">BORRAR MENSAJE</button>
-    </div>
+            <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
+            <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
+            <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
+            
+            <button class="btn btn-cargar" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
+            <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
+            
+            <p style="font-size:0.75em; color:#ffcc00; text-align:center; margin: 10px 0;">
+                Inscritos: <span id="cnt-drift">0</span>
+            </p>
 
-    <div class="card">
-        <div class="input-group">
-            <input type="text" id="d-show" placeholder="DORSALES" oninput="buscarPiloto(this.value)">
-            <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
+            <button class="btn btn-reset" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
         </div>
-        <div id="preview-nombres" style="text-align:center; margin-top:10px; color:#aaa; font-size:0.9em;"></div>
-        <button id="btn-coche" class="btn btn-pista" style="background:#007bff; margin-top:10px;" onclick="lanzarVotos()">COCHE EN PISTA</button>
-        
-        <div id="contenedor-votos-vivos"></div>
-    </div>
-
-    <div class="card">
-        <div id="timer-display" style="text-align:center; color:red; font-weight:bold; height:1.2em;"></div>
-        <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
-        <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
-        <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
-    </div>
-
-    <div class="card">
-        <button class="btn" style="background:#a36a00" onclick="document.getElementById('modal-msj').style.display='flex'">ENVIAR MENSAJE A PISTA</button>
-        <button class="btn" style="background:#222; border:1px dashed #444; color:#888; font-size:0.8em;" onclick="document.getElementById('xl-in').click()">📂 CARGAR DRIFT.CSV</button>
-        <input type="file" id="xl-in" accept=".csv" style="display:none" onchange="procesarCSV(event)">
-        <button class="btn" style="background:#444; font-size:0.8em; margin-top:10px;" onclick="descargarYLimpiar()">💾 EXCEL Y LIMPIAR VOTOS</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, get, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
-        let inscritos = {}; let seleccionados = [];
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        // CARGAR PILOTOS
-        onValue(ref(db, 'inscritos_drift'), s => { inscritos = s.val() || {}; });
+        let inscritosD = {};
+        let seleccionados = [];
 
-        // MENSAJERÍA Y CUADRADITOS
-        onValue(ref(db, 'comunicacion_pista'), snap => {
-            const data = snap.val();
-            const panel = document.getElementById('panel-dispositivos');
-            const grid = document.getElementById('grid-disp');
-            if (data?.mensaje) {
-                panel.style.display = 'block';
-                grid.innerHTML = "";
-                if (data.sesiones) {
-                    Object.keys(data.sesiones).forEach((id, i) => {
-                        const d = document.createElement('div');
-                        d.className = 'cuadradito' + (data.sesiones[id].leido ? ' ok' : '');
-                        d.innerText = i + 1;
-                        grid.appendChild(d);
-                    });
-                }
-            } else { panel.style.display = 'none'; }
-        });
-
-        window.enviarMensaje = () => {
-            const m = document.getElementById('msg-input-texto').value.toUpperCase();
-            if (m) { remove(ref(db, 'comunicacion_pista/sesiones')); set(ref(db, 'comunicacion_pista/mensaje'), m); document.getElementById('modal-msj').style.display = 'none'; document.getElementById('msg-input-texto').value = ""; }
-        };
-        window.borrarMensaje = () => remove(ref(db, 'comunicacion_pista'));
-
-        // LANZAR VOTACIÓN CON DESGLOSE
-        window.lanzarVotos = async () => {
-            const val = document.getElementById('d-show').value.trim();
-            if (!val) return;
-            const dorsales = val.split(/\s+/);
-            let items = {};
-            const histSnap = await get(ref(db, 'historial_votos'));
-            const historial = histSnap.val() ? Object.values(histSnap.val()) : [];
-
+        window.abrirSelector = () => {
+            const grid = document.getElementById('lista-botones-pilotos');
+            grid.innerHTML = "";
+            seleccionados = [];
+            const dorsales = Object.keys(inscritosD).sort((a,b) => a - b);
             dorsales.forEach(d => {
-                let h_ap = 0, h_up = 0, h_dw = 0;
-                historial.filter(h => h.dorsal === d).forEach(v => { h_ap += (v.ap||0); h_up += (v.up||0); h_dw += (v.dw||0); });
-                items[d] = { nombre: inscritos[d]?.piloto || "PILOTO", ap: 0, up: 0, dw: 0, h_ap, h_up, h_dw };
+                const p = inscritosD[d];
+                const btn = document.createElement('div');
+                btn.className = 'btn-piloto-selec';
+                btn.innerHTML = `
+                    <div class="dorsal-tag">${d}</div>
+                    <div class="p-name">${p.piloto}</div>
+                    <div class="p-car">${p.coche || ''}</div>
+                `;
+                btn.onclick = () => {
+                    btn.classList.toggle('selected');
+                    const index = seleccionados.indexOf(d);
+                    if (index > -1) seleccionados.splice(index, 1);
+                    else seleccionados.push(d);
+                };
+                grid.appendChild(btn);
             });
-
-            if (dorsales.length > 1) items["BATALLA"] = { nombre: "BATALLA", ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
-            
-            set(ref(db, 'votacion_activa'), { activa: true, timer: 0, items });
-            set(ref(db, 'estado_pista'), { mensaje: "EN PISTA: " + val, color: "#007bff", id: "btn-coche" });
-            document.getElementById('d-show').value = "";
+            document.getElementById('modal-selector').style.display = 'flex';
         };
 
-        // ESCUCHA DE VOTOS EN VIVO (DESGLOSE)
-        onValue(ref(db, 'votacion_activa'), snap => {
-            const v = snap.val();
-            const container = document.getElementById('contenedor-votos-vivos');
-            if (v?.activa) {
-                container.innerHTML = Object.entries(v.items).map(([id, data]) => `
-                    <div class="fila-voto">
-                        <div class="fila-voto-header">${id === 'BATALLA' ? '🔥 BATALLA' : '#' + id + ' ' + data.nombre}</div>
-                        <div class="fila-voto-stats">
-                            <span>👏 ${data.ap} <small>(${data.ap + data.h_ap})</small></span>
-                            <span>👍 ${data.up} <small>(${data.up + data.h_up})</small></span>
-                            <span>👎 ${data.dw} <small>(${data.dw + data.h_dw})</small></span>
-                        </div>
-                    </div>
-                `).join('');
-                document.getElementById('timer-display').innerText = v.timer > 0 ? `CERRANDO EN ${v.timer}s...` : "";
-            } else { container.innerHTML = ""; document.getElementById('timer-display').innerText = ""; }
-        });
+        window.cerrarSelector = () => {
+            document.getElementById('modal-selector').style.display = 'none';
+        };
 
-        // ESTADOS Y GUARDADO
+        window.confirmarSeleccion = () => {
+            document.getElementById('d-show').value = seleccionados.join(" ");
+            window.buscarPilotoShow(seleccionados.join(" "));
+            cerrarSelector();
+        };
+
+        window.abrirVoto = async () => {
+            const inputElt = document.getElementById('d-show');
+            const val = inputElt.value.trim();
+            if (!val) return alert("Introduce dorsal");
+            const dorsalesArr = val.split(/\s+/);
+            let infoConcat = [];
+            let acumuladoInicial = { ap: 0, up: 0, dw: 0 };
+            const histSnap = await get(ref(db, 'historial_votos'));
+            if (histSnap.exists()) {
+                const historial = Object.values(histSnap.val());
+                dorsalesArr.forEach(d => {
+                    historial.filter(h => h.dorsal === d).forEach(v => {
+                        acumuladoInicial.ap += (v.ap || 0);
+                        acumuladoInicial.up += (v.up || 0);
+                        acumuladoInicial.dw += (v.dw || 0);
+                    });
+                });
+            }
+            dorsalesArr.forEach(d => {
+                const p = inscritosD[d];
+                infoConcat.push(p ? `${p.piloto}${p.coche ? ' ('+p.coche+')' : ''}` : "P" + d);
+            });
+            set(ref(db, 'votacion_activa'), {
+                dorsal: val, info: infoConcat.join(' / '),
+                aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw,
+                activa: true, timer: 0
+            });
+            set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
+            inputElt.value = "";
+        };
+
         window.setEstado = async (msg, col, id) => {
-            set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id });
+            set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
             if (id === 'btn-libre') {
                 const snap = await get(ref(db, 'votacion_activa'));
-                if (snap.val()?.activa) {
-                    const v = snap.val().items;
-                    for (let k in v) { if (v[k].ap + v[k].up + v[k].dw > 0) push(ref(db, 'historial_votos'), { dorsal: k, info: v[k].nombre, ap: v[k].ap, up: v[k].up, dw: v[k].dw, ts: Date.now() }); }
-                    let c = 5;
-                    let inter = setInterval(() => {
-                        c--; update(ref(db, 'votacion_activa'), { timer: c });
-                        if (c <= 0) { clearInterval(inter); set(ref(db, 'votacion_activa'), { activa: false }); }
+                const v = snap.val();
+                if (v && v.activa) {
+                    push(ref(db, 'historial_votos'), {
+                        dorsal: v.dorsal, info: v.info,
+                        ap: v.aplausos, up: v.up, dw: v.down, ts: Date.now()
+                    });
+                    let count = 5;
+                    update(ref(db, 'votacion_activa'), { timer: count });
+                    let interval = setInterval(() => {
+                        count--;
+                        if (count <= 0) {
+                            clearInterval(interval);
+                            set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 });
+                        } else {
+                            update(ref(db, 'votacion_activa'), { timer: count });
+                        }
                     }, 1000);
                 }
             }
         };
 
-        // UI SYNC & OTROS
-        onValue(ref(db, 'estado_pista'), s => {
-            document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-            if (s.val()?.id) document.getElementById(s.val().id)?.classList.add('pista-activa');
+        window.cargarCSV = (event, tipo) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
+                let obj = {};
+                lines.forEach(line => {
+                    const columns = line.split(line.includes(';') ? ';' : ',');
+                    if (columns[0]) {
+                        const d = columns[0].trim();
+                        obj[d] = { piloto: columns[1]?.trim() || "P" + d, coche: columns[2]?.trim() || "" };
+                    }
+                });
+                set(ref(db, 'inscritos_drift'), obj).then(() => alert("Cargados " + Object.keys(obj).length + " pilotos."));
+            };
+            reader.readAsText(file, "UTF-8");
+        };
+
+        window.exportarVotos = async () => {
+            const snap = await get(ref(db, 'historial_votos'));
+            if (!snap.exists()) return alert("Sin datos.");
+            let csv = "\uFEFFDorsal;Piloto;Ap;Up;Down;TS\n";
+            Object.values(snap.val()).forEach(v => { csv += `${v.dorsal};${v.info};${v.ap};${v.up};${v.dw};${new Date(v.ts).toLocaleString()}\n`; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "votos.csv";
+            link.click();
+            if(confirm("¿Borrar nube?")) remove(ref(db, 'historial_votos'));
+        };
+
+        onValue(ref(db, 'inscritos_drift'), s => {
+            inscritosD = s.val() || {};
+            document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length;
         });
 
-        window.abrirSelector = () => { /* tu logica de selector de antes */ };
-        window.descargarYLimpiar = async () => { /* tu logica de exportar de antes */ };
-        window.procesarCSV = (e) => { /* tu logica de carga csv de antes */ };
-        window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
-        window.buscarPiloto = (v) => { /* tu preview de nombres */ };
+        window.buscarPilotoShow = (val) => {
+            const dorsales = val.trim().split(/\s+/);
+            const encontrados = dorsales.map(d => {
+                const p = inscritosD[d];
+                return p ? (p.coche ? `${p.piloto} (${p.coche})` : p.piloto) : (d ? d+": ?" : "");
+            });
+            document.getElementById('preview-show').innerText = val ? encontrados.filter(x=>x).join(' | ') : "Introduce dorsal...";
+        };
+
+        onValue(ref(db, 'votacion_activa'), snap => {
+            const v = snap.val();
+            const preview = document.getElementById('preview-show');
+            if (v && v.activa) {
+                document.getElementById('m-ap').innerText = v.aplausos || 0;
+                document.getElementById('m-up').innerText = v.up || 0;
+                document.getElementById('m-dw').innerText = v.down || 0;
+                document.getElementById('info-pista-drift').innerText = v.info || "";
+                preview.innerText = v.timer > 0 ? `Cerrando votos en (${v.timer}s)...` : "Votación abierta...";
+            } else {
+                document.getElementById('info-pista-drift').innerText = "Pista libre";
+                if (!document.getElementById('d-show').value) preview.innerText = "Introduce dorsal...";
+            }
+        });
+
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
+            if (e?.id) document.getElementById(e.id)?.classList.add('pista-activa');
+        });
+
+        set(ref(db, 'modo_actual'), 'tab-show');
     </script>
 </body>
 </html>

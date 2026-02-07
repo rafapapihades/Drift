@@ -7,11 +7,10 @@
     <style>
         body { 
             margin: 0; padding: 15px; font-family: sans-serif; color: white; text-align: center;
-            background-image: url('logo2.jpg'); background-repeat: repeat; background-size: 80px; 
+            background-image: url('logo2.jpg'); background-repeat: repeat; background-size: 200px; 
         }
 
         .contenedor-principal {
-            /* He subido la opacidad a 0.97 para que sea menos transparente */
             background: rgba(0, 0, 0, 0.97); 
             border: 2px solid #ffcc00; border-radius: 20px;
             padding: 20px; max-width: 500px; margin: 20px auto; min-height: 200px;
@@ -24,13 +23,11 @@
         }
 
         .voto-card {
-            /* He subido la opacidad de las tarjetas a 0.2 */
             background: rgba(255, 255, 255, 0.2); 
             margin-bottom: 15px; padding: 15px;
             border-radius: 12px; border-left: 5px solid #ffcc00;
         }
 
-        /* CLASE ESPECIAL PARA BATALLAS (ROJO) */
         .voto-card.es-batalla {
             border-left: 5px solid #ff4444;
             background: rgba(255, 0, 0, 0.2);
@@ -77,7 +74,11 @@
         onValue(ref(db, 'estado_pista'), s => {
             const p = s.val();
             const b = document.getElementById('banner-estado');
-            if(p) { b.innerText = p.mensaje; b.style.background = p.color; }
+            if(p) { 
+                // Eliminamos el emoji si viene del Master o de Pista
+                b.innerText = p.mensaje.replace('🏎️ ', ''); 
+                b.style.background = p.color; 
+            }
         });
 
         onValue(ref(db, 'votacion_activa'), s => {

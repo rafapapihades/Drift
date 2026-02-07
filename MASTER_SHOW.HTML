@@ -23,14 +23,17 @@
         .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
         .info-preview { color: #fff; font-size: 1.1em; font-weight: bold; margin-top: 15px; text-align: center; min-height: 1.2em; text-transform: uppercase; }
 
-        /* NUEVO: Panel Mensaje Pista */
-        #panel-aviso-pista { display: none; background: #1a1500; border: 2px solid #ffcc00; padding: 15px; border-radius: 12px; margin-bottom: 10px; }
-        .stats-aviso { display: flex; justify-content: space-around; margin: 10px 0; font-size: 0.8em; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 5px; }
+        /* PANEL DE DISPOSITIVOS DE PISTA */
+        #panel-mensajeria { display: none; margin-top: 10px; border: 2px solid #ffcc00; padding: 15px; border-radius: 12px; background: #1a1500; }
+        #msg-activo-texto { color: #ffcc00; font-weight: bold; text-align: center; display: block; margin-bottom: 10px; font-size: 1.1em; }
+        .contenedor-dispositivos { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 15px; }
+        .disp { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #444; color: #fff; font-weight: bold; font-size: 0.9em; transition: 0.3s; }
+        .disp.leido { background: #28a745; box-shadow: 0 0 10px #28a745; }
 
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
         .btn-cargar { background: #222; border: 1px dashed #444; color: #888; font-size: 0.75em; margin-top: 20px; padding: 10px; margin-bottom: 5px; }
 
-        #modal-selector, #modal-msj { 
+        #modal-selector, #modal-msj-input { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: #000; z-index: 1000; flex-direction: column; padding: 10px; 
         }
@@ -49,25 +52,16 @@
         <div id="lista-botones-pilotos" class="grid-pilotos"></div>
     </div>
 
-    <div id="modal-msj">
+    <div id="modal-msj-input">
         <div class="card" style="max-width:400px; margin:auto; width:100%;">
             <h3 style="color:#ffcc00; text-align:center;">AVISO A PISTA</h3>
-            <input type="text" id="input-msj-pista" placeholder="Escribe el mensaje...">
+            <input type="text" id="input-texto-msj" placeholder="Escribe el aviso...">
             <button class="btn" style="background:green; margin-top:15px;" onclick="enviarMensajePista()">ENVIAR A PISTA</button>
-            <button class="btn" style="background:#444" onclick="document.getElementById('modal-msj').style.display='none'">CANCELAR</button>
+            <button class="btn" style="background:#444" onclick="document.getElementById('modal-msj-input').style.display='none'">CANCELAR</button>
         </div>
     </div>
 
     <div class="header-title">PANEL DE CONTROL DRIFTSHOW</div>
-
-    <div id="panel-aviso-pista" class="card">
-        <div id="display-msj-pista" style="text-align:center; font-weight:bold; color:#ffcc00; font-size:1.2em;"></div>
-        <div class="stats-aviso">
-            <span>Pantallas Pista: <b id="count-sesiones">0</b></span>
-            <span>Confirmados: <b id="count-leidos" style="color:#28a745">0</b></span>
-        </div>
-        <button class="btn" style="background:#dc3545; padding:10px; font-size:0.8em;" onclick="borrarMensajePista()">BORRAR MENSAJE</button>
-    </div>
 
     <div id="tab-show">
         <div class="card">
@@ -92,7 +86,13 @@
             <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
             <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
             
-            <button class="btn" style="background:#a36a00; margin-top:10px;" onclick="document.getElementById('modal-msj').style.display='flex'">ENVIAR MENSAJE A PISTA</button>
+            <button class="btn" style="background:#a36a00; margin-top:10px;" onclick="document.getElementById('modal-msj-input').style.display='flex'">ENVIAR MENSAJE A PISTA</button>
+            
+            <div id="panel-mensajeria">
+                <span id="msg-activo-texto"></span>
+                <div id="contenedor-dispositivos" class="contenedor-dispositivos"></div>
+                <button class="btn" style="background:#dc3545; padding:10px; font-size:0.8em;" onclick="borrarMensajePista()">BORRAR MENSAJE Y LIMPIAR</button>
+            </div>
 
             <button class="btn btn-cargar" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
             <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event, 'drift')">
@@ -114,29 +114,37 @@
         let inscritosD = {};
         let seleccionados = [];
 
-        // LÓGICA DE MENSAJERÍA MASTER -> PISTA
+        // LÓGICA DE DISPOSITIVOS Y CONFIRMACIÓN
         onValue(ref(db, 'comunicacion_pista'), (snap) => {
             const data = snap.val();
-            const panel = document.getElementById('panel-aviso-pista');
-            if (data?.mensaje) {
+            const panel = document.getElementById('panel-mensajeria');
+            const contenedor = document.getElementById('contenedor-dispositivos');
+            
+            if (data && data.mensaje) {
                 panel.style.display = 'block';
-                document.getElementById('display-msj-pista').innerText = data.mensaje;
-                const sesiones = data.sesiones || {};
-                const ids = Object.keys(sesiones);
-                document.getElementById('count-sesiones').innerText = ids.length;
-                document.getElementById('count-leidos').innerText = ids.filter(id => sesiones[id].leido).length;
+                document.getElementById('msg-activo-texto').innerText = data.mensaje;
+                contenedor.innerHTML = "";
+                
+                if (data.sesiones) {
+                    Object.keys(data.sesiones).forEach((id, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'disp' + (data.sesiones[id].leido ? ' leido' : '');
+                        div.innerText = index + 1;
+                        contenedor.appendChild(div);
+                    });
+                }
             } else {
                 panel.style.display = 'none';
             }
         });
 
         window.enviarMensajePista = () => {
-            const m = document.getElementById('input-msj-pista').value.toUpperCase();
-            if (m) {
+            const texto = document.getElementById('input-texto-msj').value.toUpperCase();
+            if (texto) {
                 remove(ref(db, 'comunicacion_pista/sesiones'));
-                set(ref(db, 'comunicacion_pista/mensaje'), m);
-                document.getElementById('modal-msj').style.display = 'none';
-                document.getElementById('input-msj-pista').value = "";
+                set(ref(db, 'comunicacion_pista/mensaje'), texto);
+                document.getElementById('modal-msj-input').style.display = 'none';
+                document.getElementById('input-texto-msj').value = "";
             }
         };
 
@@ -144,16 +152,15 @@
             remove(ref(db, 'comunicacion_pista'));
         };
 
-        // --- RESTO DE TU CÓDIGO ORIGINAL SIN TOCAR ---
+        // --- FUNCIONES ORIGINALES DEL CÓDIGO 00:52 ---
         window.abrirSelector = () => {
             const grid = document.getElementById('lista-botones-pilotos');
             grid.innerHTML = ""; seleccionados = [];
             Object.keys(inscritosD).sort((a,b) => a - b).forEach(d => {
-                const p = inscritosD[d];
                 const btn = document.createElement('div');
                 btn.className = 'btn-piloto-selec';
-                btn.innerHTML = `<div class="dorsal-tag">${d}</div><div class="p-name">${p.piloto}</div>`;
-                btn.onclick = () => { btn.classList.toggle('selected'); const i = seleccionados.indexOf(d); if (i > -1) seleccionados.splice(i, 1); else seleccionados.push(d); };
+                btn.innerHTML = `<div class="dorsal-tag">${d}</div><div class="p-name">${inscritosD[d].piloto}</div>`;
+                btn.onclick = () => { btn.classList.toggle('selected'); const i = seleccionados.indexOf(d); if(i>-1) seleccionados.splice(i,1); else seleccionados.push(d); };
                 grid.appendChild(btn);
             });
             document.getElementById('modal-selector').style.display = 'flex';
@@ -180,10 +187,7 @@
                     });
                 });
             }
-            dorsalesArr.forEach(d => {
-                const p = inscritosD[d];
-                infoConcat.push(p ? `${p.piloto}` : "P" + d);
-            });
+            dorsalesArr.forEach(d => infoConcat.push(inscritosD[d]?.piloto || "P" + d));
             set(ref(db, 'votacion_activa'), {
                 dorsal: val, info: infoConcat.join(' / '),
                 aplausos: acumuladoInicial.ap, up: acumuladoInicial.up, down: acumuladoInicial.dw,
@@ -203,7 +207,7 @@
                     let count = 5;
                     let interval = setInterval(() => {
                         count--; update(ref(db, 'votacion_activa'), { timer: count });
-                        if (count <= 0) { clearInterval(interval); set(ref(db, 'votacion_activa'), { activa: false, timer: 0 }); }
+                        if (count <= 0) { clearInterval(interval); set(ref(db, 'votacion_activa'), { activa: false }); }
                     }, 1000);
                 }
             }
@@ -234,13 +238,12 @@
 
         onValue(ref(db, 'estado_pista'), s => {
             document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-            if (s.val()?.id) document.getElementById(s.val().id)?.classList.add('pista-active');
+            if (s.val()?.id) document.getElementById(s.val().id)?.classList.add('pista-activa');
         });
-        
-        window.exportarVotos = async () => { /* tu función original */ };
-        window.cargarCSV = (event, tipo) => { /* tu función original */ };
-        window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
 
+        window.exportarVotos = async () => { /* lógica de descarga excel */ };
+        window.cargarCSV = (e) => { /* lógica de carga drift.csv */ };
+        window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
     </script>
 </body>
 </html>

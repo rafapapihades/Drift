@@ -3,30 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DRIFT SHOW - COMISARIOS</title>
+    <title>PISTA - DRIFT SHOW</title>
     <style>
         * { box-sizing: border-box; }
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 15px; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        
-        .header { text-align: center; padding: 10px 0; border-bottom: 1px solid #333; margin-bottom: 15px; }
-        .header h1 { margin: 0; font-size: 1.2em; color: #888; letter-spacing: 2px; }
-
-        /* ESTADO ACTUAL */
-        .status-banner {
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-bottom: 20px;
-            border: 2px solid #333;
-            transition: 0.3s;
+        body { 
+            background: #000; 
+            margin: 0; 
+            padding: 10px; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px;
+            font-family: sans-serif;
         }
 
-        /* BOTONES GRANDES */
-        .controls { display: flex; flex-direction: column; gap: 15px; flex: 1; }
-        
-        .btn-comisario {
+        .btn-pista {
             flex: 1;
             border: none;
             border-radius: 15px;
@@ -35,73 +26,67 @@
             font-weight: bold;
             text-transform: uppercase;
             cursor: pointer;
+            transition: opacity 0.3s, transform 0.1s;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.1s, opacity 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            text-align: center;
+            padding: 10px;
         }
 
-        .btn-comisario:active { transform: scale(0.96); }
-        
-        /* ESTILOS ESPECÍFICOS */
-        .btn-libre { background: #008000; }
-        .btn-obs { background: #ffcc00; color: #000; }
-        .btn-acc { background: #cc0000; }
+        /* COLORES */
+        .btn-libre { background: #008000; }   /* Verde */
+        .btn-coche { background: #007bff; }   /* Azul */
+        .btn-obs   { background: #ffcc00; color: #000; } /* Amarillo */
+        .btn-acc   { background: #cc0000; }   /* Rojo */
 
-        /* EFECTO SELECCIONADO */
+        /* ESTADOS */
         .active-now {
-            outline: 5px solid white;
-            box-shadow: 0 0 30px rgba(255,255,255,0.4);
+            opacity: 1 !important;
+            outline: 6px solid #fff;
+            outline-offset: -6px;
+            transform: scale(1);
+            box-shadow: 0 0 40px rgba(255,255,255,0.3);
             z-index: 2;
         }
         
-        .inactive { opacity: 0.3; }
+        .inactive {
+            opacity: 0.15;
+            transform: scale(0.95);
+        }
 
+        .btn-pista:active { transform: scale(0.92); }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>CONTROL DE PISTA</h1>
-    </div>
-
-    <div id="banner" class="status-banner">CARGANDO...</div>
-
-    <div class="controls">
-        <button id="btn-libre" class="btn-comisario btn-libre" onclick="enviarEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">
-            PISTA LIBRE
-        </button>
-        
-        <button id="btn-obs" class="btn-comisario btn-obs" onclick="enviarEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">
-            OBSTÁCULO
-        </button>
-        
-        <button id="btn-acc" class="btn-comisario btn-acc" onclick="enviarEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">
-            ACCIDENTE
-        </button>
-    </div>
+    <button id="btn-libre" class="btn-pista btn-libre" onclick="enviarEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">
+        PISTA LIBRE
+    </button>
+    
+    <button id="btn-coche" class="btn-pista btn-coche" onclick="enviarEstado('🏎️ COCHE EN PISTA', '#007bff', 'btn-coche')">
+        COCHE EN PISTA
+    </button>
+    
+    <button id="btn-obs" class="btn-pista btn-obs" onclick="enviarEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">
+        OBSTÁCULO
+    </button>
+    
+    <button id="btn-acc" class="btn-pista btn-acc" onclick="enviarEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">
+        ACCIDENTE
+    </button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, get, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // CONFIGURACIÓN FIREBASE (La misma que el Máster)
-        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-        // ESCUCHAR CAMBIOS (Desde Máster u otros Comisarios)
+        // Sincronización en tiempo real
         onValue(ref(db, 'estado_pista'), (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                const banner = document.getElementById('banner');
-                banner.innerText = data.mensaje;
-                banner.style.backgroundColor = data.color;
-                banner.style.color = (data.color === '#ffcc00') ? 'black' : 'white';
-
-                // Resaltar botón activo
-                document.querySelectorAll('.btn-comisario').forEach(btn => {
+                document.querySelectorAll('.btn-pista').forEach(btn => {
                     btn.classList.add('inactive');
                     btn.classList.remove('active-now');
                 });
@@ -113,21 +98,19 @@
             }
         });
 
-        // ENVIAR ESTADO Y DISPARAR VOTACIÓN
         window.enviarEstado = async (msg, col, id) => {
-            // Vibración táctil si el dispositivo lo permite
-            if (navigator.vibrate) navigator.vibrate(50);
+            if (navigator.vibrate) navigator.vibrate(60);
 
-            // 1. Cambiar estado de la pista
+            // Actualizar estado general
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
 
-            // 2. Si es Pista Libre, ejecutar lógica de cierre de votos (Igual que en el Máster)
+            // Lógica de cierre de votos si se pone Pista Libre
             if (id === 'btn-libre') {
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
 
                 if (v && v.activa) {
-                    // Guardar en historial antes de cerrar
+                    // Guardar votos antes de limpiar
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
                             push(ref(db, 'historial_votos'), {
@@ -141,10 +124,9 @@
                         }
                     });
 
-                    // Iniciar cuenta atrás de 5 segundos
+                    // Cuenta atrás de 5s
                     let count = 5;
                     update(ref(db, 'votacion_activa'), { timer: count });
-                    
                     let interval = setInterval(() => {
                         count--;
                         update(ref(db, 'votacion_activa'), { timer: count });

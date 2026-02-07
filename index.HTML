@@ -5,55 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VOTA TU FAVORITO - DRIFT SHOW</title>
     <style>
-        body { background: #000; color: #fff; font-family: 'Arial', sans-serif; margin: 0; text-align: center; overflow: hidden; }
+        :root { --accent: #ffcc00; --red: #ff0000; }
+        body { background: #000; color: #fff; font-family: 'Arial Black', sans-serif; margin: 0; text-align: center; }
         
-        /* CABECERA CON LOGO */
-        .header { padding: 15px; border-bottom: 2px solid #333; margin-bottom: 20px; }
-        .header img { max-height: 60px; max-width: 80%; }
+        /* CABECERA CON LOGO CORREGIDO */
+        .header { 
+            padding: 15px; 
+            background: rgba(0,0,0,0.9); 
+            border-bottom: 3px solid var(--red); 
+            margin-bottom: 20px; 
+        }
+        .header-logo { 
+            display: block; 
+            margin: 0 auto; 
+            width: 100%;       
+            max-width: 400px; /* Tamaño grande como en las otras páginas */
+            height: auto; 
+            object-fit: contain;
+        }
 
-        /* INFO DEL PILOTO Y COCHE */
-        #contenedor-piloto { margin: 20px auto; padding: 0 10px; min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
-        .nombre-piloto { font-size: 2em; font-weight: bold; color: #fff; text-transform: uppercase; margin-bottom: 5px; line-height: 1.1; }
-        .nombre-coche { font-size: 1.2em; color: #ffcc00; font-style: italic; font-weight: bold; text-transform: uppercase; }
-        .dorsal-badge { font-family: monospace; font-size: 0.8em; color: #888; }
+        /* INFO DEL PILOTO */
+        #contenedor-piloto { margin: 20px auto; padding: 0 10px; min-height: 100px; }
+        .nombre-piloto { font-size: 2.2em; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1.1; }
+        .nombre-coche { font-size: 1.4em; color: var(--accent); margin-top: 5px; text-transform: uppercase; }
 
-        /* BOTONES DE VOTACIÓN */
+        /* BOTONES */
         .vote-container { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 20px; max-width: 400px; margin: 0 auto; }
-        .btn-vote { border: none; border-radius: 15px; padding: 25px; font-size: 1.5em; font-weight: bold; color: #fff; cursor: pointer; transition: transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 15px; }
-        .btn-vote:active { transform: scale(0.95); }
+        .btn-vote { border: none; border-radius: 12px; padding: 20px; font-size: 1.4em; font-weight: bold; color: #fff; cursor: pointer; text-transform: uppercase; }
         
-        .btn-aplausos { background: linear-gradient(145deg, #007bff, #0056b3); box-shadow: 0 6px #003d80; }
-        .btn-up { background: linear-gradient(145deg, #28a745, #1e7e34); box-shadow: 0 6px #145523; }
-        .btn-down { background: linear-gradient(145deg, #dc3545, #a71d2a); box-shadow: 0 6px #72141d; }
+        .btn-aplausos { background: #007bff; box-shadow: 0 6px #004a99; }
+        .btn-up { background: #28a745; box-shadow: 0 6px #1a6d2d; }
+        .btn-down { background: #dc3545; box-shadow: 0 6px #921925; }
 
-        .espera { color: #555; font-size: 1.2em; margin-top: 50px; padding: 20px; }
-        .timer-cierre { font-size: 0.9em; color: #ff3300; margin-top: 10px; font-weight: bold; }
+        .espera { color: #444; font-size: 1.2em; margin-top: 80px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <img src="logo2.jpg" alt="Logo">
+        <img src="logotaxi.jpg" alt="Logo Taxi Drift" class="header-logo">
     </div>
 
     <div id="pantalla-voto" style="display:none;">
         <div id="contenedor-piloto">
-            <div id="p-dorsal" class="dorsal-badge"></div>
-            <div id="p-nombre" class="nombre-piloto">CARGANDO...</div>
-            <div id="p-coche" class="nombre-coche"></div>
+            <div id="p-nombre" class="nombre-piloto">PILOTO</div>
+            <div id="p-coche" class="nombre-coche">COCHE</div>
         </div>
 
         <div class="vote-container">
-            <button class="btn-vote btn-aplausos" onclick="votar('aplausos')"><span>👏</span> ¡BRUTAL!</button>
-            <button class="btn-vote btn-up" onclick="votar('up')"><span>👍</span> ME GUSTA</button>
-            <button class="btn-vote btn-down" onclick="votar('down')"><span>👎</span> NO ME GUSTA</button>
+            <button class="btn-vote btn-aplausos" onclick="votar('aplausos')">¡BRUTAL! 👏</button>
+            <button class="btn-vote btn-up" onclick="votar('up')">ME GUSTA 👍</button>
+            <button class="btn-vote btn-down" onclick="votar('down')">NO ME GUSTA 👎</button>
         </div>
-        <div id="timer-box" class="timer-cierre"></div>
     </div>
 
     <div id="pantalla-espera" class="espera">
-        <div style="font-size: 3em; margin-bottom: 20px;">🏁</div>
-        ESPERANDO AL PRÓXIMO COCHE EN PISTA...
+        ESPERANDO PRÓXIMO COCHE...
     </div>
 
     <script type="module">
@@ -73,25 +80,21 @@
                 pEspera.style.display = 'none';
                 pVoto.style.display = 'block';
                 
-                // Separar Piloto y Coche si vienen en el formato "Piloto (Coche)"
-                // o mostrarlos según los datos enviados por el panel de control
-                if (v.info.includes('(')) {
-                    const partes = v.info.split('(');
+                // Formateo seguro para evitar el error de "Cargando..."
+                let textoCompleto = v.info || "";
+                
+                // Si el texto tiene una barra "|" o un paréntesis "(", intentamos separar
+                if (textoCompleto.includes('|')) {
+                    let partes = textoCompleto.split('|');
+                    document.getElementById('p-nombre').innerText = partes[0].trim();
+                    document.getElementById('p-coche').innerText = partes[1].trim();
+                } else if (textoCompleto.includes('(')) {
+                    let partes = textoCompleto.split('(');
                     document.getElementById('p-nombre').innerText = partes[0].trim();
                     document.getElementById('p-coche').innerText = partes[1].replace(')', '').trim();
                 } else {
-                    document.getElementById('p-nombre').innerText = v.info;
+                    document.getElementById('p-nombre').innerText = textoCompleto;
                     document.getElementById('p-coche').innerText = "";
-                }
-                
-                document.getElementById('p-dorsal').innerText = "DORSAL " + v.dorsal;
-
-                // Mostrar cuenta atrás si el admin ha iniciado el cierre
-                const timerBox = document.getElementById('timer-box');
-                if (v.timer > 0) {
-                    timerBox.innerText = `CERRANDO VOTACIÓN EN ${v.timer}s...`;
-                } else {
-                    timerBox.innerText = "";
                 }
             } else {
                 pVoto.style.display = 'none';
@@ -101,17 +104,14 @@
 
         window.votar = (tipo) => {
             const updates = {};
-            if (tipo === 'aplausos') updates['votacion_activa/aplausos'] = increment(1);
-            if (tipo === 'up') updates['votacion_activa/up'] = increment(1);
-            if (tipo === 'down') updates['votacion_activa/down'] = increment(1);
-            
+            updates[`votacion_activa/${tipo}`] = increment(1);
             update(ref(db), updates);
             
-            // Feedback visual rápido
-            navigator.vibrate?.(50); // Vibra el móvil si es compatible
+            // Efecto visual de pulsado
+            const btn = event.target;
+            btn.style.transform = "scale(0.95)";
+            setTimeout(() => btn.style.transform = "scale(1)", 100);
         };
     </script>
 </body>
 </html>
-
-

@@ -5,36 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DRIFT SHOW LIVE - PÚBLICO</title>
     <style>
-        /* Reset y fijado del fondo */
-        html, body {
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            font-family: sans-serif;
-            background-color: #000;
-        }
-
-        /* Capa de fondo fija para evitar saltos al hacer scroll */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            /* Logo de fondo a 200px */
+        body { 
             background-image: url('logo2.jpg'); 
             background-repeat: repeat; 
-            background-size: 200px auto; 
-            background-position: top right; /* Empieza arriba a la derecha */
-        }
-
-        /* Contenedor para centrar el contenido sobre el fondo */
-        body {
+            background-size: 200px; 
+            background-position: top right;
+            color: #fff; 
+            font-family: 'Arial Black', Gadget, sans-serif; 
+            padding: 10px; margin: 0;
+            /* Centrado vertical */
             display: flex;
-            align-items: center; 
+            align-items: center;
             justify-content: center;
+            min-height: 100vh;
         }
 
         .contenedor-principal {
@@ -42,12 +25,10 @@
             border: 2px solid #ffcc00; 
             border-radius: 20px;
             padding: 20px; 
-            width: 90%;
+            width: 100%;
             max-width: 500px; 
-            box-shadow: 0 0 30px rgba(0,0,0,1);
-            color: white;
+            box-shadow: 0 0 30px #000;
             text-align: center;
-            margin: 40px 20px; /* Margen para que no pegue a los bordes */
         }
 
         #banner-estado {
@@ -55,26 +36,17 @@
             text-transform: uppercase; font-size: 1.2em; border: 1px solid rgba(255,255,255,0.2);
         }
 
-        #lista-votables {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        #lista-votables { display: flex; flex-direction: column; gap: 15px; }
 
         .voto-card {
             background: rgba(255, 255, 255, 0.2); 
-            padding: 15px;
-            border-radius: 12px; 
-            border-left: 5px solid #ffcc00;
+            padding: 15px; border-radius: 12px; border-left: 5px solid #ffcc00;
             order: 2; 
         }
 
-        /* CLASE BATALLA: Roja y arriba */
         .voto-card.es-batalla {
-            border-left: 5px solid #ff4444;
-            background: rgba(255, 0, 0, 0.2);
-            order: 1; 
-            margin-bottom: 10px;
+            border-left: 5px solid #ff4444; background: rgba(255, 0, 0, 0.2);
+            order: 1; margin-bottom: 10px;
         }
         .voto-card.es-batalla .nombre-piloto { color: #ff4444; }
 
@@ -83,17 +55,8 @@
 
         .v-btns { display: flex; justify-content: space-around; font-size: 3em; margin-top: 10px; }
 
-        /* Iconos Blancos Sólidos */
-        .btn-voto {
-            cursor: pointer; 
-            filter: brightness(0) invert(1); 
-            transition: 0.2s;
-        }
-
-        .btn-voto.seleccionado {
-            filter: none !important; 
-            transform: scale(1.3);
-        }
+        .btn-voto { cursor: pointer; filter: brightness(0) invert(1); transition: 0.2s; }
+        .btn-voto.seleccionado { filter: none !important; transform: scale(1.3); }
 
         .timer-alerta { color: #ff4444; font-weight: bold; margin-top: 15px; font-size: 1.4em; }
     </style>
@@ -112,53 +75,37 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-        let misVotos = {}; 
-        let currentDorsalGlobal = "";
+        let misVotos = {}, currentDorsalGlobal = "";
 
         onValue(ref(db, 'estado_pista'), s => {
             const p = s.val();
-            const b = document.getElementById('banner-estado');
             if(p) { 
+                const b = document.getElementById('banner-estado');
                 b.innerText = p.mensaje.replace('🏎️ ', ''); 
                 b.style.background = p.color; 
             }
         });
 
         onValue(ref(db, 'votacion_activa'), s => {
-            const v = s.val();
-            const divVotos = document.getElementById('seccion-votos');
-            const lista = document.getElementById('lista-votables');
-            const timerDiv = document.getElementById('cuenta-atras');
+            const v = s.val(), divVotos = document.getElementById('seccion-votos'), 
+                  lista = document.getElementById('lista-votables'), timerDiv = document.getElementById('cuenta-atras');
 
             if(v && v.activa) {
-                if (currentDorsalGlobal !== v.dorsal) {
-                    misVotos = {};
-                    currentDorsalGlobal = v.dorsal;
-                }
+                if (currentDorsalGlobal !== v.dorsal) { misVotos = {}; currentDorsalGlobal = v.dorsal; }
                 divVotos.style.display = 'block';
                 if (lista.innerHTML === "") {
-                    if (v.items) {
-                        Object.entries(v.items).forEach(([id, data]) => {
-                            crearTarjetaUI(id, data.nombre, data.coche || "", lista);
-                        });
-                    }
+                    if (v.items) Object.entries(v.items).forEach(([id, data]) => crearTarjetaUI(id, data.nombre, data.coche || "", lista));
                 }
                 timerDiv.innerText = (v.timer > 0) ? `¡CIERRE EN ${v.timer}s!` : "";
             } else {
-                divVotos.style.display = 'none';
-                lista.innerHTML = "";
-                misVotos = {};
-                currentDorsalGlobal = "";
+                divVotos.style.display = 'none'; lista.innerHTML = ""; misVotos = {}; currentDorsalGlobal = "";
             }
         });
 
         function crearTarjetaUI(id, nombre, coche, contenedor) {
-            const card = document.createElement('div');
-            const esBatalla = id === 'BATALLA';
+            const card = document.createElement('div'), esBatalla = id === 'BATALLA';
             card.className = 'voto-card' + (esBatalla ? ' es-batalla' : '');
             card.id = "card-" + id;
             card.innerHTML = `
@@ -168,15 +115,13 @@
                     <span class="btn-voto v-ap ${misVotos[id] === 'ap' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'ap')">👏</span>
                     <span class="btn-voto v-up ${misVotos[id] === 'up' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'up')">👍</span>
                     <span class="btn-voto v-dw ${misVotos[id] === 'dw' ? 'seleccionado' : ''}" onclick="enviarVoto('${id}', 'dw')">👎</span>
-                </div>
-            `;
+                </div>`;
             contenedor.appendChild(card);
         }
 
         window.enviarVoto = (idVotable, tipoVoto) => {
             if (misVotos[idVotable] === tipoVoto) return;
-            const updates = {};
-            const anterior = misVotos[idVotable];
+            const updates = {}, anterior = misVotos[idVotable];
             if (anterior) updates[`votacion_activa/items/${idVotable}/${anterior}`] = increment(-1);
             updates[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
             update(ref(db), updates);

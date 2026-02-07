@@ -1,198 +1,75 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DRIFT SHOW - VOTA!</title>
-    <style>
-        body { 
-            background-image: url('logo2.jpg'); 
-            background-repeat: repeat; 
-            background-size: 195px; 
-            background-color: #000; 
-            color: #fff; 
-            font-family: sans-serif; 
-            margin: 0; 
-            text-align: center; 
-        }
-        .overlay { 
-            min-height: 100vh; 
-            padding: 15px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            background: rgba(0, 0, 0, 0.4);
-            box-sizing: border-box;
-        }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRIFT SHOW LIVE</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        .glass-panel {
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            width: 100%;
-            max-width: 480px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        /* DISEÑO DE BLOQUE DE VOTACIÓN */
-        .voto-block {
-            background: rgba(255, 255, 255, 0.05);
-            margin-bottom: 15px;
-            padding: 15px;
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .voto-block.batalla {
-            background: linear-gradient(145deg, #001a33, #000);
-            border: 1px solid #007bff;
-        }
-        .voto-title {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #ffcc00;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        .voto-block.batalla .voto-title { color: #00bfff; }
+        // Estado de Pista
+        onValue(ref(db, 'estado_pista'), s => {
+            const p = s.val();
+            const b = document.getElementById('banner');
+            b.innerText = p.mensaje; b.style.background = p.color;
+        });
 
-        .v-btn { font-size: 3.5em; filter: grayscale(1); margin: 0 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
-        .v-act { filter: grayscale(0) !important; transform: scale(1.2); text-shadow: 0 0 15px rgba(255,255,0,0.5); }
-        
-        #timer-box { color: #ff4444; font-weight: bold; font-size: 1.4em; margin-top: 10px; height: 30px; }
-        
-        .rank-card { 
-            background: rgba(255, 255, 255, 0.05); 
-            padding: 12px; border-radius: 8px; width: 100%; margin: 8px 0; 
-            border-left: 4px solid #ffcc00; display: flex; justify-content: space-between; text-align: left;
-        }
-    </style>
+        // Ranking Escapes
+        onValue(ref(db, 'ranking_escapes'), s => {
+            const data = s.val();
+            const list = document.getElementById('lista');
+            list.innerHTML = '';
+            if(data) {
+                Object.values(data).sort((a,b)=>b.db - a.db).forEach((e, i) => {
+                    list.innerHTML += `<div class="item"><b>#${i+1}</b> ${e.piloto} <span>${e.db} dB</span></div>`;
+                });
+            }
+        });
+
+        // Votación Drift
+        let yaVoto = false;
+        onValue(ref(db, 'votacion_activa'), s => {
+            const v = s.val();
+            const div = document.getElementById('votos');
+            if(v?.activa) {
+                div.style.display = 'block';
+                document.getElementById('v-info').innerText = "VOTAR DORSAL: " + v.dorsal;
+                yaVoto = false;
+            } else div.style.display = 'none';
+        });
+
+        window.votar = (t) => {
+            if(yaVoto) return alert("Ya votaste");
+            update(ref(db, 'votacion_activa'), { [t]: increment(1) });
+            yaVoto = true; alert("¡Gracias!");
+        };
+    </script>
+    <style>
+        body { background: #000; color: white; font-family: sans-serif; text-align: center; margin:0; padding:10px;}
+        #banner { padding: 15px; font-weight: bold; position: sticky; top: 0; z-index: 100; border-radius: 0 0 10px 10px; margin-bottom: 10px;}
+        .item { background: #111; padding: 15px; margin-bottom: 5px; border-radius: 8px; display: flex; justify-content: space-between; border-left: 4px solid #ffcc00;}
+        #votos { background: #222; padding: 20px; border-radius: 20px; border: 2px solid #ffcc00; margin: 10px 0; }
+        .v-btns { display: flex; justify-content: space-around; font-size: 3em; }
+    </style>
 </head>
 <body>
-    <div class="overlay">
-        <div class="glass-panel">
-            
-            <div id="ui-show" style="display:none; width: 100%;">
-                <h1 id="s-mensaje" style="font-size: 2.2em; margin: 0 0 15px 0; text-shadow: 2px 2px 4px #000;"></h1>
-                
-                <div id="contenedor-votos"></div>
+    <div id="banner">ESPERANDO PISTA...</div>
+    
+    <div id="votos" style="display:none">
+        <h2 id="v-info">VOTAR</h2>
+        <div class="v-btns">
+            <span onclick="votar('aplausos')">👏</span>
+            <span onclick="votar('like')">👍</span>
+            <span onclick="votar('dislike')">👎</span>
+        </div>
+    </div>
 
-                <div id="timer-box"></div>
-            </div>
-
-            <div id="ui-esc" style="display:none; width: 100%">
-                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">RANKING dB</h2>
-                <div id="l-db"></div>
-                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 20px;">RANKING SONORIDAD</h2>
-                <div id="l-hz"></div>
-            </div>
-
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        
-        const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
-
-        let misVotos = {}; // Guardamos el voto para cada ID { "12": "up", "BATALLA": "aplausos" }
-
-        onValue(ref(db, 'modo_actual'), s => {
-            const m = s.val() || 'tab-show';
-            document.getElementById('ui-show').style.display = m==='tab-show'?'block':'none';
-            document.getElementById('ui-esc').style.display = m==='tab-esc'?'block':'none';
-        });
-
-        onValue(ref(db, 'estado_pista'), s => {
-            const e = s.val();
-            const msg = document.getElementById('s-mensaje');
-            msg.innerText = e?.mensaje || "";
-            msg.style.color = e?.color || "white";
-        });
-
-        onValue(ref(db, 'votacion_activa'), s => {
-            const v = s.val();
-            const container = document.getElementById('contenedor-votos');
-            const timerDisplay = document.getElementById('timer-box');
-
-            if (v?.activa && v.items) {
-                // Solo regenerar el HTML si cambia el número de items
-                const idsActuales = Object.keys(v.items).join(',');
-                if (container.dataset.currentIds !== idsActuales) {
-                    container.innerHTML = "";
-                    for (const id_voto in v.items) {
-                        const esBatalla = id_voto === "BATALLA";
-                        const item = v.items[id_voto];
-                        
-                        const block = document.createElement('div');
-                        block.className = `voto-block ${esBatalla ? 'batalla' : ''}`;
-                        block.innerHTML = `
-                            <div class="voto-title">${item.nombre}</div>
-                            <div class="emoji-row">
-                                <span class="v-btn" id="btn-${id_voto}-ap" onclick="votar('${id_voto}', 'ap')">👏</span>
-                                <span class="v-btn" id="btn-${id_voto}-up" onclick="votar('${id_voto}', 'up')">👍</span>
-                                <span class="v-btn" id="btn-${id_voto}-dw" onclick="votar('${id_voto}', 'dw')">👎</span>
-                            </div>
-                        `;
-                        container.appendChild(block);
-                    }
-                    container.dataset.currentIds = idsActuales;
-                    actualizarIconos();
-                }
-
-                if (v.timer > 0) timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
-                else timerDisplay.innerText = "";
-
-            } else {
-                container.innerHTML = "";
-                container.dataset.currentIds = "";
-                timerDisplay.innerText = "";
-                misVotos = {};
-            }
-        });
-
-        window.votar = (id_voto, tipo) => {
-            // Si ya votó esto mismo en este bloque, no hacer nada
-            if (misVotos[id_voto] === tipo) return;
-
-            const updates = {};
-            // Si ya había votado algo en este bloque, restamos el voto anterior
-            if (misVotos[id_voto]) {
-                updates[`votacion_activa/items/${id_voto}/${misVotos[id_voto]}`] = increment(-1);
-            }
-            // Sumamos el nuevo voto
-            updates[`votacion_activa/items/${id_voto}/${tipo}`] = increment(1);
-            
-            update(ref(db), updates);
-            misVotos[id_voto] = tipo;
-            actualizarIconos();
-        };
-
-        function actualizarIconos() {
-            // Quitamos la clase activa de todos
-            document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
-            // La ponemos solo en los que el usuario ha marcado
-            for (const id_voto in misVotos) {
-                const tipo = misVotos[id_voto];
-                const btn = document.getElementById(`btn-${id_voto}-${tipo}`);
-                if (btn) btn.classList.add('v-act');
-            }
-        }
-
-        onValue(ref(db, 'ranking_escapes'), s => {
-            if(!s.exists()) return;
-            const data = Object.values(s.val());
-            const render = (arr, tId, sFn, u) => {
-                document.getElementById(tId).innerHTML = arr.sort(sFn).slice(0,10).map(p => 
-                    `<div class="rank-card"><span><b>${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[u.toLowerCase()==='db'?'db':'hz']}${u}</b></div>`).join('');
-            };
-            render([...data], 'l-db', (a,b)=>b.db-a.db, 'dB');
-            render([...data], 'l-hz', (a,b)=>a.hz-b.hz, 'Hz');
-        });
-    </script>
+    <h3>🔊 TOP ESCAPES</h3>
+    <div id="lista">Cargando...</div>
 </body>
 </html>

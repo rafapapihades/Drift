@@ -3,109 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PISTA DRIFT SHOW</title>
+    <title>DRIFT SHOW - COMISARIOS</title>
     <style>
-        html, body { height: 100%; margin: 0; padding: 0; background: #000; overflow: hidden; }
-        body { display: flex; flex-direction: column; padding: 10px; box-sizing: border-box; font-family: sans-serif; }
-        #banner-mensaje { display: none; background: #ff8800; color: #000; padding: 15px; text-align: center; border-radius: 12px; margin-bottom: 10px; border: 4px solid #fff; flex-shrink: 0; }
-        #texto-mensaje { font-size: 1.8em; font-weight: bold; margin-bottom: 10px; animation: parpadeo 1s infinite; text-transform: uppercase; }
-        .btn-cerrar-msg { background: #000; color: #ff8800; border: none; padding: 10px 20px; border-radius: 8px; font-size: 1.2em; font-weight: 900; cursor: pointer; }
-        .btn { flex: 1; width: 100%; margin-bottom: 10px; border-radius: 15px; border: none; font-size: 2.5em; font-weight: bold; color: #fff; cursor: pointer; opacity: 0.2; transition: 0.2s; text-transform: uppercase; display: flex; align-items: center; justify-content: center; }
-        .btn:last-child { margin-bottom: 0; }
-        .btn-act { opacity: 1 !important; outline: 8px solid #fff; box-shadow: 0 0 30px rgba(255,255,255,0.6); z-index: 10; }
-        .modo-bloqueado { opacity: 0.05 !important; pointer-events: none; }
-        @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        * { box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 15px; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        
+        .header { text-align: center; padding: 10px 0; border-bottom: 1px solid #333; margin-bottom: 15px; }
+        .header h1 { margin: 0; font-size: 1.2em; color: #888; letter-spacing: 2px; }
+
+        /* ESTADO ACTUAL */
+        .status-banner {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border: 2px solid #333;
+            transition: 0.3s;
+        }
+
+        /* BOTONES GRANDES */
+        .controls { display: flex; flex-direction: column; gap: 15px; flex: 1; }
+        
+        .btn-comisario {
+            flex: 1;
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-size: 1.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, opacity 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .btn-comisario:active { transform: scale(0.96); }
+        
+        /* ESTILOS ESPECÍFICOS */
+        .btn-libre { background: #008000; }
+        .btn-obs { background: #ffcc00; color: #000; }
+        .btn-acc { background: #cc0000; }
+
+        /* EFECTO SELECCIONADO */
+        .active-now {
+            outline: 5px solid white;
+            box-shadow: 0 0 30px rgba(255,255,255,0.4);
+            z-index: 2;
+        }
+        
+        .inactive { opacity: 0.3; }
+
     </style>
 </head>
 <body>
-    <div id="banner-mensaje">
-        <div id="texto-mensaje"></div>
-        <button class="btn-cerrar-msg" onclick="confirmarLectura()">HE LEÍDO [X]</button>
+
+    <div class="header">
+        <h1>CONTROL DE PISTA</h1>
     </div>
-    <button id="btn-coche" class="btn" style="background:#007bff" onclick="enviar('EN PISTA', '#007bff', 'btn-coche')">COCHE EN PISTA</button>
-    <button id="btn-libre" class="btn" style="background:green" onclick="enviar('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
-    <button id="btn-obs" class="btn" style="background:#ffcc00; color:black" onclick="enviar('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
-    <button id="btn-acc" class="btn" style="background:red" onclick="enviar('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
+
+    <div id="banner" class="status-banner">CARGANDO...</div>
+
+    <div class="controls">
+        <button id="btn-libre" class="btn-comisario btn-libre" onclick="enviarEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">
+            PISTA LIBRE
+        </button>
+        
+        <button id="btn-obs" class="btn-comisario btn-obs" onclick="enviarEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">
+            OBSTÁCULO
+        </button>
+        
+        <button id="btn-acc" class="btn-comisario btn-acc" onclick="enviarEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">
+            ACCIDENTE
+        </button>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get, update, push, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+        // CONFIGURACIÓN FIREBASE (La misma que el Máster)
         const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // ID único para este dispositivo Pista
-        let idPista = localStorage.getItem('id_pista_dispositivo');
-        if(!idPista) { idPista = "Pista-" + Math.floor(Math.random()*999); localStorage.setItem('id_pista_dispositivo', idPista); }
+        // ESCUCHAR CAMBIOS (Desde Máster u otros Comisarios)
+        onValue(ref(db, 'estado_pista'), (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const banner = document.getElementById('banner');
+                banner.innerText = data.mensaje;
+                banner.style.backgroundColor = data.color;
+                banner.style.color = (data.color === '#ffcc00') ? 'black' : 'white';
 
-        // Registrar presencia
-        const presenciaRef = ref(db, 'presencia_pistas/' + idPista);
-        set(presenciaRef, { activo: true, leido: false });
-        onDisconnect(presenciaRef).remove();
-
-        window.confirmarLectura = () => {
-            const msgText = document.getElementById('texto-mensaje').innerText;
-            localStorage.setItem('msg_leido', msgText);
-            update(presenciaRef, { leido: true }); // Avisar al Master
-            document.getElementById('banner-mensaje').style.display = 'none';
-        };
-
-        onValue(ref(db, 'copilotajes/mensaje_pista'), (snap) => {
-            const msg = snap.val();
-            const banner = document.getElementById('banner-mensaje');
-            const yaLeido = localStorage.getItem('msg_leido');
-            
-            if (msg && msg.trim() !== "") {
-                const formatoMsg = "📢 " + msg;
-                if (formatoMsg !== yaLeido) {
-                    document.getElementById('texto-mensaje').innerText = formatoMsg;
-                    banner.style.display = 'block';
-                    update(presenciaRef, { leido: false }); // Resetear estado de lectura
+                // Resaltar botón activo
+                document.querySelectorAll('.btn-comisario').forEach(btn => {
+                    btn.classList.add('inactive');
+                    btn.classList.remove('active-now');
+                });
+                const activeBtn = document.getElementById(data.id);
+                if (activeBtn) {
+                    activeBtn.classList.remove('inactive');
+                    activeBtn.classList.add('active-now');
                 }
-            } else {
-                banner.style.display = 'none';
-                localStorage.removeItem('msg_leido');
-                update(presenciaRef, { leido: false });
             }
         });
 
-        // (Resto de la lógica de botones enviar, modo_actual, etc. se mantiene igual)
-        window.enviar = async (m, c, id) => {
-            if (id === 'btn-coche') {
-                const vSnap = await get(ref(db, 'votacion_activa'));
-                if (!vSnap.exists() || !vSnap.val().dorsal) { alert("⚠️ ESPERA: El Master aún no ha puesto un dorsal."); return; }
-            }
-            set(ref(db, 'estado_pista'), { mensaje: m, color: c, id: id });
+        // ENVIAR ESTADO Y DISPARAR VOTACIÓN
+        window.enviarEstado = async (msg, col, id) => {
+            // Vibración táctil si el dispositivo lo permite
+            if (navigator.vibrate) navigator.vibrate(50);
+
+            // 1. Cambiar estado de la pista
+            set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
+
+            // 2. Si es Pista Libre, ejecutar lógica de cierre de votos (Igual que en el Máster)
             if (id === 'btn-libre') {
                 const snap = await get(ref(db, 'votacion_activa'));
-                const data = snap.val();
-                if (data && data.activa) {
-                    let acAp = 0, acUp = 0, acDw = 0;
-                    const histSnap = await get(ref(db, 'historial_votos'));
-                    if(histSnap.exists()){
-                        Object.values(histSnap.val()).forEach(v => {
-                            if(v.dorsal === data.dorsal) { acAp += (v.ap || 0); acUp += (v.up || 0); acDw += (v.dw || 0); }
-                        });
-                    }
-                    push(ref(db, 'historial_votos'), { dorsal: data.dorsal, info: data.info, ap: (data.aplausos || 0) - acAp, up: (data.up || 0) - acUp, dw: (data.down || 0) - acDw, ts: Date.now() });
-                    let count = 5; update(ref(db, 'votacion_activa'), { timer: count });
-                    let interval = setInterval(() => { count--; if (count <= 0) { clearInterval(interval); set(ref(db, 'votacion_activa'), { activa: false, info: "", dorsal: "", timer: 0 }); } else { update(ref(db, 'votacion_activa'), { timer: count }); } }, 1000);
+                const v = snap.val();
+
+                if (v && v.activa) {
+                    // Guardar en historial antes de cerrar
+                    Object.entries(v.items).forEach(([idItem, data]) => {
+                        if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
+                            push(ref(db, 'historial_votos'), {
+                                dorsal: idItem,
+                                info: data.nombre,
+                                ap: data.ap || 0,
+                                up: data.up || 0,
+                                dw: data.dw || 0,
+                                ts: Date.now()
+                            });
+                        }
+                    });
+
+                    // Iniciar cuenta atrás de 5 segundos
+                    let count = 5;
+                    update(ref(db, 'votacion_activa'), { timer: count });
+                    
+                    let interval = setInterval(() => {
+                        count--;
+                        update(ref(db, 'votacion_activa'), { timer: count });
+                        if (count <= 0) {
+                            clearInterval(interval);
+                            set(ref(db, 'votacion_activa'), { activa: false, timer: 0 });
+                        }
+                    }, 1000);
                 }
             }
         };
-        onValue(ref(db, 'estado_pista'), s => {
-            const e = s.val();
-            document.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-act'));
-            if(e?.id) document.getElementById(e.id)?.classList.add('btn-act');
-        });
-        onValue(ref(db, 'modo_actual'), s => {
-            const modo = s.val() || "tab-show";
-            document.querySelectorAll('.btn').forEach(b => {
-                if(modo === 'tab-esc') b.classList.add('modo-bloqueado');
-                else b.classList.remove('modo-bloqueado');
-            });
-        });
     </script>
 </body>
 </html>

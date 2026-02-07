@@ -11,7 +11,9 @@
         }
 
         .contenedor-principal {
-            background: rgba(0, 0, 0, 0.9); border: 2px solid #ffcc00; border-radius: 20px;
+            /* He subido la opacidad a 0.97 para que sea menos transparente */
+            background: rgba(0, 0, 0, 0.97); 
+            border: 2px solid #ffcc00; border-radius: 20px;
             padding: 20px; max-width: 500px; margin: 20px auto; min-height: 200px;
             box-shadow: 0 0 20px rgba(0,0,0,1);
         }
@@ -22,14 +24,16 @@
         }
 
         .voto-card {
-            background: rgba(255, 255, 255, 0.1); margin-bottom: 15px; padding: 15px;
+            /* He subido la opacidad de las tarjetas a 0.2 */
+            background: rgba(255, 255, 255, 0.2); 
+            margin-bottom: 15px; padding: 15px;
             border-radius: 12px; border-left: 5px solid #ffcc00;
         }
 
         /* CLASE ESPECIAL PARA BATALLAS (ROJO) */
         .voto-card.es-batalla {
             border-left: 5px solid #ff4444;
-            background: rgba(255, 0, 0, 0.1);
+            background: rgba(255, 0, 0, 0.2);
         }
         .voto-card.es-batalla .nombre-piloto { color: #ff4444; }
 
@@ -42,7 +46,6 @@
             cursor: pointer; filter: grayscale(100%); transition: 0.2s; opacity: 0.3;
         }
 
-        /* Forzamos el color cuando está seleccionado */
         .btn-voto.seleccionado {
             filter: grayscale(0%) !important; opacity: 1 !important; transform: scale(1.2);
         }
@@ -88,9 +91,7 @@
                     misVotos = {};
                     currentDorsalGlobal = v.dorsal;
                 }
-
                 divVotos.style.display = 'block';
-                
                 if (lista.innerHTML === "") {
                     if (v.items) {
                         Object.entries(v.items).forEach(([id, data]) => {
@@ -100,7 +101,6 @@
                         crearTarjetaUI(v.dorsal, v.info || ("DORSAL " + v.dorsal), "", lista);
                     }
                 }
-
                 timerDiv.innerText = (v.timer > 0) ? `¡CIERRE EN ${v.timer}s!` : "";
             } else {
                 divVotos.style.display = 'none';
@@ -112,7 +112,6 @@
 
         function crearTarjetaUI(id, nombre, coche, contenedor) {
             const card = document.createElement('div');
-            // Si el ID es BATALLA, añade la clase 'es-batalla' para que se vea roja
             card.className = 'voto-card' + (id === 'BATALLA' ? ' es-batalla' : '');
             card.id = "card-" + id;
             card.innerHTML = `
@@ -129,17 +128,13 @@
 
         window.enviarVoto = (idVotable, tipoVoto) => {
             if (misVotos[idVotable] === tipoVoto) return;
-
             const updates = {};
             const anterior = misVotos[idVotable];
-
             if (anterior) {
                 updates[`votacion_activa/items/${idVotable}/${anterior}`] = increment(-1);
             }
             updates[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
-            
             update(ref(db), updates);
-
             misVotos[idVotable] = tipoVoto;
             const card = document.getElementById("card-" + idVotable);
             if (card) {

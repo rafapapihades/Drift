@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER DRIFT SHOW - MULTI CONTROL</title>
+    <title>MASTER DRIFT SHOW - CONTROL TOTAL</title>
     <style>
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
@@ -20,18 +20,14 @@
         .input-group { display: flex; gap: 8px; }
         .btn-lupa { width: 60px; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* NUEVA ESTRUCTURA DE VOTOS MULTIPLES */
-        .votos-container { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
-        .voto-row { background: #222; padding: 10px; border-radius: 10px; border-left: 4px solid #ffcc00; }
-        .voto-row.batalla { border-left-color: #007bff; background: #1a2533; }
-        .row-label { font-size: 0.8em; color: #aaa; margin-bottom: 5px; display: flex; justify-content: space-between; }
-        .row-stats { display: flex; justify-content: space-around; font-size: 1.1em; color: #ffcc00; }
-        .stat-box { display: flex; flex-direction: column; align-items: center; }
-        .stat-total { font-size: 0.6em; color: #888; }
+        /* VISTA MASTER: UNA SOLA LÍNEA DE VOTOS */
+        .master-stats { background: #1a1a1a; padding: 15px; border-radius: 10px; border: 1px solid #444; margin: 10px 0; }
+        .master-label { font-size: 0.9em; color: #007bff; font-weight: bold; text-align: center; margin-bottom: 10px; text-transform: uppercase; }
+        .master-row { display: flex; justify-content: space-around; font-size: 1.4em; color: #ffcc00; }
+        .master-item { display: flex; flex-direction: column; align-items: center; }
+        .master-total { font-size: 0.5em; color: #888; text-transform: uppercase; margin-top: 4px; }
 
-        .info-pista { text-align: center; color: #007bff; font-weight: bold; margin: 5px 0; font-size: 0.9em; min-height: 1.2em; }
-        .info-preview { color: #fff; font-size: 1.1em; font-weight: bold; margin-top: 15px; text-align: center; min-height: 1.2em; text-transform: uppercase; }
-        #timer-display { color: #ff4444; font-weight: bold; text-align: center; font-size: 0.9em; margin-bottom: 5px; height: 1.2em; }
+        #timer-display { color: #ff4444; font-weight: bold; text-align: center; font-size: 1.1em; margin-bottom: 5px; height: 1.2em; }
 
         /* MODALES */
         #modal-selector, #modal-mensaje { 
@@ -72,18 +68,25 @@
     <div id="tab-show">
         <div class="card">
             <div class="input-group">
-                <input type="text" id="d-show" placeholder="DORSALES (ej: 12 45)" oninput="buscarPilotoShow(this.value)">
+                <input type="text" id="d-show" placeholder="DORSALES" oninput="buscarPilotoShow(this.value)">
                 <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
             </div>
-            <div id="preview-show" class="info-preview">Introduce dorsal...</div>
         </div>
 
         <div class="card">
-            <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE(S) EN PISTA</button>
-            <div id="info-pista-drift" class="info-pista"></div>
-            <div id="timer-display"></div>
+            <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
             
-            <div id="votos-pista" class="votos-container"></div>
+            <div id="master-panel" style="display:none;">
+                <div id="master-info" class="master-label"></div>
+                <div id="timer-display"></div>
+                <div class="master-stats">
+                    <div class="master-row">
+                        <div class="master-item">👏 <b id="m-ap">0</b><span class="master-total">Acum: <span id="t-ap">0</span></span></div>
+                        <div class="master-item">👍 <b id="m-up">0</b><span class="master-total">Acum: <span id="t-up">0</span></span></div>
+                        <div class="master-item">👎 <b id="m-dw">0</b><span class="master-total">Acum: <span id="t-dw">0</span></span></div>
+                    </div>
+                </div>
+            </div>
 
             <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
             <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
@@ -106,14 +109,8 @@
         let inscritosD = {};
         let seleccionados = [];
 
-        // --- BUSCADOR ---
         window.buscarPilotoShow = (val) => {
-            const dorsales = val.trim().split(/\s+/).filter(d => d);
-            const encontrados = dorsales.map(d => {
-                const p = inscritosD[d];
-                return p ? `${d}: ${p.piloto}` : `${d}: ?`;
-            });
-            document.getElementById('preview-show').innerText = val ? encontrados.join(' | ') : "Introduce dorsal...";
+            // No hacemos nada visual aquí para limpiar la pantalla Master, solo queda en el input
         };
 
         window.abrirSelector = () => {
@@ -136,52 +133,30 @@
         window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
         window.confirmarSeleccion = () => {
             document.getElementById('d-show').value = seleccionados.join(" ");
-            buscarPilotoShow(seleccionados.join(" "));
             cerrarSelector();
         };
 
-        // --- LÓGICA DE VOTACIÓN MULTI ---
         window.abrirVoto = async () => {
             const val = document.getElementById('d-show').value.trim();
             if (!val) return;
-
             const dorsales = val.split(/\s+/).filter(d => d);
-            let votables = {}; // Aquí guardaremos cada entidad votable
-
-            // 1. Si hay más de un dorsal, crear la entidad "BATALLA"
-            if (dorsales.length > 1) {
-                votables["BATALLA"] = { 
-                    nombre: `¡¡¡ BATALLA A ${dorsales.length} !!!`, 
-                    ap: 0, up: 0, dw: 0, 
-                    h_ap: 0, h_up: 0, h_dw: 0 // Histórico batalla (opcional)
-                };
-            }
-
-            // 2. Crear entidades individuales con sus acumulados
+            let votables = {};
             const histSnap = await get(ref(db, 'historial_votos'));
             const historial = histSnap.val() || {};
+
+            if (dorsales.length > 1) {
+                votables["BATALLA"] = { nombre: `BATALLA A ${dorsales.length}`, ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
+            }
 
             for (const d of dorsales) {
                 let h_ap = 0, h_up = 0, h_dw = 0;
                 Object.values(historial).forEach(h => {
                     if (h.dorsal === d) { h_ap += (h.ap || 0); h_up += (h.up || 0); h_dw += (h.dw || 0); }
                 });
-
-                votables[d] = {
-                    nombre: inscritosD[d] ? inscritosD[d].piloto : `Piloto ${d}`,
-                    ap: 0, up: 0, dw: 0,
-                    h_ap: h_ap, h_up: h_up, h_dw: h_dw
-                };
+                votables[d] = { nombre: inscritosD[d]?.piloto || `P${d}`, ap: 0, up: 0, dw: 0, h_ap: h_ap, h_up: h_up, h_dw: h_dw };
             }
 
-            // 3. Subir a Firebase
-            set(ref(db, 'votacion_activa'), {
-                activa: true,
-                timer: 0,
-                items: votables,
-                dorsales_raw: val 
-            });
-
+            set(ref(db, 'votacion_activa'), { activa: true, timer: 0, items: votables });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
             document.getElementById('d-show').value = "";
         };
@@ -192,19 +167,12 @@
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
-                    // Guardar cada item en el historial por separado
-                    for (const id_voto in v.items) {
-                        const item = v.items[id_voto];
-                        if (item.ap > 0 || item.up > 0 || item.dw > 0) {
-                            push(ref(db, 'historial_votos'), {
-                                dorsal: id_voto, // Puede ser "12" o "BATALLA"
-                                info: item.nombre,
-                                ap: item.ap, up: item.up, dw: item.dw,
-                                ts: Date.now()
-                            });
+                    for (const key in v.items) {
+                        const it = v.items[key];
+                        if (it.ap > 0 || it.up > 0 || it.dw > 0) {
+                            push(ref(db, 'historial_votos'), { dorsal: key, info: it.nombre, ap: it.ap, up: it.up, dw: it.dw, ts: Date.now() });
                         }
                     }
-
                     let count = 5;
                     let interval = setInterval(() => {
                         count--;
@@ -219,90 +187,57 @@
             }
         };
 
-        // Renderizado dinámico de la interfaz del controlador
         onValue(ref(db, 'votacion_activa'), snap => {
             const v = snap.val();
-            const container = document.getElementById('votos-pista');
+            const panel = document.getElementById('master-panel');
+            const info = document.getElementById('master-info');
             const timerElt = document.getElementById('timer-display');
-            const infoElt = document.getElementById('info-pista-drift');
-            container.innerHTML = "";
 
             if (v && v.activa && v.items) {
-                timerElt.innerText = v.timer > 0 ? `CERRANDO EN ${v.timer}...` : "";
-                infoElt.innerText = "ESPERANDO VOTOS...";
-
-                for (const id_voto in v.items) {
-                    const item = v.items[id_voto];
-                    const esBatalla = id_voto === "BATALLA";
-                    
-                    const row = document.createElement('div');
-                    row.className = `voto-row ${esBatalla ? 'batalla' : ''}`;
-                    row.innerHTML = `
-                        <div class="row-label">
-                            <strong>${esBatalla ? '' : 'Dorsal ' + id_voto + ': '} ${item.nombre}</strong>
-                        </div>
-                        <div class="row-stats">
-                            <div class="stat-box">👏 <b>${item.ap}</b> <span class="stat-total">T: ${item.h_ap + item.ap}</span></div>
-                            <div class="stat-box">👍 <b>${item.up}</b> <span class="stat-total">T: ${item.h_up + item.up}</span></div>
-                            <div class="stat-box">👎 <b>${item.dw}</b> <span class="stat-total">T: ${item.h_dw + item.dw}</span></div>
-                        </div>
-                    `;
-                    container.appendChild(row);
+                panel.style.display = 'block';
+                let curAp = 0, curUp = 0, curDw = 0, totAp = 0, totUp = 0, totDw = 0, nombres = [];
+                
+                for (const key in v.items) {
+                    const it = v.items[key];
+                    curAp += it.ap; curUp += it.up; curDw += it.dw;
+                    totAp += (it.ap + it.h_ap); totUp += (it.up + it.h_up); totDw += (it.dw + it.h_dw);
+                    if (key !== "BATALLA") nombres.push(it.nombre);
                 }
+
+                info.innerText = nombres.length > 1 ? `BATALLA: ${nombres.join(' vs ')}` : nombres[0];
+                document.getElementById('m-ap').innerText = curAp;
+                document.getElementById('m-up').innerText = curUp;
+                document.getElementById('m-dw').innerText = curDw;
+                document.getElementById('t-ap').innerText = totAp;
+                document.getElementById('t-up').innerText = totUp;
+                document.getElementById('t-dw').innerText = totDw;
+                timerElt.innerText = v.timer > 0 ? `VOTACIÓN CERRANDO EN ${v.timer}...` : "";
             } else {
-                infoElt.innerText = "PISTA LIBRE";
-                timerElt.innerText = "";
+                panel.style.display = 'none';
+                info.innerText = "";
             }
         });
 
-        // --- EXPORTACIÓN XLS (TABULADA) ---
         window.exportarVotos = async () => {
             const snap = await get(ref(db, 'historial_votos'));
             if (!snap.exists()) return alert("Sin datos.");
-            
             const TAB = "\t";
-            let csv = `ID/Dorsal${TAB}Piloto/Tipo${TAB}Aplausos${TAB}Likes${TAB}Dislikes${TAB}Fecha\n`;
-            
-            Object.values(snap.val()).forEach(v => {
-                csv += `${v.dorsal}${TAB}${v.info}${TAB}${v.ap}${TAB}${v.up}${TAB}${v.dw}${TAB}${new Date(v.ts).toLocaleString()}\n`;
-            });
-
+            let csv = `ID${TAB}Piloto${TAB}Ap${TAB}Up${TAB}Dw${TAB}Fecha\n`;
+            Object.values(snap.val()).forEach(v => { csv += `${v.dorsal}${TAB}${v.info}${TAB}${v.ap}${TAB}${v.up}${TAB}${v.dw}${TAB}${new Date(v.ts).toLocaleString()}\n`; });
             const blob = new Blob(["\ufeff" + csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `drift_votos_${new Date().toISOString().slice(0,10)}.xls`;
+            link.download = `drift_${new Date().toISOString().slice(0,10)}.xls`;
             link.click();
-
-            if(confirm("¿Borrar historial de la nube?")) remove(ref(db, 'historial_votos'));
+            if(confirm("¿Limpiar historial?")) remove(ref(db, 'historial_votos'));
         };
 
-        window.cargarCSV = (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim() !== "").slice(1);
-                let obj = {};
-                lines.forEach(l => {
-                    const c = l.split(l.includes(';') ? ';' : ',');
-                    if (c[0]) obj[c[0].trim()] = { piloto: c[1]?.trim() || "Piloto "+c[0] };
-                });
-                set(ref(db, 'inscritos_drift'), obj);
-            };
-            reader.readAsText(file);
-        };
-
-        onValue(ref(db, 'inscritos_drift'), s => { 
-            inscritosD = s.val() || {}; 
-            document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length; 
-        });
-
+        onValue(ref(db, 'inscritos_drift'), s => { inscritosD = s.val() || {}; document.getElementById('cnt-drift').innerText = Object.keys(inscritosD).length; });
         onValue(ref(db, 'estado_pista'), s => {
             document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
             if (s.val()?.id) document.getElementById(s.val().id)?.classList.add('pista-activa');
         });
-
-        // --- MENSAJERÍA ---
-        window.abrirModalMensaje = () => { document.getElementById('modal-mensaje').style.display = 'flex'; };
+        window.abrirModalMensaje = () => document.getElementById('modal-mensaje').style.display = 'flex';
         window.cerrarModalMensaje = () => document.getElementById('modal-mensaje').style.display = 'none';
         window.enviarMensajePista = () => {
             const m = document.getElementById('input-mensaje-pista').value;

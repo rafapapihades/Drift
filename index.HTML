@@ -31,12 +31,11 @@
 
         .v-btns { display: flex; justify-content: space-around; font-size: 3em; margin-top: 10px; }
 
-        /* Iconos: Blanco y negro por defecto */
         .btn-voto {
-            cursor: pointer; filter: grayscale(100%); transition: 0.3s; opacity: 0.3;
+            cursor: pointer; filter: grayscale(100%); transition: 0.2s; opacity: 0.3;
         }
 
-        /* Resaltado cuando se selecciona */
+        /* Forzamos el color cuando está seleccionado */
         .btn-voto.seleccionado {
             filter: grayscale(0%) !important; opacity: 1 !important; transform: scale(1.2);
         }
@@ -48,7 +47,6 @@
 
     <div class="contenedor-principal">
         <div id="banner-estado">CONECTANDO...</div>
-
         <div id="seccion-votos" style="display:none">
             <div id="lista-votables"></div>
             <div id="cuenta-atras" class="timer-alerta"></div>
@@ -64,7 +62,7 @@
         const db = getDatabase(app);
 
         let misVotos = {}; 
-        let currentVotacionId = ""; // Para detectar si la votación ha cambiado y resetear misVotos
+        let currentDorsalGlobal = "";
 
         onValue(ref(db, 'estado_pista'), s => {
             const p = s.val();
@@ -79,32 +77,36 @@
             const timerDiv = document.getElementById('cuenta-atras');
 
             if(v && v.activa) {
-                // Si el ID de votación (dorsal) cambia, reseteamos los votos locales
-                if (currentVotacionId !== v.dorsal) {
+                // Reset de votos si cambia el dorsal o la batalla
+                if (currentDorsalGlobal !== v.dorsal) {
                     misVotos = {};
-                    currentVotacionId = v.dorsal;
+                    currentDorsalGlobal = v.dorsal;
                 }
 
                 divVotos.style.display = 'block';
-                lista.innerHTML = '';
-
-                if (v.items) {
-                    Object.entries(v.items).forEach(([id, data]) => {
-                        crearTarjetaVoto(id, data.nombre, data.coche || "", lista);
-                    });
-                } else if (v.dorsal) {
-                    crearTarjetaVoto(v.dorsal, v.info || "PILOTO " + v.dorsal, "", lista);
+                
+                // Solo redibujamos si la lista está vacía para evitar que se borre al votar
+                if (lista.innerHTML === "") {
+                    if (v.items) {
+                        Object.entries(v.items).forEach(([id, data]) => {
+                            crearTarjetaUI(id, data.nombre, data.coche || "", lista);
+                        });
+                    } else if (v.dorsal) {
+                        // Fallback: Si el Master no envía items, creamos uno con el dorsal
+                        crearTarjetaUI(v.dorsal, v.info || ("DORSAL " + v.dorsal), "", lista);
+                    }
                 }
 
                 timerDiv.innerText = (v.timer > 0) ? `¡CIERRE EN ${v.timer}s!` : "";
             } else {
                 divVotos.style.display = 'none';
+                lista.innerHTML = "";
                 misVotos = {};
-                currentVotacionId = "";
+                currentDorsalGlobal = "";
             }
         });
 
-        function crearTarjetaVoto(id, nombre, coche, contenedor) {
+        function crearTarjetaUI(id, nombre, coche, contenedor) {
             const card = document.createElement('div');
             card.className = 'voto-card';
             card.id = "card-" + id;
@@ -121,35 +123,27 @@
         }
 
         window.enviarVoto = (idVotable, tipoVoto) => {
-            const anteriorVoto = misVotos[idVotable];
-            if (anteriorVoto === tipoVoto) return;
+            if (misVotos[idVotable] === tipoVoto) return;
 
             const updates = {};
-            
-            // 1. Restar el anterior si existe
-            if (anteriorVoto) {
-                updates[`votacion_activa/items/${idVotable}/${anteriorVoto}`] = increment(-1);
-                // Fallback para Master antiguo
-                if(anteriorVoto === 'ap') updates[`votacion_activa/aplausos`] = increment(-1);
-                if(anteriorVoto === 'up') updates[`votacion_activa/up`] = increment(-1);
-                if(anteriorVoto === 'dw') updates[`votacion_activa/down`] = increment(-1);
+            const anterior = misVotos[idVotable];
+
+            // Restar anterior si existe
+            if (anterior) {
+                updates[`votacion_activa/items/${idVotable}/${anterior}`] = increment(-1);
             }
-
-            // 2. Sumar el nuevo
+            // Sumar nuevo
             updates[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
-            // Fallback para Master antiguo
-            if(tipoVoto === 'ap') updates[`votacion_activa/aplausos`] = increment(1);
-            if(tipoVoto === 'up') updates[`votacion_activa/up`] = increment(1);
-            if(tipoVoto === 'dw') updates[`votacion_activa/down`] = increment(1);
-
+            
+            // Enviamos a Firebase
             update(ref(db), updates);
 
-            // 3. ACTUALIZACIÓN VISUAL INMEDIATA
+            // Guardar local y actualizar visual SIN borrar nada
             misVotos[idVotable] = tipoVoto;
-            const contenedor = document.getElementById("card-" + idVotable);
-            if (contenedor) {
-                contenedor.querySelectorAll('.btn-voto').forEach(btn => btn.classList.remove('seleccionado'));
-                contenedor.querySelector('.v-' + tipoVoto).classList.add('seleccionado');
+            const card = document.getElementById("card-" + idVotable);
+            if (card) {
+                card.querySelectorAll('.btn-voto').forEach(b => b.classList.remove('seleccionado'));
+                card.querySelector('.v-' + tipoVoto).classList.add('seleccionado');
             }
         };
     </script>

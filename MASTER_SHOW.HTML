@@ -8,15 +8,21 @@
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 10px; margin: 0; overflow-x: hidden; }
         
-        /* CONTENEDOR DEL LOGO */
+                /* LOGO DE LADO A LADO */
         .header-logo { 
             display: block; 
-            margin: 0 auto 15px auto; 
-            max-width: 100%; 
+            width: 100vw; /* Ocupa todo el ancho de la ventana */
+            margin-left: -10px; /* Compensa el padding de 10px del body para llegar al borde */
             height: auto; 
-            max-height: 80px; /* Ajusta este valor según prefieras el tamaño del logo */
-            object-fit: contain;
+            max-height: 150px; /* Aumentamos el alto máximo para que no se vea pequeño */
+            object-fit: cover; /* Asegura que cubra el espacio sin deformarse */
         }
+
+        .header-border { 
+            margin: -10px -10px 15px -10px; /* Elimina márgenes para que la línea también llegue al borde */
+            border-bottom: 1px solid #333; 
+        }
+
 
         .header-border { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
 

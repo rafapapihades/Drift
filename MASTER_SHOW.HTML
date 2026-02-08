@@ -93,7 +93,7 @@
     let inscritosD = {};
     let seleccionados = [];
 
-    // Evita que el master dispare varios cierres a la vez
+    // Evita cierres duplicados (intervalos múltiples)
     let cierreInterval = null;
     let cierreEnCurso = false;
 
@@ -105,25 +105,40 @@
       $preview().innerText = "Introduce dorsal...";
     }
 
+    // Fecha ISO (Excel-friendly)
+    function formatFechaISO(ts) {
+      const d = new Date(ts);
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // Guarda a historial lo votado en la tanda. Si es BATALLA, añade participantes (v.dorsal)
     async function guardarHistorialSiHayVotos(v) {
       if (!v?.items) return;
+
       Object.entries(v.items).forEach(([idItem, data]) => {
         const total = (data.ap || 0) + (data.up || 0) + (data.dw || 0);
-        if (total > 0) {
-          push(ref(db, 'historial_votos'), {
-            dorsal: idItem,
-            info: data.nombre,
-            ap: data.ap || 0,
-            up: data.up || 0,
-            dw: data.dw || 0,
-            ts: Date.now()
-          });
+        if (total <= 0) return;
+
+        const payload = {
+          dorsal: idItem,
+          info: data.nombre,
+          ap: data.ap || 0,
+          up: data.up || 0,
+          dw: data.dw || 0,
+          ts: Date.now()
+        };
+
+        if (idItem === "BATALLA") {
+          payload.participantes = String(v.dorsal || "").trim(); // "7 12" etc.
         }
+
+        push(ref(db, 'historial_votos'), payload);
       });
     }
 
     async function iniciarCierreVotacion() {
-      if (cierreEnCurso) return; // evita duplicado
+      if (cierreEnCurso) return;
       cierreEnCurso = true;
 
       if (cierreInterval) { clearInterval(cierreInterval); cierreInterval = null; }
@@ -153,25 +168,18 @@
       }
     }
 
-    // Formato ISO para que Excel no muestre ####### y sea consistente
-    function formatFechaISO(ts) {
-      const d = new Date(ts);
-      const pad = (n) => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-
-    // 1. Cargar inscritos
+    // 1) Cargar inscritos
     onValue(ref(db, 'inscritos_drift'), s => {
       inscritosD = s.val() || {};
       document.getElementById('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
     });
 
-    // 2. ESCUCHAR ORDEN DE LIMPIEZA REMOTA (Desde Ventana Pista)
+    // 2) Orden de limpieza remota (desde pista)
     onValue(ref(db, 'comando_limpiar'), (snapshot) => {
       if (snapshot.exists()) limpiarInputLocal();
     });
 
-    // 3. Lógica para abrir votación
+    // 3) Abrir votación
     window.abrirVoto = async () => {
       const val = $dshow().value.trim();
       if (!val) return alert("Introduce un dorsal primero");
@@ -203,14 +211,15 @@
         };
       });
 
-      if (dorsalesArr.length > 1) items["BATALLA"] = { nombre: "🔥 BATALLA", coche: "", ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
+      if (dorsalesArr.length > 1) {
+        items["BATALLA"] = { nombre: "🔥 BATALLA", coche: "", ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
+      }
 
-      await set(ref(db, 'votacion_activa'), { dorsal: val, activa: true, timer: 0, items: items });
+      await set(ref(db, 'votacion_activa'), { dorsal: val, activa: true, timer: 0, items });
       await set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
-      // NO borramos el input aquí, esperamos a "Pista Libre"
     };
 
-    // 4. Visualización de votos en vivo
+    // 4) Visualización de votos en vivo
     onValue(ref(db, 'votacion_activa'), snap => {
       const v = snap.val();
       const container = document.getElementById('votos-en-vivo');
@@ -232,9 +241,9 @@
       container.innerHTML = html;
     });
 
-    // 5. Cambio de estados de pista
+    // 5) Cambio de estados de pista
     window.setEstado = async (msg, col, id) => {
-      await set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
+      await set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id });
 
       if (id === 'btn-libre') {
         limpiarInputLocal();
@@ -242,7 +251,7 @@
       }
     };
 
-    // 6. Carga de CSV
+    // 6) Carga CSV
     window.cargarCSV = (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
@@ -261,36 +270,96 @@
 
         await set(ref(db, 'inscritos_drift'), obj);
         alert("Cargados " + Object.keys(obj).length + " pilotos");
-        event.target.value = ""; // permite volver a cargar el mismo archivo
+        event.target.value = "";
       };
       reader.readAsText(file);
     };
 
-    // 7. Exportación optimizada (FECHA ISO)
+    // 7) Exportación: PILOTOS = totales (ordenados) + BATALLAS = una fila por batalla con participantes
     window.exportarVotos = async () => {
       const snap = await get(ref(db, 'historial_votos'));
       if (!snap.exists()) return alert("No hay historial");
 
-      let csv = "Dorsal,Piloto,Aplausos,Up,Down,Fecha_Hora\n";
-      Object.values(snap.val()).forEach(v => {
-        const fecha = formatFechaISO(v.ts);
-        const info = (v.info || "").replace(/"/g, '');
-        csv += `${v.dorsal},"${info}",${v.ap || 0},${v.up || 0},${v.dw || 0},"${fecha}"\n`;
+      const registros = Object.values(snap.val());
+
+      const totales = {};   // dorsal -> { piloto, ap, up, dw }
+      const batallas = [];  // [{participantes, ap, up, dw, ts}]
+
+      registros.forEach(r => {
+        const dorsal = String(r.dorsal || "").trim();
+        if (!dorsal) return;
+
+        if (dorsal === "BATALLA") {
+          batallas.push({
+            participantes: String(r.participantes || "").trim(),
+            ap: r.ap || 0,
+            up: r.up || 0,
+            dw: r.dw || 0,
+            ts: r.ts
+          });
+          return;
+        }
+
+        if (!totales[dorsal]) {
+          totales[dorsal] = { piloto: r.info || ("PILOTO " + dorsal), ap: 0, up: 0, dw: 0 };
+        }
+        totales[dorsal].ap += (r.ap || 0);
+        totales[dorsal].up += (r.up || 0);
+        totales[dorsal].dw += (r.dw || 0);
       });
 
+      // Convertir a array y ordenar (ranking)
+      // Orden: Aplausos desc, luego Up desc, luego Down asc, luego dorsal asc
+      const ranking = Object.entries(totales).map(([dorsal, t]) => ({
+        dorsal,
+        piloto: t.piloto,
+        ap: t.ap,
+        up: t.up,
+        dw: t.dw
+      })).sort((a, b) => {
+        if (b.ap !== a.ap) return b.ap - a.ap;
+        if (b.up !== a.up) return b.up - a.up;
+        if (a.dw !== b.dw) return a.dw - b.dw; // menos downs mejor
+        return Number(a.dorsal) - Number(b.dorsal);
+      });
+
+      // CSV único (con Tipo) para Excel
+      let csv = "Tipo,Dorsal,Piloto,Participantes,Aplausos,Up,Down,Fecha_Hora\n";
+
+      // 1) PILOTOS (totales ordenados)
+      ranking.forEach(r => {
+        const piloto = String(r.piloto || "").replace(/"/g, "");
+        csv += `PILOTO,${r.dorsal},"${piloto}",,${r.ap},${r.up},${r.dw},\n`;
+      });
+
+      csv += "\n";
+
+      // 2) BATALLAS (una fila por batalla)
+      batallas
+        .sort((a, b) => (a.ts || 0) - (b.ts || 0))
+        .forEach(b => {
+          const participantes = String(b.participantes || "").replace(/"/g, "");
+          const fecha = b.ts ? formatFechaISO(b.ts) : "";
+          csv += `BATALLA,,,\"${participantes}\",${b.ap},${b.up},${b.dw},"${fecha}"\n`;
+        });
+
       const link = document.createElement("a");
-      link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' }));
-      link.download = "votos_drift.csv";
+      link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" }));
+      link.download = "votos_drift_totales_y_batallas.csv";
       link.click();
 
-      if (confirm("¿Borrar historial de la nube?")) await remove(ref(db, 'historial_votos'));
+      if (confirm("¿Borrar historial de la nube?")) {
+        await remove(ref(db, 'historial_votos'));
+      }
     };
 
-    // 8. Utilidades de búsqueda y selector
+    // 8) Preview y selector
     window.buscarPilotoShow = (val) => {
       if (!val.trim()) { $preview().innerText = "Introduce dorsal..."; return; }
       const dorsales = val.trim().split(/\s+/);
-      const encontrados = dorsales.map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : "")).filter(x => x);
+      const encontrados = dorsales
+        .map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : ""))
+        .filter(x => x);
       $preview().innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
     };
 
@@ -305,10 +374,13 @@
         btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto || ""}</small>`;
         btn.onclick = () => {
           btn.classList.toggle('selected');
-          seleccionados.includes(d) ? seleccionados = seleccionados.filter(x => x !== d) : seleccionados.push(d);
+          seleccionados.includes(d)
+            ? (seleccionados = seleccionados.filter(x => x !== d))
+            : seleccionados.push(d);
         };
         grid.appendChild(btn);
       });
+
       document.getElementById('modal-selector').style.display = 'flex';
     };
 
@@ -320,7 +392,7 @@
       cerrarSelector();
     };
 
-    // 9. Resaltar botón de estado activo
+    // 9) Resaltar botón de estado activo
     onValue(ref(db, 'estado_pista'), s => {
       document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
       const id = s.val()?.id;

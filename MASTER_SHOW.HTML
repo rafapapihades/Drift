@@ -1,9 +1,8 @@
-1
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MASTER DRIFT SHOW - CONTROL</title>
   <style>
     * { box-sizing: border-box; }
@@ -20,55 +19,20 @@
 
     .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; width: 100%; }
 
-    .btn {
-      width: 100%;
-      padding: 18px;
-      border-radius: 10px;
-      border: none;
-      font-weight: bold;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: 0.3s;
-      color: white;
-      text-transform: uppercase;
-    }
+    .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
     .btn-pista { opacity: 0.25; }
     .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
 
     .input-group { display: flex; gap: 8px; width: 100%; }
-    input {
-      flex: 1; min-width: 0;
-      padding: 15px;
-      background: #000;
-      color: #ffcc00;
-      border: 1px solid #444;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 1.4em;
-    }
-    .btn-lupa {
-      width: 60px;
-      flex-shrink: 0;
-      background: #222;
-      border: 1px solid #444;
-      border-radius: 8px;
-      color: #ffcc00;
-      font-size: 1.5em;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    input { flex: 1; min-width: 0; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
+    .btn-lupa { width: 60px; flex-shrink: 0; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
     .vote-stats-container { margin: 10px 0; }
     .piloto-voto-row { background: #222; padding: 10px; border-radius: 8px; margin-bottom: 5px; border-left: 4px solid #ffcc00; }
     .p-info { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; color: #fff; text-transform: uppercase; }
     .p-stats { display: flex; justify-content: space-around; color: #ffcc00; font-size: 1.1em; }
 
-    .timer-master {
-      background:#ff4444; color:white; padding:10px; border-radius:8px; font-weight:bold;
-      margin-bottom:10px; font-size:1.2em; animation: parpadeo 1s infinite; text-align: center;
-    }
+    .timer-master { background:#ff4444; color:white; padding:10px; border-radius:8px; font-weight:bold; margin-bottom:10px; font-size:1.2em; animation: parpadeo 1s infinite; text-align: center; }
     @keyframes parpadeo { 50% { opacity: 0.5; } }
 
     .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
@@ -81,7 +45,7 @@
     .btn-piloto-selec { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; text-align: center; min-height: 70px; display: flex; flex-direction: column; justify-content: center; }
     .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
 
-    /* ========= MODAL MENSAJE ========= */
+    /* MODAL MENSAJE */
     #modal-mensaje {
       display: none;
       position: fixed;
@@ -92,96 +56,32 @@
       flex-direction: column;
       padding: 10px;
     }
-    .msg-top { display: flex; gap: 10px; margin-bottom: 10px; }
-    .msg-box { background: #111; border: 1px solid #333; border-radius: 12px; padding: 12px; }
+    .msg-top { display:flex; gap:10px; margin-bottom:10px; }
+    .msg-box { background:#111; border:1px solid #333; border-radius:12px; padding:12px; }
     #msg-text {
-      width: 100%;
-      min-height: 120px;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #444;
-      background: #000;
-      color: #ffcc00;
-      font-size: 1.05em;
-      outline: none;
-      resize: vertical;
+      width:100%;
+      min-height:120px;
+      padding:12px;
+      border-radius:10px;
+      border:1px solid #444;
+      background:#000;
+      color:#ffcc00;
+      font-size:1.05em;
+      outline:none;
+      resize:vertical;
     }
-    .msg-hint { margin-top: 10px; font-size: 0.85em; color: #888; text-transform: uppercase; font-weight: bold; text-align: center; }
-
-    /* ========= SESIONES PISTA ========= */
-    #pista-sessions {
-      margin-top: 12px;
-      padding: 12px;
-      border-radius: 12px;
-      background: #0f0f0f;
-      border: 1px solid #2a2a2a;
+    .msg-hint {
+      margin-top:10px;
+      font-size:0.85em;
+      color:#888;
+      text-transform:uppercase;
+      font-weight:bold;
+      text-align:center;
     }
-    #pista-stats {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      font-weight: bold;
-      font-size: 0.8em;
-      color: #bbb;
-    }
-    .pill { padding: 8px 10px; border-radius: 999px; border: 1px solid #333; background: #111; color: #bbb; white-space: nowrap; }
-    .pill b { color: #ffcc00; }
-
-    #pista-list { display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow: auto; }
-    .sess-row{
-      display:flex; justify-content:space-between; gap:10px; align-items:center;
-      padding:10px; border-radius:12px; background:#121212; border:1px solid #2a2a2a; font-size:0.9em;
-    }
-    .sess-left{ display:flex; flex-direction:column; gap:3px; min-width:0; }
-    .sess-id{
-      font-weight:bold; color:#fff; text-transform:uppercase;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70vw;
-    }
-    .sess-meta{ font-size:0.75em; color:#777; text-transform:uppercase; font-weight:bold; }
-    .sess-right{ display:flex; gap:8px; align-items:center; flex-shrink:0; font-weight:bold; text-transform:uppercase; font-size:0.75em; }
-    .tag{ padding:6px 8px; border-radius:999px; border:1px solid #333; background:#0b0b0b; }
-    .tag.on{ border-color:#2ecc71; color:#2ecc71; }
-    .tag.off{ border-color:#777; color:#aaa; opacity:0.85; }
-    .tag.read{ border-color:#ffcc00; color:#ffcc00; }
-    .tag.wait{ border-color:#ff8800; color:#ff8800; }
   </style>
 </head>
-<script>
-  (function(){
-    const bar = document.createElement('div');
-    bar.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;padding:10px;border-radius:10px;background:#222;border:1px solid #444;color:#ffcc00;z-index:99999;font-weight:bold;text-transform:uppercase;text-align:center;';
-    bar.id = "debugbar";
-    bar.textContent = "JS OK (cargado) · " + new Date().toLocaleTimeString();
-    document.body.appendChild(bar);
-  })();
-</script>
-<script>
-  // Captura errores JS (incluye fallos de módulos/imports)
-  window.addEventListener("error", (e) => {
-    const bar = document.getElementById("debugbar") || document.body.appendChild(Object.assign(document.createElement("div"), {id:"debugbar"}));
-    bar.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;padding:10px;border-radius:10px;background:#550000;border:1px solid #aa0000;color:#fff;z-index:99999;font-weight:bold;text-transform:uppercase;text-align:center;';
-    bar.textContent = "ERROR: " + (e.message || "desconocido");
-  });
-
-  window.addEventListener("unhandledrejection", (e) => {
-    const bar = document.getElementById("debugbar") || document.body.appendChild(Object.assign(document.createElement("div"), {id:"debugbar"}));
-    bar.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;padding:10px;border-radius:10px;background:#550000;border:1px solid #aa0000;color:#fff;z-index:99999;font-weight:bold;text-transform:uppercase;text-align:center;';
-    bar.textContent = "PROMISE ERROR: " + (e.reason?.message || e.reason || "desconocido");
-  });
-
-  // Comprueba si el módulo llegó a definir funciones (si no, el import falló)
-  setTimeout(() => {
-    const bar = document.getElementById("debugbar");
-    if (!bar) return;
-    const ok = (typeof window.cargarCSV === "function") && (typeof window.abrirVoto === "function") && (typeof window.abrirSelector === "function");
-    bar.textContent = (bar.textContent || "") + " · MODULO: " + (ok ? "OK" : "NO EJECUTA");
-    if (!ok) bar.style.background = "#550000";
-  }, 1500);
-</script>
 <body>
+
   <div id="modal-selector">
     <div style="display:flex; gap:10px; margin-bottom:10px;">
       <button class="btn" style="background:#444; flex:1" onclick="cerrarSelector()">✕</button>
@@ -195,27 +95,17 @@
       <button class="btn" style="background:#444; flex:1" onclick="cerrarModalMensaje()">✕</button>
       <button class="btn" style="background:#ff8800; color:#000; flex:2" onclick="enviarMensajePista()">ENVIAR</button>
     </div>
-
     <div class="msg-box">
       <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
       <div class="msg-hint" id="msg-hint">Listo para enviar</div>
-
-      <div id="pista-sessions">
-        <div id="pista-stats">
-          <div class="pill">PISTAS ONLINE: <b id="stat-online">0</b></div>
-          <div class="pill">HAN LEÍDO: <b id="stat-read">0</b></div>
-          <div class="pill">TOTAL SESIONES: <b id="stat-total">0</b></div>
-        </div>
-        <div id="pista-list"></div>
-      </div>
     </div>
   </div>
 
-  <img src="logo2.jpg" alt="Logo" class="header-logo" />
+  <img src="logo2.jpg" alt="Logo" class="header-logo">
 
   <div class="card">
     <div class="input-group">
-      <input type="text" id="d-show" placeholder="DORSALES" oninput="buscarPilotoShow(this.value)" />
+      <input type="text" id="d-show" placeholder="DORSALES" oninput="buscarPilotoShow(this.value)">
       <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
     </div>
     <div id="preview-show" style="text-align:center; margin-top:10px; color:#aaa; font-weight:bold;">Introduce dorsal...</div>
@@ -236,26 +126,26 @@
   <div class="card">
     <button class="btn btn-cargar" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
     <div id="txt-count" class="pilotos-count">PILOTOS CARGADOS: 0</div>
-    <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event)" />
+    <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event)">
     <button class="btn btn-reset" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
   </div>
 
-  <!-- Firebase COMPAT (sin módulos) -->
+  <!-- Firebase compat (SIN módulos) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
   <script>
-    // === INIT (misma DB URL que tu código) ===
-    firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
+    // ===== Firebase init (compat) =====
+    const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // ===== Variables =====
     let inscritosD = {};
-    let seleccionados = {};
+    let seleccionados = [];
 
-    // ==========================
-    // MENSAJE A PISTA
-    // ==========================
-    function abrirModalMensaje(){
+    // ===== Mensaje a pista =====
+    function abrirModalMensaje() {
       const modal = document.getElementById('modal-mensaje');
       const txt = document.getElementById('msg-text');
       const hint = document.getElementById('msg-hint');
@@ -263,231 +153,121 @@
       hint.innerText = "Listo para enviar";
       modal.style.display = 'flex';
       setTimeout(()=>txt.focus(), 50);
-      renderSesiones(); // por si ya hay datos
     }
-
-    function cerrarModalMensaje(){
+    function cerrarModalMensaje() {
       document.getElementById('modal-mensaje').style.display = 'none';
     }
-
-    async function enviarMensajePista(){
+    async function enviarMensajePista() {
       const txt = document.getElementById('msg-text').value.trim();
       const hint = document.getElementById('msg-hint');
-      if(!txt){ hint.innerText = "Escribe un mensaje"; return; }
+      if (!txt) { hint.innerText = "Escribe un mensaje"; return; }
 
       const payload = { texto: txt, ts: Date.now() };
-      try{
+      try {
         hint.innerText = "Enviando...";
         await db.ref('mensaje_pista').set(payload);
         hint.innerText = "Enviado ✅";
-      }catch(e){
+        setTimeout(() => { cerrarModalMensaje(); }, 600);
+      } catch (e) {
         console.error(e);
         hint.innerText = "Error al enviar";
       }
     }
 
-    // ==========================
-    // SESIONES PISTA + LECTURAS
-    // ==========================
-    const ONLINE_TTL_MS = 15000;
-    let sesionesPista = {};
-    let ultimoMensaje = null;
-
-    function fmtHora(ts){
-      const d = new Date(ts);
-      const hh = String(d.getHours()).padStart(2,'0');
-      const mm = String(d.getMinutes()).padStart(2,'0');
-      const ss = String(d.getSeconds()).padStart(2,'0');
-      return hh + ":" + mm + ":" + ss;
-    }
-    function fmtAgo(ts){
-      if(!ts) return "-";
-      const s = Math.max(0, Math.floor((Date.now() - ts)/1000));
-      if (s < 60) return s + "s";
-      const m = Math.floor(s/60);
-      if (m < 60) return m + "m";
-      const h = Math.floor(m/60);
-      return h + "h";
-    }
-
-    function renderSesiones(){
-      // solo si el modal está abierto (evita gastar)
-      if(document.getElementById('modal-mensaje').style.display !== 'flex') return;
-
-      const list = document.getElementById('pista-list');
-      const totalEl = document.getElementById('stat-total');
-      const onlineEl = document.getElementById('stat-online');
-      const readEl = document.getElementById('stat-read');
-
-      const now = Date.now();
-      const entries = Object.entries(sesionesPista || {}).map(([id, data]) => ({ id, data: data || {} }));
-      entries.sort((a,b)=> (b.data.lastSeen||0) - (a.data.lastSeen||0));
-
-      const total = entries.length;
-      let onlineCount = 0;
-      let readCount = 0;
-      const msgTs = (ultimoMensaje && ultimoMensaje.ts) ? ultimoMensaje.ts : 0;
-
-      const rows = entries.map(({id, data}) => {
-        const lastSeen = data.lastSeen || 0;
-        const online = lastSeen && (now - lastSeen <= ONLINE_TTL_MS);
-        if(online) onlineCount++;
-
-        const lastRead = data.lastReadTs || 0;
-        const read = msgTs ? (lastRead >= msgTs) : false;
-        if(read) readCount++;
-
-        const shortId = id.length > 22 ? (id.slice(0,10) + "…" + id.slice(-8)) : id;
-
-        return (
-          '<div class="sess-row">' +
-            '<div class="sess-left">' +
-              '<div class="sess-id">' + shortId + '</div>' +
-              '<div class="sess-meta">VISTO: ' + fmtAgo(lastSeen) + ' · LEÍDO: ' + (read ? fmtHora(lastRead) : '-') + '</div>' +
-            '</div>' +
-            '<div class="sess-right">' +
-              '<span class="tag ' + (online ? 'on' : 'off') + '">' + (online ? 'ONLINE' : 'OFF') + '</span>' +
-              '<span class="tag ' + (read ? 'read' : 'wait') + '">' + (read ? 'LEÍDO' : 'PEND') + '</span>' +
-            '</div>' +
-          '</div>'
-        );
-      }).join('');
-
-      list.innerHTML = rows || '<div style="color:#777; text-transform:uppercase; font-weight:bold; text-align:center; padding:12px;">Sin sesiones</div>';
-      totalEl.textContent = total;
-      onlineEl.textContent = onlineCount;
-      readEl.textContent = readCount;
-    }
-
-    db.ref('pista_sessions').on('value', (snap) => {
-      sesionesPista = snap.val() || {};
-      renderSesiones();
-    });
-
-    db.ref('mensaje_pista').on('value', (snap) => {
-      ultimoMensaje = snap.val() || null;
-      renderSesiones();
-    });
-
-    setInterval(renderSesiones, 2000);
-
-    // ==========================
-    // 1. Cargar inscritos
-    // ==========================
-    db.ref('inscritos_drift').on('value', (s) => {
-      inscritosD = s.val() || {};
+    // ===== 1. Cargar inscritos =====
+    db.ref('inscritos_drift').on('value', (snap) => {
+      inscritosD = snap.val() || {};
       document.getElementById('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
     });
 
-    // ==========================
-    // 2. Orden limpieza remota
-    // ==========================
-    db.ref('comando_limpiar').on('value', (snapshot) => {
-      if (snapshot.exists()) {
+    // ===== 2. Orden de limpieza remota =====
+    db.ref('comando_limpiar').on('value', (snap) => {
+      if (snap.exists && snap.exists()) {
+        document.getElementById('d-show').value = "";
+        document.getElementById('preview-show').innerText = "Introduce dorsal...";
+      }
+      // compat snapshot no siempre tiene exists() en todas versiones; fallback:
+      if (snap.val()) {
         document.getElementById('d-show').value = "";
         document.getElementById('preview-show').innerText = "Introduce dorsal...";
       }
     });
 
-    // ==========================
-    // 3. Abrir votación
-    // ==========================
-    async function abrirVoto(){
+    // ===== 3. Abrir votación =====
+    async function abrirVoto() {
       const val = document.getElementById('d-show').value.trim();
       if (!val) return alert("Introduce un dorsal primero");
 
       const dorsalesArr = val.split(/\s+/);
       let items = {};
 
-      const histSnap = await db.ref('historial_votos').once('value');
-      const historialObj = histSnap.val() || {};
-      const historial = Object.values(historialObj);
+      const histSnap = await db.ref('historial_votos').get();
+      const historialObj = histSnap.exists() ? histSnap.val() : null;
+      const historial = historialObj ? Object.values(historialObj) : [];
 
       dorsalesArr.forEach(d => {
         const p = inscritosD[d];
         let h_ap = 0, h_up = 0, h_dw = 0;
         historial.filter(h => h.dorsal === d).forEach(v => {
-          h_ap += (v.ap || 0);
-          h_up += (v.up || 0);
-          h_dw += (v.dw || 0);
+          h_ap += (v.ap || 0); h_up += (v.up || 0); h_dw += (v.dw || 0);
         });
         items[d] = {
-          nombre: p ? p.piloto : ("PILOTO " + d),
+          nombre: p ? p.piloto : "PILOTO " + d,
           coche: p ? p.coche : "",
-          ap: 0, up: 0, dw: 0,
-          h_ap, h_up, h_dw
+          ap: 0, up: 0, dw: 0, h_ap, h_up, h_dw
         };
       });
 
-      if (dorsalesArr.length > 1) {
-        items["BATALLA"] = { nombre: "🔥 BATALLA", coche: "", ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
-      }
+      if (dorsalesArr.length > 1) items["BATALLA"] = { nombre: "🔥 BATALLA", coche: "", ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
 
       await db.ref('votacion_activa').set({ dorsal: val, activa: true, timer: 0, items: items });
       await db.ref('estado_pista').set({ mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
     }
 
-    // ==========================
-    // 4. Votos en vivo
-    // ==========================
+    // ===== 4. Votos en vivo =====
     db.ref('votacion_activa').on('value', (snap) => {
       const v = snap.val();
       const container = document.getElementById('votos-en-vivo');
       if (!v || !v.activa) { container.innerHTML = ""; return; }
 
-      let html = (v.timer > 0) ? ('<div class="timer-master">⏱️ CIERRE EN: ' + v.timer + 's</div>') : "";
+      let html = v.timer > 0 ? `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>` : "";
       if (v.items) {
-        html += Object.entries(v.items).map(([id, data]) => {
-          return (
-            '<div class="piloto-voto-row">' +
-              '<div class="p-info">' + (id === 'BATALLA' ? '🔥 BATALLA' : ('#' + id + ' ' + (data.nombre || ''))) + '</div>' +
-              '<div class="p-stats">' +
-                '<span>👏 ' + (data.ap || 0) + ' (' + ((data.ap||0) + (data.h_ap||0)) + ')</span>' +
-                '<span>👍 ' + (data.up || 0) + ' (' + ((data.up||0) + (data.h_up||0)) + ')</span>' +
-                '<span>👎 ' + (data.dw || 0) + ' (' + ((data.dw||0) + (data.h_dw||0)) + ')</span>' +
-              '</div>' +
-            '</div>'
-          );
-        }).join('');
-        container.innerHTML = html;
+        html += Object.entries(v.items).map(([id, data]) => `
+          <div class="piloto-voto-row">
+            <div class="p-info">${id === 'BATALLA' ? '🔥 BATALLA' : '#' + id + ' ' + data.nombre}</div>
+            <div class="p-stats">
+              <span>👏 ${data.ap || 0} (${(data.ap || 0) + (data.h_ap || 0)})</span>
+              <span>👍 ${data.up || 0} (${(data.up || 0) + (data.h_up || 0)})</span>
+              <span>👎 ${data.dw || 0} (${(data.dw || 0) + (data.h_dw || 0)})</span>
+            </div>
+          </div>
+        `).join('');
       }
+      container.innerHTML = html;
     });
 
-    // ==========================
-    // 5. Estado pista
-    // ==========================
-    async function setEstado(msg, col, id){
+    // ===== 5. Estado pista =====
+    async function setEstado(msg, col, id) {
       await db.ref('estado_pista').set({ mensaje: msg, color: col, id: id });
 
       if (id === 'btn-libre') {
         document.getElementById('d-show').value = "";
         document.getElementById('preview-show').innerText = "Introduce dorsal...";
 
-        const snap = await db.ref('votacion_activa').once('value');
-        const v = snap.val();
-        if (v && v.activa && v.items) {
-          const pushes = [];
-          Object.entries(v.items).forEach(([idItem, data]) => {
-            const sum = (data.ap||0) + (data.up||0) + (data.dw||0);
-            if (sum > 0) {
-              pushes.push(
-                db.ref('historial_votos').push({
-                  dorsal: idItem,
-                  info: data.nombre,
-                  ap: data.ap || 0,
-                  up: data.up || 0,
-                  dw: data.dw || 0,
-                  ts: Date.now()
-                })
-              );
+        const snap = await db.ref('votacion_activa').get();
+        const v = snap.exists() ? snap.val() : null;
+
+        if (v && v.activa) {
+          Object.entries(v.items || {}).forEach(([idItem, data]) => {
+            if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
+              db.ref('historial_votos').push({ dorsal: idItem, info: data.nombre, ap: data.ap || 0, up: data.up || 0, dw: data.dw || 0, ts: Date.now() });
             }
           });
-          await Promise.all(pushes);
 
           let count = 5;
           await db.ref('votacion_activa').update({ timer: count });
 
-          let interval = setInterval(async () => {
+          const interval = setInterval(async () => {
             count--;
             await db.ref('votacion_activa').update({ timer: count });
             if (count <= 0) {
@@ -499,43 +279,39 @@
       }
     }
 
-    // ==========================
-    // 6. Carga CSV
-    // ==========================
-    function cargarCSV(event){
+    // ===== 6. CSV =====
+    function cargarCSV(event) {
       const file = event.target.files && event.target.files[0];
-      if(!file) return;
-
+      if (!file) return;
       const reader = new FileReader();
-      reader.onload = async (e) => {
-        const lines = (e.target.result || "").split(/\r?\n/);
+      reader.onload = (e) => {
+        const text = String(e.target.result || "");
+        const lines = text.split(/\r?\n/);
         let obj = {};
         const sep = (lines[0] || "").includes(';') ? ';' : ',';
-
         lines.slice(1).forEach(l => {
-          if(!l.trim()) return;
+          if (!l.trim()) return;
           const c = l.split(sep);
-          if(c[0]) obj[c[0].trim()] = { piloto: (c[1]||"").trim(), coche: (c[2]||"").trim() };
+          if (c[0]) obj[c[0].trim()] = { piloto: (c[1] || "").trim(), coche: (c[2] || "").trim() };
         });
-
-        await db.ref('inscritos_drift').set(obj);
-        alert("Cargados " + Object.keys(obj).length + " pilotos");
+        db.ref('inscritos_drift').set(obj).then(() => alert("Cargados " + Object.keys(obj).length + " pilotos"));
       };
       reader.readAsText(file);
+      // permitir volver a cargar el mismo archivo
+      event.target.value = "";
     }
 
-    // ==========================
-    // 7. Export
-    // ==========================
-    async function exportarVotos(){
-      const snap = await db.ref('historial_votos').once('value');
+    // ===== 7. Exportación =====
+    async function exportarVotos() {
+      const snap = await db.ref('historial_votos').get();
       if (!snap.exists()) return alert("No hay historial");
-      const data = snap.val() || {};
 
       let csv = "Dorsal,Piloto,Aplausos,Up,Down,Fecha_Hora\n";
+      const data = snap.val() || {};
       Object.values(data).forEach(v => {
         const fecha = new Date(v.ts).toLocaleString('es-ES').replace(/,/g, '');
-        csv += `${v.dorsal},"${String(v.info||"").replace(/"/g,'')}",${v.ap||0},${v.up||0},${v.dw||0},"${fecha}"\n`;
+        const info = String(v.info || "").replace(/"/g, '');
+        csv += `${v.dorsal},"${info}",${v.ap || 0},${v.up || 0},${v.dw || 0},"${fecha}"\n`;
       });
 
       const link = document.createElement("a");
@@ -543,9 +319,66 @@
       link.download = "votos_drift.csv";
       link.click();
 
-      if(confirm("¿Borrar historial de la nube?")) await db.ref('historial_votos').remove();
+      if (confirm("¿Borrar historial de la nube?")) db.ref('historial_votos').remove();
     }
 
-    // ==========================
-    // 8. Buscador + selector
-    // ======================
+    // ===== 8. Búsqueda + selector =====
+    function buscarPilotoShow(val) {
+      if (!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
+      const dorsales = val.trim().split(/\s+/);
+      const encontrados = dorsales.map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : "")).filter(x=>x);
+      document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
+    }
+
+    function abrirSelector() {
+      const grid = document.getElementById('lista-botones-pilotos');
+      grid.innerHTML = "";
+      seleccionados = [];
+
+      Object.keys(inscritosD).sort((a,b)=>Number(a)-Number(b)).forEach(d => {
+        const btn = document.createElement('div');
+        btn.className = 'btn-piloto-selec';
+        btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto}</small>`;
+        btn.onclick = () => {
+          btn.classList.toggle('selected');
+          if (seleccionados.includes(d)) seleccionados = seleccionados.filter(x=>x!==d);
+          else seleccionados.push(d);
+        };
+        grid.appendChild(btn);
+      });
+
+      document.getElementById('modal-selector').style.display = 'flex';
+    }
+
+    function cerrarSelector() { document.getElementById('modal-selector').style.display = 'none'; }
+    function confirmarSeleccion() {
+      document.getElementById('d-show').value = seleccionados.join(" ");
+      buscarPilotoShow(seleccionados.join(" "));
+      cerrarSelector();
+    }
+
+    // ===== 9. Resaltar botón activo =====
+    db.ref('estado_pista').on('value', (snap) => {
+      document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
+      const v = snap.val();
+      if (v && v.id) {
+        const active = document.getElementById(v.id);
+        if (active) active.classList.add('pista-activa');
+      }
+    });
+
+    // ===== Exponer funciones a onclick =====
+    window.abrirVoto = abrirVoto;
+    window.setEstado = setEstado;
+    window.cargarCSV = cargarCSV;
+    window.exportarVotos = exportarVotos;
+    window.buscarPilotoShow = buscarPilotoShow;
+    window.abrirSelector = abrirSelector;
+    window.cerrarSelector = cerrarSelector;
+    window.confirmarSeleccion = confirmarSeleccion;
+    window.abrirModalMensaje = abrirModalMensaje;
+    window.cerrarModalMensaje = cerrarModalMensaje;
+    window.enviarMensajePista = enviarMensajePista;
+  </script>
+</body>
+</html>

@@ -37,7 +37,7 @@
     }
     #toast.show { top: 20px; }
 
-    /* Popup mensaje master */
+    /* Popup mensaje */
     #msg-modal {
       display:none;
       position:fixed;
@@ -109,7 +109,6 @@
   <button id="btn-obs" class="btn-pista btn-obs" onclick="enviarEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
   <button id="btn-acc" class="btn-pista btn-acc" onclick="enviarEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
 
-  <!-- Popup mensaje -->
   <div id="msg-modal">
     <div class="msg-card">
       <div class="msg-title">MENSAJE DEL MÁSTER</div>
@@ -129,162 +128,141 @@
   </script>
 
   <script type="module">
-    (async () => {
-      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
-      const { getDatabase, ref, set, onValue, get, update, push, onDisconnect } =
-        await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, get, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-      const DB_URL = "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com";
-      const db = getDatabase(initializeApp({ databaseURL: DB_URL }));
+    const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-      // ===== Session ID persistente (por dispositivo/pestaña) =====
-      const SESSION_KEY = "pista_session_id";
-      let sessionId = localStorage.getItem(SESSION_KEY);
-      if (!sessionId) {
-        sessionId = "pista-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
-        localStorage.setItem(SESSION_KEY, sessionId);
-      }
+    // ===== Session ID persistente =====
+    const SESSION_KEY = "pista_session_id";
+    let sessionId = localStorage.getItem(SESSION_KEY);
+    if (!sessionId) {
+      sessionId = "pista-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+      localStorage.setItem(SESSION_KEY, sessionId);
+    }
 
-      // ===== Heartbeat online =====
-      const sessionRef = ref(db, `pista_sessions/${sessionId}`);
-      async function heartbeat() {
-        await set(sessionRef, { lastSeen: Date.now(), ua: navigator.userAgent.slice(0, 120) });
-      }
-      // best-effort
-      onDisconnect(sessionRef).set({ lastSeen: Date.now() });
+    // ===== Heartbeat online =====
+    async function heartbeat() {
+      await set(ref(db, `pista_sessions/${sessionId}`), { lastSeen: Date.now() });
+    }
+    heartbeat();
+    setInterval(heartbeat, 10000);
 
-      await heartbeat();
-      setInterval(heartbeat, 10000);
-
-      // ===== Resaltado estado =====
-      onValue(ref(db, 'estado_pista'), (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
+    // ===== Resaltado estado (tu original) =====
+    onValue(ref(db, 'estado_pista'), (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
         document.querySelectorAll('.btn-pista').forEach(btn => {
           btn.classList.add('inactive');
           btn.classList.remove('active-now');
         });
-
         const activeBtn = document.getElementById(data.id);
         if (activeBtn) {
           activeBtn.classList.remove('inactive');
           activeBtn.classList.add('active-now');
         }
-      });
-
-      // ===== Mensajes del máster =====
-      let currentMsgId = "";
-      let currentMsg = null;
-
-      function mostrarMensaje(msg) {
-        document.getElementById('msg-body').innerText = msg.text || "";
-        document.getElementById('msg-sub').innerText = `Sesión: ${sessionId}`;
-        document.getElementById('msg-modal').style.display = 'flex';
-        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
       }
+    });
 
-      // Escucha el último mensaje publicado
-      onValue(ref(db, 'pista_messages'), async (snap) => {
-        const all = snap.val() || {};
-        const arr = Object.values(all).filter(x => x && x.id && x.text).sort((a,b) => (b.ts||0) - (a.ts||0));
-        if (!arr.length) return;
+    // ===== Popup mensaje =====
+    let currentMsgId = "";
+    let currentMsg = null;
 
-        const msg = arr[0];
-        if (!msg?.id) return;
+    function mostrarMensaje(msg) {
+      document.getElementById('msg-body').innerText = msg.text || "";
+      document.getElementById('msg-sub').innerText = `Sesión: ${sessionId}`;
+      document.getElementById('msg-modal').style.display = 'flex';
+      if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+    }
 
-        // Si ya estoy en ese mensaje, no repito
-        if (msg.id === currentMsgId) return;
+    // Escucha el último mensaje (por timestamp)
+    onValue(ref(db, 'pista_messages'), async (snap) => {
+      const all = snap.val() || {};
+      const arr = Object.values(all).filter(x => x && x.id && x.text).sort((a,b) => (b.ts||0) - (a.ts||0));
+      if (!arr.length) return;
 
+      const msg = arr[0];
+      if (!msg?.id) return;
+
+      if (msg.id === currentMsgId) return; // ya visto
+
+      // si ya estaba leído, no mostrar
+      const r = await get(ref(db, `pista_message_reads/${msg.id}/${sessionId}`));
+      if (r.exists() && r.val()?.read === true) {
         currentMsgId = msg.id;
         currentMsg = msg;
+        return;
+      }
 
-        // Si ya lo leí, no lo muestro
-        const readRef = ref(db, `pista_message_reads/${currentMsgId}/${sessionId}`);
-        const r = await get(readRef);
-        if (r.exists() && r.val()?.read === true) return;
+      currentMsgId = msg.id;
+      currentMsg = msg;
+      mostrarMensaje(msg);
+    });
 
-        mostrarMensaje(msg);
-      });
+    window.confirmarLecturaMensaje = async () => {
+      if (!currentMsgId) return;
+      await set(ref(db, `pista_message_reads/${currentMsgId}/${sessionId}`), { read: true, readAt: Date.now() });
+      document.getElementById('msg-modal').style.display = 'none';
+      if (navigator.vibrate) navigator.vibrate(60);
+    };
 
-      // Confirmación lectura
-      window.confirmarLecturaMensaje = async () => {
-        if (!currentMsgId) return;
-        await set(ref(db, `pista_message_reads/${currentMsgId}/${sessionId}`), { read: true, readAt: Date.now() });
-        document.getElementById('msg-modal').style.display = 'none';
-        if (navigator.vibrate) navigator.vibrate(60);
-      };
+    // ===== Tu lógica original de “coche en pista” + cierre =====
+    window.intentarCocheEnPista = async () => {
+      const snapVot = await get(ref(db, 'votacion_activa'));
+      const vot = snapVot.val();
+      if (!vot || !vot.activa || !vot.dorsal) {
+        showToast();
+        return;
+      }
+      enviarEstado('🏎️ COCHE EN PISTA: ' + vot.dorsal, '#007bff', 'btn-coche');
+    };
 
-      // ===== lógica original =====
-      window.intentarCocheEnPista = async () => {
-        const snapVot = await get(ref(db, 'votacion_activa'));
-        const vot = snapVot.val();
+    let cierreEnCurso = false;
 
-        if (!vot || !vot.activa || !vot.dorsal) {
-          showToast();
-          return;
-        }
-        window.enviarEstado('🏎️ COCHE EN PISTA: ' + vot.dorsal, '#007bff', 'btn-coche');
-      };
-
-      let cierreInterval = null;
-      let cierreEnCurso = false;
-
-      async function guardarHistorialSiHayVotos(v) {
-        if (!v?.items) return;
-        Object.entries(v.items).forEach(([idItem, data]) => {
-          const total = (data.ap || 0) + (data.up || 0) + (data.dw || 0);
-          if (total <= 0) return;
-
+    async function guardarHistorialSiHayVotos(v) {
+      if (!v?.items) return;
+      Object.entries(v.items).forEach(([idItem, data]) => {
+        if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
           const payload = { dorsal: idItem, info: data.nombre, ap: data.ap || 0, up: data.up || 0, dw: data.dw || 0, ts: Date.now() };
           if (idItem === "BATALLA") payload.participantes = String(v.dorsal || "").trim();
           push(ref(db, 'historial_votos'), payload);
-        });
-      }
+        }
+      });
+    }
 
-      async function iniciarCierreVotacion() {
-        if (cierreEnCurso) return;
-        cierreEnCurso = true;
+    async function iniciarCierreVotacion() {
+      if (cierreEnCurso) return;
+      cierreEnCurso = true;
 
-        if (cierreInterval) { clearInterval(cierreInterval); cierreInterval = null; }
-
-        const snap = await get(ref(db, 'votacion_activa'));
-        const v = snap.val();
-
-        if (v && v.activa) {
-          await guardarHistorialSiHayVotos(v);
-          let count = 5;
+      const snap = await get(ref(db, 'votacion_activa'));
+      const v = snap.val();
+      if (v && v.activa) {
+        await guardarHistorialSiHayVotos(v);
+        let count = 5;
+        await update(ref(db, 'votacion_activa'), { timer: count });
+        const interval = setInterval(async () => {
+          count--;
           await update(ref(db, 'votacion_activa'), { timer: count });
-
-          cierreInterval = setInterval(async () => {
-            count--;
-            await update(ref(db, 'votacion_activa'), { timer: count });
-            if (count <= 0) {
-              clearInterval(cierreInterval);
-              cierreInterval = null;
-              await set(ref(db, 'votacion_activa'), { activa: false, timer: 0, dorsal: "" });
-              cierreEnCurso = false;
-            }
-          }, 1000);
-        } else {
-          cierreEnCurso = false;
-        }
+          if (count <= 0) {
+            clearInterval(interval);
+            await set(ref(db, 'votacion_activa'), { activa: false, timer: 0, dorsal: "" });
+            cierreEnCurso = false;
+          }
+        }, 1000);
+      } else {
+        cierreEnCurso = false;
       }
+    }
 
-      window.enviarEstado = async (msg, col, id) => {
-        if (navigator.vibrate) navigator.vibrate(60);
-        await set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id });
+    window.enviarEstado = async (msg, col, id) => {
+      if (navigator.vibrate) navigator.vibrate(60);
+      set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
 
-        if (id === 'btn-libre') {
-          await set(ref(db, 'comando_limpiar'), Date.now());
-          await iniciarCierreVotacion();
-        }
-      };
-
-    })().catch(err => {
-      alert("ERROR en PISTA: " + (err?.message || err));
-      console.error(err);
-    });
+      if (id === 'btn-libre') {
+        set(ref(db, 'comando_limpiar'), Date.now());
+        await iniciarCierreVotacion();
+      }
+    };
   </script>
 </body>
 </html>

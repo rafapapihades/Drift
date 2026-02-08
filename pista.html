@@ -81,12 +81,49 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
+        /* =========================================================
+           NUEVO: Sesión única + heartbeat para que MASTER vea online
+           - sessionId persistente (localStorage)
+           - pista_sessions/{sessionId} -> { lastSeen, userAgent, startedAt, lastReadTs }
+           ========================================================= */
+        const LS_KEY = "DRIFT_PISTA_SESSION_ID";
+        let sessionId = localStorage.getItem(LS_KEY);
+        if (!sessionId) {
+            sessionId = "pista_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now().toString(36);
+            localStorage.setItem(LS_KEY, sessionId);
+        }
+
+        const sessionRef = ref(db, `pista_sessions/${sessionId}`);
+
+        async function heartbeat() {
+            try {
+                await update(sessionRef, {
+                    lastSeen: Date.now(),
+                    userAgent: navigator.userAgent || "",
+                    startedAt: startedAt,
+                });
+            } catch (e) {
+                console.error("heartbeat error", e);
+            }
+        }
+
+        const startedAt = Date.now();
+        heartbeat();
+        const hbTimer = setInterval(heartbeat, 5000);
+
+        // Intento de limpieza al cerrar pestaña (best-effort; puede no ejecutarse)
+        window.addEventListener("beforeunload", () => {
+            try { clearInterval(hbTimer); } catch(e){}
+            // No usamos remove forzado para evitar borrar sesiones si el evento no se dispara bien en móvil
+            // Si quieres, luego hacemos un GC en master por TTL.
+        });
+
         /* ==========================
-           NUEVO: escuchar mensaje del master (mensaje_pista)
+           escuchar mensaje del master (mensaje_pista)
            ========================== */
         let ultimoMsgTs = 0;
 
@@ -101,12 +138,21 @@
           document.getElementById('master-msg-text').innerText = m.texto;
           document.getElementById('modal-master-msg').style.display = 'flex';
           if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+
+          // Marcar recibido (opcional: útil para debug / master)
+          update(sessionRef, { lastMsgReceivedTs: m.ts }).catch(()=>{});
         });
 
         window.confirmarLecturaMensaje = async () => {
           document.getElementById('modal-master-msg').style.display = 'none';
-          // ACK mínimo (sin sesiones todavía)
-          await set(ref(db, 'mensaje_pista_ack/last'), { read: true, ts: Date.now() });
+
+          const now = Date.now();
+
+          // ACK mínimo antiguo (lo mantenemos para no romper nada)
+          await set(ref(db, 'mensaje_pista_ack/last'), { read: true, ts: now });
+
+          // NUEVO: marcar lectura por sesión (esto es lo que usará MASTER)
+          await update(sessionRef, { lastReadTs: now });
         };
 
         /* ==========================

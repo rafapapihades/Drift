@@ -1,4 +1,4 @@
-1
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -157,6 +157,14 @@
     bar.textContent = "JS OK (cargado) · " + new Date().toLocaleTimeString();
     document.body.appendChild(bar);
   })();
+</script>
+<script>
+  setTimeout(() => {
+    const bar = document.getElementById("debugbar");
+    const ok = (typeof firebase !== "undefined") && firebase?.database;
+    bar.textContent = bar.textContent + " · Firebase: " + (ok ? "OK" : "NO CARGA");
+    if(!ok) bar.style.background = "#550000";
+  }, 1200);
 </script>
 <body>
   <div id="modal-selector">

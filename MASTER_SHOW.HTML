@@ -398,32 +398,174 @@
       "\"" + esc(fmtDate(p.firstTs)) + "\"," +
       "\"" + esc(fmtDate(p.lastTs)) + "\"," +
       "\"\"" +
+window.exportarVotos = async function () {
+  var snap = await getOnce('historial_votos');
+  if (!snap.exists()) return alert("No hay historial");
+
+  var rows = Object.values(snap.val() || {}).filter(function (r) {
+    return r && r.dorsal && r.ts;
+  });
+
+  // Orden cronológico
+  rows.sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+
+  // 1) Agrupar por "tanda" para deducir participantes de BATALLA
+  var CLUSTER_MS = 1500;
+  var clusters = [];
+  var cur = [];
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (!cur.length) { cur.push(r); continue; }
+    var prev = cur[cur.length - 1];
+    if ((r.ts - (prev.ts || 0)) <= CLUSTER_MS) cur.push(r);
+    else { clusters.push(cur); cur = [r]; }
+  }
+  if (cur.length) clusters.push(cur);
+
+  clusters.forEach(function (c) {
+    var battleIdx = -1;
+    var participants = [];
+    for (var j = 0; j < c.length; j++) {
+      var d = String(c[j].dorsal || "");
+      if (d === "BATALLA") battleIdx = j;
+      else participants.push(d);
+    }
+    if (battleIdx >= 0) {
+      var partTxt = "";
+      if (participants.length === 2) partTxt = participants[0] + " vs " + participants[1];
+      else partTxt = participants.join(" ");
+      c[battleIdx]._participants = partTxt || "?";
+      c[battleIdx]._clusterTs = c[battleIdx].ts;
+    }
+  });
+
+  // Helpers
+  function fmtDate(ts) {
+    return ts ? new Date(ts).toLocaleString('es-ES').replace(/,/g, '') : "";
+  }
+  function esc(s) { return String(s || "").replace(/"/g, ''); }
+  function scoreOf(ap, up, dw) { return (ap * 2) + up - dw; }
+
+  // 2) Agregado por piloto
+  var agg = {}; // dorsal -> acumulados
+  function ensureAgg(d) {
+    if (!agg[d]) {
+      var p = (typeof inscritosD !== "undefined" && inscritosD && inscritosD[d]) ? inscritosD[d] : null;
+      agg[d] = {
+        dorsal: d,
+        nombre: p ? (p.piloto || ("PILOTO " + d)) : ("PILOTO " + d),
+        coche: p ? (p.coche || "") : "",
+        ap: 0, up: 0, dw: 0,
+        veces: 0,
+        firstTs: null,
+        lastTs: null
+      };
+    }
+    return agg[d];
+  }
+
+  // 3) Agrupar BATALLAS por participantes
+  var battlesAgg = {}; // key -> {participantes, ap, up, dw, veces, firstTs, lastTs}
+  function ensureBattle(key) {
+    if (!battlesAgg[key]) {
+      battlesAgg[key] = { participantes: key, ap: 0, up: 0, dw: 0, veces: 0, firstTs: null, lastTs: null };
+    }
+    return battlesAgg[key];
+  }
+
+  rows.forEach(function (v) {
+    var dorsal = String(v.dorsal || "");
+    var ap = Number(v.ap || 0), up = Number(v.up || 0), dw = Number(v.dw || 0);
+
+    if (dorsal === "BATALLA") {
+      var partKey = v._participants || "?";
+      var b = ensureBattle(partKey);
+      b.ap += ap; b.up += up; b.dw += dw;
+      b.veces += 1;
+      if (b.firstTs === null || v.ts < b.firstTs) b.firstTs = v.ts;
+      if (b.lastTs === null || v.ts > b.lastTs) b.lastTs = v.ts;
+      return;
+    }
+
+    var a = ensureAgg(dorsal);
+    a.ap += ap; a.up += up; a.dw += dw;
+    a.veces += 1;
+    if (a.firstTs === null || v.ts < a.firstTs) a.firstTs = v.ts;
+    if (a.lastTs === null || v.ts > a.lastTs) a.lastTs = v.ts;
+  });
+
+  // Pilotos a array + score + ordenar por score desc
+  var pilotos = Object.values(agg).map(function (p) {
+    p.score = scoreOf(p.ap || 0, p.up || 0, p.dw || 0);
+    return p;
+  });
+
+  pilotos.sort(function (a, b) {
+    if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
+    // desempate: aplausos desc
+    if ((b.ap || 0) !== (a.ap || 0)) return (b.ap || 0) - (a.ap || 0);
+    // desempate: dorsal num asc si aplica
+    var na = Number(a.dorsal), nb = Number(b.dorsal);
+    var aNum = isFinite(na), bNum = isFinite(nb);
+    if (aNum && bNum) return na - nb;
+    return String(a.dorsal).localeCompare(String(b.dorsal));
+  });
+
+  // Batallas a array + score + ordenar por score desc
+  var battles = Object.values(battlesAgg).map(function (b) {
+    b.score = scoreOf(b.ap || 0, b.up || 0, b.dw || 0);
+    return b;
+  });
+
+  battles.sort(function (a, b) {
+    if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
+    if ((b.ap || 0) !== (a.ap || 0)) return (b.ap || 0) - (a.ap || 0);
+    return String(a.participantes).localeCompare(String(b.participantes));
+  });
+
+  // 4) Construir CSVs
+  var csvPilotos = "Rank,Dorsal,Piloto,Coche,Aplausos,Up,Down,Score,Veces,Primera,Ultima\n";
+  pilotos.forEach(function (p, idx) {
+    csvPilotos +=
+      (idx + 1) + "," +
+      esc(p.dorsal) + "," +
+      "\"" + esc(p.nombre) + "\"," +
+      "\"" + esc(p.coche) + "\"," +
+      (p.ap || 0) + "," + (p.up || 0) + "," + (p.dw || 0) + "," +
+      (p.score || 0) + "," +
+      (p.veces || 0) + "," +
+      "\"" + esc(fmtDate(p.firstTs)) + "\"," +
+      "\"" + esc(fmtDate(p.lastTs)) + "\"" +
       "\n";
   });
 
-  // Separador visual (sigue siendo CSV válido)
-  csv += "\n";
-  csv += "TIPO,Dorsal,Piloto,Coche,Aplausos,Up,Down,Veces,Primera,Ultima,Participantes\n";
-
-  // BATALLAS (orden cronológico)
-  battles.sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
-  battles.forEach(function(b){
-    csv += "BATALLA," +
-      "\"\"" + "," + "\"\"" + "," + "\"\"" + "," +
-      (b.ap||0) + "," + (b.up||0) + "," + (b.dw||0) + "," +
-      "1," +
-      "\"" + esc(fmtDate(b.ts)) + "\"," +
-      "\"" + esc(fmtDate(b.ts)) + "\"," +
-      "\"" + esc(b.participantes || "?") + "\"" +
+  var csvBatallas = "Rank,Participantes,Aplausos,Up,Down,Score,Veces,Primera,Ultima\n";
+  battles.forEach(function (b, idx) {
+    csvBatallas +=
+      (idx + 1) + "," +
+      "\"" + esc(b.participantes) + "\"," +
+      (b.ap || 0) + "," + (b.up || 0) + "," + (b.dw || 0) + "," +
+      (b.score || 0) + "," +
+      (b.veces || 0) + "," +
+      "\"" + esc(fmtDate(b.firstTs)) + "\"," +
+      "\"" + esc(fmtDate(b.lastTs)) + "\"" +
       "\n";
   });
 
-  var link = document.createElement("a");
-  link.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'}));
-  link.download = "votos_drift_agrupados.csv";
-  link.click();
+  // Descargar 2 archivos
+  function downloadCsv(filename, content) {
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob(["\ufeff" + content], { type: 'text/csv;charset=utf-8;' }));
+    link.download = filename;
+    link.click();
+  }
 
-  if(confirm("¿Borrar historial de la nube?")) db.ref('historial_votos').remove();
+  downloadCsv("ranking_pilotos.csv", csvPilotos);
+  setTimeout(function () {
+    downloadCsv("batallas.csv", csvBatallas);
+  }, 250);
+
+  if (confirm("¿Borrar historial de la nube?")) db.ref('historial_votos').remove();
 };
 
       window.abrirVoto = async function(){

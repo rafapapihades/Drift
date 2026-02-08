@@ -7,22 +7,22 @@
     <style>
         * { box-sizing: border-box; }
         body { background: #000; color: #fff; font-family: sans-serif; padding: 0 10px 10px 10px; margin: 0; overflow-x: hidden; }
-
-        .header-logo {
-            display: block;
-            margin: 0 auto;
-            width: 100%;
+        
+        .header-logo { 
+            display: block; 
+            margin: 0 auto; 
+            width: 100%; 
             max-width: 500px;
-            height: auto;
+            height: auto; 
             padding: 5px 0;
         }
 
         .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; width: 100%; }
-
+        
         .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
         .btn-pista { opacity: 0.25; }
         .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
-
+        
         .input-group { display: flex; gap: 8px; width: 100%; }
         input { flex: 1; min-width: 0; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
         .btn-lupa { width: 60px; flex-shrink: 0; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -37,7 +37,7 @@
 
         .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
         .btn-cargar { background: #222; border: 1px dashed #444; color: #bbb; font-size: 0.8em; margin-top: 5px; padding: 12px; margin-bottom: 5px; }
-
+        
         .pilotos-count { color: #888; font-size: 0.75em; margin: 2px 0 12px 0; text-align: center; text-transform: uppercase; font-weight: bold; }
 
         #modal-selector { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; padding: 10px; }
@@ -91,7 +91,7 @@
         }
 
         /* ==========================
-           SESIONES PISTA + LEÍDOS (solo UI en modal)
+           SESIONES PISTA + LEÍDOS (UI)
            ========================== */
         .sess-bar {
             display:flex;
@@ -171,7 +171,7 @@
 
     <div class="card">
         <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
-
+        
         <div id="votos-en-vivo" class="vote-stats-container"></div>
 
         <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
@@ -194,78 +194,8 @@
         import { getDatabase, ref, set, onValue, get, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
-        let inscritosD = {};
+        let inscritosD = {}; 
         let seleccionados = [];
-
-        /* =========================================================
-           SESIONES PISTA + LEÍDOS (solo lectura / UI)
-           Requiere que "pista" escriba en:
-             pista_sessions/<SESSION_ID> = { lastSeen: <ms>, lastReadTs: <ms> }
-           y que el mensaje se publique en:
-             mensaje_pista = { texto: "...", ts: <ms> }
-           ========================================================= */
-        const PISTA_TTL_MS = 15000;
-        let pistaSessions = {};
-        let lastMsgTs = 0;
-
-        const pad2 = (n)=>String(n).padStart(2,'0');
-        const fmtHMS = (ts)=>{ const d=new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
-
-        function getOnlineSessions() {
-            const now = Date.now();
-            const out = [];
-            Object.entries(pistaSessions || {}).forEach(([id, v]) => {
-                const lastSeen = v?.lastSeen || 0;
-                if ((now - lastSeen) <= PISTA_TTL_MS) out.push({ id, lastSeen, lastReadTs: v?.lastReadTs || 0 });
-            });
-            out.sort((a,b)=>b.lastSeen - a.lastSeen);
-            return out;
-        }
-
-        function renderSessionsUI() {
-            const modal = document.getElementById('modal-mensaje');
-            if (!modal || modal.style.display !== 'flex') return;
-
-            const list = document.getElementById('sess-list');
-            const online = getOnlineSessions();
-
-            document.getElementById('sess-online').innerText = String(online.length);
-            document.getElementById('sess-total').innerText  = String(online.length);
-
-            let readCount = 0;
-            list.innerHTML = "";
-
-            online.forEach(s => {
-                const isRead = (lastMsgTs > 0) ? (s.lastReadTs >= lastMsgTs) : false;
-                if (isRead) readCount++;
-
-                const row = document.createElement('div');
-                row.className = 'sess-row';
-                row.innerHTML = `
-                    <div class="sess-left">
-                        <div class="sess-id">${s.id}</div>
-                        <div class="sess-last">Último: ${s.lastSeen ? fmtHMS(s.lastSeen) : '-'}</div>
-                    </div>
-                    <div class="badge ${isRead ? 'badge-ok' : 'badge-no'}">${isRead ? 'LEÍDO' : 'PENDIENTE'}</div>
-                `;
-                list.appendChild(row);
-            });
-
-            document.getElementById('sess-read').innerText = String(readCount);
-        }
-
-        onValue(ref(db, 'pista_sessions'), (snap) => {
-            pistaSessions = snap.val() || {};
-            renderSessionsUI();
-        });
-
-        onValue(ref(db, 'mensaje_pista'), (snap) => {
-            const m = snap.val();
-            lastMsgTs = (m && m.ts) ? m.ts : 0;
-            renderSessionsUI();
-        });
-
-        setInterval(renderSessionsUI, 3000);
 
         /* ==========================
            MENSAJE A PISTA (ENVÍO SIMPLE)
@@ -278,7 +208,9 @@
             hint.innerText = "Listo para enviar";
             modal.style.display = 'flex';
             setTimeout(()=>txt.focus(), 50);
-            renderSessionsUI();
+
+            // Actualiza lista si ya hay datos
+            try { renderSessionsUI(); } catch(e) {}
         };
 
         window.cerrarModalMensaje = () => {
@@ -295,9 +227,10 @@
             try {
                 hint.innerText = "Enviando...";
                 await set(ref(db, 'mensaje_pista'), payload);
-                lastMsgTs = payload.ts; // para que el “LEÍDO/PENDIENTE” compare contra este mensaje
+                // actualizar comparador de "leído"
+                try { lastMsgTs = payload.ts; } catch(e) {}
                 hint.innerText = "Enviado ✅";
-                renderSessionsUI();
+                try { renderSessionsUI(); } catch(e) {}
                 setTimeout(() => { cerrarModalMensaje(); }, 600);
             } catch (e) {
                 console.error(e);
@@ -306,8 +239,8 @@
         };
 
         // 1. Cargar inscritos
-        onValue(ref(db, 'inscritos_drift'), s => {
-            inscritosD = s.val() || {};
+        onValue(ref(db, 'inscritos_drift'), s => { 
+            inscritosD = s.val() || {}; 
             document.getElementById('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
         });
 
@@ -323,7 +256,7 @@
         window.abrirVoto = async () => {
             const val = document.getElementById('d-show').value.trim();
             if (!val) return alert("Introduce un dorsal primero");
-
+            
             const dorsalesArr = val.split(/\s+/);
             let items = {};
             const histSnap = await get(ref(db, 'historial_votos'));
@@ -335,10 +268,10 @@
                 historial.filter(h => h.dorsal === d).forEach(v => {
                     h_ap += (v.ap || 0); h_up += (v.up || 0); h_dw += (v.dw || 0);
                 });
-                items[d] = {
-                    nombre: p ? p.piloto : "PILOTO " + d,
-                    coche: p ? p.coche : "",
-                    ap: 0, up: 0, dw: 0, h_ap, h_up, h_dw
+                items[d] = { 
+                    nombre: p ? p.piloto : "PILOTO " + d, 
+                    coche: p ? p.coche : "", 
+                    ap: 0, up: 0, dw: 0, h_ap, h_up, h_dw 
                 };
             });
 
@@ -375,7 +308,7 @@
             if (id === 'btn-libre') {
                 document.getElementById('d-show').value = "";
                 document.getElementById('preview-show').innerText = "Introduce dorsal...";
-
+                
                 const snap = await get(ref(db, 'votacion_activa'));
                 const v = snap.val();
                 if (v && v.activa) {
@@ -389,9 +322,9 @@
                     let interval = setInterval(() => {
                         count--;
                         update(ref(db, 'votacion_activa'), { timer: count });
-                        if (count <= 0) {
-                            clearInterval(interval);
-                            set(ref(db, 'votacion_activa'), { activa: false, timer: 0, dorsal: "" });
+                        if (count <= 0) { 
+                            clearInterval(interval); 
+                            set(ref(db, 'votacion_activa'), { activa: false, timer: 0, dorsal: "" }); 
                         }
                     }, 1000);
                 }
@@ -433,4 +366,55 @@
         };
 
         // 8. Utilidades de búsqueda y selector
-       
+        window.buscarPilotoShow = (val) => {
+            if (!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
+            const dorsales = val.trim().split(/\s+/);
+            const encontrados = dorsales.map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : "")).filter(x=>x);
+            document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
+        };
+
+        window.abrirSelector = () => {
+            const grid = document.getElementById('lista-botones-pilotos');
+            grid.innerHTML = ""; seleccionados = [];
+            Object.keys(inscritosD).sort((a,b)=>a-b).forEach(d => {
+                const btn = document.createElement('div');
+                btn.className = 'btn-piloto-selec';
+                btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto}</small>`;
+                btn.onclick = () => { btn.classList.toggle('selected'); seleccionados.includes(d) ? seleccionados = seleccionados.filter(x=>x!==d) : seleccionados.push(d); };
+                grid.appendChild(btn);
+            });
+            document.getElementById('modal-selector').style.display = 'flex';
+        };
+
+        window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
+        window.confirmarSeleccion = () => { 
+            document.getElementById('d-show').value = seleccionados.join(" "); 
+            buscarPilotoShow(seleccionados.join(" ")); 
+            cerrarSelector(); 
+        };
+
+        // 9. Resaltar botón de estado activo
+        onValue(ref(db, 'estado_pista'), s => {
+            document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
+            if(s.val()?.id) {
+                const active = document.getElementById(s.val().id);
+                if(active) active.classList.add('pista-activa');
+            }
+        });
+
+        /* =========================================================
+           BLOQUE SESIONES (PROTEGIDO)
+           Si este bloque falla, NO rompe CSV/lupa/botones.
+           ========================================================= */
+        try {
+            const PISTA_TTL_MS = 15000;
+            let pistaSessions = {};
+            let lastMsgTs = 0;
+
+            const pad2 = (n)=>String(n).padStart(2,'0');
+            const fmtHMS = (ts)=>{ const d=new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
+
+            function getOnlineSessions() {
+                const now = Date.now();
+                const out = [];
+                Object.entries(pistaSessions || {}).forEach(([id, v]) =

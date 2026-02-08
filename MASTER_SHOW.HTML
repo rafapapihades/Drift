@@ -45,20 +45,50 @@
         .btn-piloto-selec { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; text-align: center; min-height: 70px; display: flex; flex-direction: column; justify-content: center; }
         .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
 
-        /* === NUEVO: Modal Mensaje a Pista === */
-        #modal-mensaje { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:1200; flex-direction:column; padding:10px; }
-        .mensaje-box { background:#111; border:1px solid #333; border-radius:12px; padding:12px; margin-bottom:10px; }
-        #mensaje-texto { width:100%; min-height:100px; padding:12px; border-radius:10px; border:1px solid #444; background:#000; color:#ffcc00; font-size:1.05em; outline:none; resize:vertical; }
-        .row-btns { display:flex; gap:10px; margin-bottom:10px; }
-        .mini { font-size:0.8em; color:#bbb; text-transform:uppercase; font-weight:bold; display:flex; justify-content:space-between; gap:10px; margin-top:10px; }
-        .lista-sesiones { margin-top:10px; overflow:auto; flex:1; }
-        .sesion { background:#151515; border:1px solid #333; border-radius:10px; padding:10px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-        .sesion-left { display:flex; flex-direction:column; gap:2px; min-width:0; }
-        .sesion-id { font-weight:bold; color:#fff; font-size:0.9em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .sesion-last { font-size:0.75em; color:#888; }
-        .badge { padding:6px 10px; border-radius:999px; font-weight:bold; font-size:0.75em; white-space:nowrap; }
-        .badge-ok { background:#00b050; color:#000; }
-        .badge-no { background:#ff4444; color:#000; }
+        /* ==========================
+           NUEVO: MODAL MENSAJE (solo UI)
+           ========================== */
+        #modal-mensaje {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 1100;
+            flex-direction: column;
+            padding: 10px;
+        }
+        .msg-top {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .msg-box {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 12px;
+        }
+        #msg-text {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            background: #000;
+            color: #ffcc00;
+            font-size: 1.05em;
+            outline: none;
+            resize: vertical;
+        }
+        .msg-hint {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #888;
+            text-transform: uppercase;
+            font-weight: bold;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -71,19 +101,18 @@
         <div id="lista-botones-pilotos" class="grid-pilotos"></div>
     </div>
 
-    <!-- === NUEVO: Modal Mensaje a Pista === -->
+    <!-- ==========================
+         NUEVO: MODAL MENSAJE (solo UI)
+         ========================== -->
     <div id="modal-mensaje">
-        <div class="row-btns">
-            <button class="btn" style="background:#444; flex:1" onclick="cancelarMensaje()">✕ CANCELAR</button>
-            <button class="btn" style="background:#ff8800; color:#000; flex:2" onclick="enviarMensajePista()">✓ ENVIAR</button>
+        <div class="msg-top">
+            <button class="btn" style="background:#444; flex:1" onclick="cerrarModalMensaje()">✕</button>
+            <button class="btn" style="background:#ff8800; color:#000; flex:2" onclick="cerrarModalMensaje()">CERRAR</button>
         </div>
-        <div class="mensaje-box">
-            <textarea id="mensaje-texto" placeholder="Escribe un mensaje para PISTA..."></textarea>
-            <div class="mini">
-                <div>PISTA ONLINE: <span id="stat-online">0</span></div>
-                <div>LEÍDOS: <span id="stat-read">0</span>/<span id="stat-total">0</span></div>
-            </div>
-            <div id="lista-sesiones" class="lista-sesiones"></div>
+
+        <div class="msg-box">
+            <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
+            <div class="msg-hint">Solo interfaz (aún no se envía)</div>
         </div>
     </div>
 
@@ -106,7 +135,9 @@
         <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
         <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
 
-        <!-- === NUEVO: botón naranja debajo de accidente === -->
+        <!-- ==========================
+             NUEVO: BOTÓN (solo abre el modal)
+             ========================== -->
         <button id="btn-msg" class="btn" style="background:#ff8800; color:#000" onclick="abrirModalMensaje()">MENSAJE A PISTA</button>
     </div>
 
@@ -124,118 +155,19 @@
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
         let inscritosD = {}; let seleccionados = [];
 
-        // === NUEVO: tracking sesiones de Pista y lecturas ===
-        const ONLINE_TTL_MS = 25000;
-        let pistaSessions = {};       // {sessionId:{lastSeen:...}}
-        let msgActualId = "";         // id del mensaje enviado
-        let msgReads = {};            // {sessionId:{read:true/false, readAt:...}}
-
-        const pad2 = (n)=>String(n).padStart(2,'0');
-        const fmtHMS = (ts)=>{ const d=new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
-
-        function sesionesOnline() {
-            const now = Date.now();
-            return Object.entries(pistaSessions||{})
-              .map(([id,v])=>({id, lastSeen: v?.lastSeen || 0}))
-              .filter(s => (now - s.lastSeen) <= ONLINE_TTL_MS)
-              .sort((a,b)=>b.lastSeen - a.lastSeen);
-        }
-
-        function renderSesiones() {
-            const list = document.getElementById('lista-sesiones');
-            if (!list) return;
-
-            const online = sesionesOnline();
-            document.getElementById('stat-online').innerText = String(online.length);
-            document.getElementById('stat-total').innerText = String(online.length);
-
-            let leidos = 0;
-            list.innerHTML = "";
-
-            online.forEach(s => {
-                const r = msgActualId ? (msgReads?.[s.id] || null) : null;
-                const isRead = !!(r && r.read === true);
-                if (isRead) leidos++;
-
-                const row = document.createElement('div');
-                row.className = 'sesion';
-                row.innerHTML = `
-                  <div class="sesion-left">
-                    <div class="sesion-id">${s.id}</div>
-                    <div class="sesion-last">Último: ${s.lastSeen ? fmtHMS(s.lastSeen) : '-'}</div>
-                  </div>
-                  <div class="badge ${isRead ? 'badge-ok' : 'badge-no'}">${isRead ? 'LEÍDO' : 'PENDIENTE'}</div>
-                `;
-                list.appendChild(row);
-            });
-
-            document.getElementById('stat-read').innerText = msgActualId ? String(leidos) : "0";
-        }
-
+        /* ==========================
+           NUEVO: funciones UI del mensaje (sin Firebase)
+           ========================== */
         window.abrirModalMensaje = () => {
-            document.getElementById('mensaje-texto').value = "";
-            document.getElementById('modal-mensaje').style.display = 'flex';
-            // si no hay mensaje activo, solo mostramos online
-            renderSesiones();
+            const modal = document.getElementById('modal-mensaje');
+            const txt = document.getElementById('msg-text');
+            txt.value = "";
+            modal.style.display = 'flex';
+            setTimeout(()=>txt.focus(), 50);
         };
-
-        window.cancelarMensaje = () => {
+        window.cerrarModalMensaje = () => {
             document.getElementById('modal-mensaje').style.display = 'none';
-            document.getElementById('mensaje-texto').value = "";
-            document.getElementById('lista-sesiones').innerHTML = "";
-            document.getElementById('stat-online').innerText = "0";
-            document.getElementById('stat-read').innerText = "0";
-            document.getElementById('stat-total').innerText = "0";
-            msgActualId = "";
-            msgReads = {};
         };
-
-        // Escuchar sesiones de pista (requiere que "pista" publique heartbeat en pista_sessions)
-        onValue(ref(db, 'pista_sessions'), s => {
-            pistaSessions = s.val() || {};
-            if (document.getElementById('modal-mensaje').style.display === 'flex') renderSesiones();
-        });
-
-        function escucharLecturas(msgId) {
-            onValue(ref(db, `pista_message_reads/${msgId}`), s => {
-                if (msgId !== msgActualId) return;
-                msgReads = s.val() || {};
-                if (document.getElementById('modal-mensaje').style.display === 'flex') renderSesiones();
-            });
-        }
-
-        window.enviarMensajePista = async () => {
-            const txt = document.getElementById('mensaje-texto').value.trim();
-            if (!txt) return alert("Escribe un mensaje.");
-
-            const online = sesionesOnline();
-            if (online.length === 0) return alert("No hay sesiones de PISTA online (necesitas la PISTA nueva con heartbeat).");
-
-            // Crear mensaje con push
-            const msgRef = push(ref(db, 'pista_messages'));
-            const msgId = msgRef.key;
-
-            // Crear estructura de lecturas para las sesiones online
-            let updates = {};
-            updates[`pista_messages/${msgId}`] = { id: msgId, text: txt, ts: Date.now() };
-            online.forEach(s => {
-                updates[`pista_message_reads/${msgId}/${s.id}`] = { read: false, readAt: 0 };
-            });
-
-            await update(ref(db), updates);
-
-            msgActualId = msgId;
-            msgReads = {};
-            escucharLecturas(msgId);
-
-            document.getElementById('mensaje-texto').value = "";
-            renderSesiones();
-        };
-
-        // refresco suave mientras el modal está abierto (por si expiran sesiones)
-        setInterval(() => {
-            if (document.getElementById('modal-mensaje').style.display === 'flex') renderSesiones();
-        }, 5000);
 
         // 1. Cargar inscritos
         onValue(ref(db, 'inscritos_drift'), s => { 
@@ -371,4 +303,37 @@
             if (!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
             const dorsales = val.trim().split(/\s+/);
             const encontrados = dorsales.map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : "")).filter(x=>x);
-            document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no enco
+            document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
+        };
+
+        window.abrirSelector = () => {
+            const grid = document.getElementById('lista-botones-pilotos');
+            grid.innerHTML = ""; seleccionados = [];
+            Object.keys(inscritosD).sort((a,b)=>a-b).forEach(d => {
+                const btn = document.createElement('div');
+                btn.className = 'btn-piloto-selec';
+                btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto}</small>`;
+                btn.onclick = () => { btn.classList.toggle('selected'); seleccionados.includes(d) ? seleccionados = seleccionados.filter(x=>x!==d) : seleccionados.push(d); };
+                grid.appendChild(btn);
+            });
+            document.getElementById('modal-selector').style.display = 'flex';
+        };
+
+        window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
+        window.confirmarSeleccion = () => { 
+            document.getElementById('d-show').value = seleccionados.join(" "); 
+            buscarPilotoShow(seleccionados.join(" ")); 
+            cerrarSelector(); 
+        };
+
+        // 9. Resaltar botón de estado activo
+        onValue(ref(db, 'estado_pista'), s => {
+            document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
+            if(s.val()?.id) {
+                const active = document.getElementById(s.val().id);
+                if(active) active.classList.add('pista-activa');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+1
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,59 +9,47 @@
     * { box-sizing: border-box; }
     body { background: #000; color: #fff; font-family: sans-serif; padding: 0 10px 10px 10px; margin: 0; overflow-x: hidden; }
 
-    .header-logo {
-      display: block;
-      margin: 0 auto;
-      width: 100%;
-      max-width: 500px;
-      height: auto;
-      padding: 5px 0;
+    .header-logo { display:block; margin:0 auto; width:100%; max-width:500px; height:auto; padding:5px 0; }
+
+    .card { background:#111; padding:15px; border-radius:12px; margin-bottom:10px; border:1px solid #333; width:100%; }
+
+    .btn { width:100%; padding:18px; border-radius:10px; border:none; font-weight:bold; margin-bottom:8px; cursor:pointer; transition:0.3s; color:white; text-transform:uppercase; }
+    .btn-pista { opacity:0.25; }
+    .pista-activa { opacity:1 !important; transform:scale(1.02); outline:3px solid #fff; box-shadow:0 0 20px rgba(255,255,255,0.5); }
+
+    .input-group { display:flex; gap:8px; width:100%; }
+    input { flex:1; min-width:0; padding:15px; background:#000; color:#ffcc00; border:1px solid #444; border-radius:8px; text-align:center; font-size:1.4em; }
+    .btn-lupa { width:60px; flex-shrink:0; background:#222; border:1px solid #444; border-radius:8px; color:#ffcc00; font-size:1.5em; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+    .vote-stats-container { margin:10px 0; }
+    .piloto-voto-row { background:#222; padding:10px; border-radius:8px; margin-bottom:5px; border-left:4px solid #ffcc00; }
+    .p-info { font-weight:bold; font-size:0.9em; margin-bottom:5px; color:#fff; text-transform:uppercase; }
+    .p-stats { display:flex; justify-content:space-around; color:#ffcc00; font-size:1.1em; }
+
+    .timer-master { background:#ff4444; color:white; padding:10px; border-radius:8px; font-weight:bold; margin-bottom:10px; font-size:1.2em; animation:parpadeo 1s infinite; text-align:center; }
+    @keyframes parpadeo { 50% { opacity:0.5; } }
+
+    .btn-reset { background:#444; opacity:1; font-size:0.7em; margin-top:5px; }
+    .btn-cargar { background:#222; border:1px dashed #444; color:#bbb; font-size:0.8em; margin-top:5px; padding:12px; margin-bottom:5px; }
+    .pilotos-count { color:#888; font-size:0.75em; margin:2px 0 12px 0; text-align:center; text-transform:uppercase; font-weight:bold; }
+
+    #modal-selector { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:1000; flex-direction:column; padding:10px; }
+    .grid-pilotos { display:grid; grid-template-columns:1fr 1fr; gap:8px; overflow-y:auto; flex:1; }
+    .btn-piloto-selec { background:#111; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; text-align:center; min-height:70px; display:flex; flex-direction:column; justify-content:center; }
+    .btn-piloto-selec.selected { background:#332200; border-color:#ffcc00; }
+
+    /* ===== Desplegable MENSAJE (debajo del botón) ===== */
+    #panel-mensaje {
+      display:none;
+      margin-top:10px;
+      background:#0b0b0b;
+      border:1px solid #333;
+      border-radius:12px;
+      padding:12px;
     }
-
-    .card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; width: 100%; }
-
-    .btn { width: 100%; padding: 18px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 8px; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; }
-    .btn-pista { opacity: 0.25; }
-    .pista-activa { opacity: 1 !important; transform: scale(1.02); outline: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
-
-    .input-group { display: flex; gap: 8px; width: 100%; }
-    input { flex: 1; min-width: 0; padding: 15px; background: #000; color: #ffcc00; border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.4em; }
-    .btn-lupa { width: 60px; flex-shrink: 0; background: #222; border: 1px solid #444; border-radius: 8px; color: #ffcc00; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-    .vote-stats-container { margin: 10px 0; }
-    .piloto-voto-row { background: #222; padding: 10px; border-radius: 8px; margin-bottom: 5px; border-left: 4px solid #ffcc00; }
-    .p-info { font-weight: bold; font-size: 0.9em; margin-bottom: 5px; color: #fff; text-transform: uppercase; }
-    .p-stats { display: flex; justify-content: space-around; color: #ffcc00; font-size: 1.1em; }
-
-    .timer-master { background:#ff4444; color:white; padding:10px; border-radius:8px; font-weight:bold; margin-bottom:10px; font-size:1.2em; animation: parpadeo 1s infinite; text-align: center; }
-    @keyframes parpadeo { 50% { opacity: 0.5; } }
-
-    .btn-reset { background: #444; opacity: 1; font-size: 0.7em; margin-top: 5px; }
-    .btn-cargar { background: #222; border: 1px dashed #444; color: #bbb; font-size: 0.8em; margin-top: 5px; padding: 12px; margin-bottom: 5px; }
-
-    .pilotos-count { color: #888; font-size: 0.75em; margin: 2px 0 12px 0; text-align: center; text-transform: uppercase; font-weight: bold; }
-
-    #modal-selector { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; padding: 10px; }
-    .grid-pilotos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; }
-    .btn-piloto-selec { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; text-align: center; min-height: 70px; display: flex; flex-direction: column; justify-content: center; }
-    .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
-
-    /* MODAL MENSAJE */
-    #modal-mensaje {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: #000;
-      z-index: 1100;
-      flex-direction: column;
-      padding: 10px;
-    }
-    .msg-top { display:flex; gap:10px; margin-bottom:10px; }
-    .msg-box { background:#111; border:1px solid #333; border-radius:12px; padding:12px; }
     #msg-text {
       width:100%;
-      min-height:120px;
+      min-height:110px;
       padding:12px;
       border-radius:10px;
       border:1px solid #444;
@@ -70,14 +59,8 @@
       outline:none;
       resize:vertical;
     }
-    .msg-hint {
-      margin-top:10px;
-      font-size:0.85em;
-      color:#888;
-      text-transform:uppercase;
-      font-weight:bold;
-      text-align:center;
-    }
+    .msg-row { display:flex; gap:10px; margin-top:10px; }
+    .msg-hint { margin-top:10px; font-size:0.85em; color:#888; text-transform:uppercase; font-weight:bold; text-align:center; }
   </style>
 </head>
 <body>
@@ -88,17 +71,6 @@
       <button class="btn" style="background:green; flex:1" onclick="confirmarSeleccion()">✓ LISTO</button>
     </div>
     <div id="lista-botones-pilotos" class="grid-pilotos"></div>
-  </div>
-
-  <div id="modal-mensaje">
-    <div class="msg-top">
-      <button class="btn" style="background:#444; flex:1" onclick="cerrarModalMensaje()">✕</button>
-      <button class="btn" style="background:#ff8800; color:#000; flex:2" onclick="enviarMensajePista()">ENVIAR</button>
-    </div>
-    <div class="msg-box">
-      <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
-      <div class="msg-hint" id="msg-hint">Listo para enviar</div>
-    </div>
   </div>
 
   <img src="logo2.jpg" alt="Logo" class="header-logo">
@@ -120,7 +92,23 @@
     <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
     <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
 
-    <button id="btn-msg" class="btn" style="background:#ff8800; color:#000" onclick="abrirModalMensaje()">MENSAJE A PISTA</button>
+    <button id="btn-msg" class="btn" style="background:#ff8800; color:#000" onclick="togglePanelMensaje()">MENSAJE A PISTA</button>
+
+    <!-- DESPLEGABLE -->
+    <div id="panel-mensaje">
+      <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
+
+      <div class="msg-row">
+        <button class="btn" style="background:#ff8800; color:#000; flex:2; margin-bottom:0" onclick="enviarMensajePista()">ENVIAR</button>
+        <button class="btn" style="background:#444; flex:1; margin-bottom:0" onclick="ocultarPanelMensaje()">CERRAR</button>
+      </div>
+
+      <button class="btn" style="background:#222; border:1px solid #444; margin-top:10px; margin-bottom:0"
+              onclick="eliminarMensajePista()">🗑️ ELIMINAR MENSAJE</button>
+
+      <div class="msg-hint" id="msg-hint">Listo</div>
+      <div class="msg-hint" id="msg-sent-info" style="display:none;"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -135,31 +123,34 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
   <script>
-    // ===== Firebase init (compat) =====
     const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ===== Variables =====
     let inscritosD = {};
     let seleccionados = [];
 
-    // ===== Mensaje a pista =====
-    function abrirModalMensaje() {
-      const modal = document.getElementById('modal-mensaje');
-      const txt = document.getElementById('msg-text');
-      const hint = document.getElementById('msg-hint');
-      txt.value = "";
-      hint.innerText = "Listo para enviar";
-      modal.style.display = 'flex';
-      setTimeout(()=>txt.focus(), 50);
+    /* ==========================
+       MENSAJE A PISTA (DESPLEGABLE)
+       ========================== */
+    function mostrarPanelMensaje() {
+      document.getElementById('panel-mensaje').style.display = 'block';
+      setTimeout(()=>document.getElementById('msg-text').focus(), 30);
     }
-    function cerrarModalMensaje() {
-      document.getElementById('modal-mensaje').style.display = 'none';
+    function ocultarPanelMensaje() {
+      document.getElementById('panel-mensaje').style.display = 'none';
     }
+    function togglePanelMensaje() {
+      const p = document.getElementById('panel-mensaje');
+      if (p.style.display === 'block') ocultarPanelMensaje();
+      else mostrarPanelMensaje();
+    }
+
     async function enviarMensajePista() {
-      const txt = document.getElementById('msg-text').value.trim();
+      const txtEl = document.getElementById('msg-text');
       const hint = document.getElementById('msg-hint');
+      const sentInfo = document.getElementById('msg-sent-info');
+      const txt = (txtEl.value || "").trim();
       if (!txt) { hint.innerText = "Escribe un mensaje"; return; }
 
       const payload = { texto: txt, ts: Date.now() };
@@ -167,33 +158,66 @@
         hint.innerText = "Enviando...";
         await db.ref('mensaje_pista').set(payload);
         hint.innerText = "Enviado ✅";
-        setTimeout(() => { cerrarModalMensaje(); }, 600);
       } catch (e) {
         console.error(e);
         hint.innerText = "Error al enviar";
       }
     }
 
-    // ===== 1. Cargar inscritos =====
+    async function eliminarMensajePista() {
+      const hint = document.getElementById('msg-hint');
+      try {
+        hint.innerText = "Eliminando...";
+        await db.ref('mensaje_pista').remove();
+        hint.innerText = "Mensaje eliminado";
+        document.getElementById('msg-text').value = "";
+        document.getElementById('msg-sent-info').style.display = "none";
+        ocultarPanelMensaje();
+      } catch (e) {
+        console.error(e);
+        hint.innerText = "Error al eliminar";
+      }
+    }
+
+    // Mantener el panel visible si existe mensaje en Firebase
+    db.ref('mensaje_pista').on('value', (snap) => {
+      const m = snap.val();
+      const sentInfo = document.getElementById('msg-sent-info');
+      const hint = document.getElementById('msg-hint');
+
+      if (m && m.texto && m.ts) {
+        // Hay mensaje activo -> panel visible
+        mostrarPanelMensaje();
+        // No machacamos lo que estés escribiendo si ya hay texto: solo autocompletamos si está vacío
+        const txtEl = document.getElementById('msg-text');
+        if (!txtEl.value.trim()) txtEl.value = m.texto;
+
+        const fecha = new Date(m.ts).toLocaleString('es-ES').replace(/,/g,'');
+        sentInfo.style.display = "block";
+        sentInfo.innerText = "ENVIADO: " + fecha;
+        hint.innerText = "Mensaje activo";
+      } else {
+        // No hay mensaje activo -> ocultar info (no forzamos cerrar el panel si tú lo tienes abierto)
+        sentInfo.style.display = "none";
+        if (hint.innerText === "Mensaje activo") hint.innerText = "Listo";
+      }
+    });
+
+    /* ==========================
+       RESTO: tu lógica tal cual
+       ========================== */
     db.ref('inscritos_drift').on('value', (snap) => {
       inscritosD = snap.val() || {};
       document.getElementById('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
     });
 
-    // ===== 2. Orden de limpieza remota =====
     db.ref('comando_limpiar').on('value', (snap) => {
-      if (snap.exists && snap.exists()) {
-        document.getElementById('d-show').value = "";
-        document.getElementById('preview-show').innerText = "Introduce dorsal...";
-      }
-      // compat snapshot no siempre tiene exists() en todas versiones; fallback:
       if (snap.val()) {
         document.getElementById('d-show').value = "";
         document.getElementById('preview-show').innerText = "Introduce dorsal...";
       }
     });
 
-    // ===== 3. Abrir votación =====
     async function abrirVoto() {
       const val = document.getElementById('d-show').value.trim();
       if (!val) return alert("Introduce un dorsal primero");
@@ -211,11 +235,7 @@
         historial.filter(h => h.dorsal === d).forEach(v => {
           h_ap += (v.ap || 0); h_up += (v.up || 0); h_dw += (v.dw || 0);
         });
-        items[d] = {
-          nombre: p ? p.piloto : "PILOTO " + d,
-          coche: p ? p.coche : "",
-          ap: 0, up: 0, dw: 0, h_ap, h_up, h_dw
-        };
+        items[d] = { nombre: p ? p.piloto : "PILOTO " + d, coche: p ? p.coche : "", ap: 0, up: 0, dw: 0, h_ap, h_up, h_dw };
       });
 
       if (dorsalesArr.length > 1) items["BATALLA"] = { nombre: "🔥 BATALLA", coche: "", ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
@@ -224,12 +244,10 @@
       await db.ref('estado_pista').set({ mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
     }
 
-    // ===== 4. Votos en vivo =====
     db.ref('votacion_activa').on('value', (snap) => {
       const v = snap.val();
       const container = document.getElementById('votos-en-vivo');
       if (!v || !v.activa) { container.innerHTML = ""; return; }
-
       let html = v.timer > 0 ? `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>` : "";
       if (v.items) {
         html += Object.entries(v.items).map(([id, data]) => `
@@ -246,7 +264,6 @@
       container.innerHTML = html;
     });
 
-    // ===== 5. Estado pista =====
     async function setEstado(msg, col, id) {
       await db.ref('estado_pista').set({ mensaje: msg, color: col, id: id });
 
@@ -279,7 +296,6 @@
       }
     }
 
-    // ===== 6. CSV =====
     function cargarCSV(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
@@ -297,11 +313,9 @@
         db.ref('inscritos_drift').set(obj).then(() => alert("Cargados " + Object.keys(obj).length + " pilotos"));
       };
       reader.readAsText(file);
-      // permitir volver a cargar el mismo archivo
       event.target.value = "";
     }
 
-    // ===== 7. Exportación =====
     async function exportarVotos() {
       const snap = await db.ref('historial_votos').get();
       if (!snap.exists()) return alert("No hay historial");
@@ -322,7 +336,6 @@
       if (confirm("¿Borrar historial de la nube?")) db.ref('historial_votos').remove();
     }
 
-    // ===== 8. Búsqueda + selector =====
     function buscarPilotoShow(val) {
       if (!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
       const dorsales = val.trim().split(/\s+/);
@@ -334,7 +347,6 @@
       const grid = document.getElementById('lista-botones-pilotos');
       grid.innerHTML = "";
       seleccionados = [];
-
       Object.keys(inscritosD).sort((a,b)=>Number(a)-Number(b)).forEach(d => {
         const btn = document.createElement('div');
         btn.className = 'btn-piloto-selec';
@@ -346,10 +358,8 @@
         };
         grid.appendChild(btn);
       });
-
       document.getElementById('modal-selector').style.display = 'flex';
     }
-
     function cerrarSelector() { document.getElementById('modal-selector').style.display = 'none'; }
     function confirmarSeleccion() {
       document.getElementById('d-show').value = seleccionados.join(" ");
@@ -357,7 +367,6 @@
       cerrarSelector();
     }
 
-    // ===== 9. Resaltar botón activo =====
     db.ref('estado_pista').on('value', (snap) => {
       document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
       const v = snap.val();
@@ -367,7 +376,6 @@
       }
     });
 
-    // ===== Exponer funciones a onclick =====
     window.abrirVoto = abrirVoto;
     window.setEstado = setEstado;
     window.cargarCSV = cargarCSV;
@@ -376,9 +384,12 @@
     window.abrirSelector = abrirSelector;
     window.cerrarSelector = cerrarSelector;
     window.confirmarSeleccion = confirmarSeleccion;
-    window.abrirModalMensaje = abrirModalMensaje;
-    window.cerrarModalMensaje = cerrarModalMensaje;
+
+    window.togglePanelMensaje = togglePanelMensaje;
+    window.mostrarPanelMensaje = mostrarPanelMensaje;
+    window.ocultarPanelMensaje = ocultarPanelMensaje;
     window.enviarMensajePista = enviarMensajePista;
+    window.eliminarMensajePista = eliminarMensajePista;
   </script>
 </body>
 </html>

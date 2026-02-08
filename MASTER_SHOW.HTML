@@ -46,7 +46,7 @@
         .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
 
         /* ==========================
-           NUEVO: MODAL MENSAJE (solo UI)
+           MODAL MENSAJE
            ========================== */
         #modal-mensaje {
             display: none;
@@ -101,18 +101,16 @@
         <div id="lista-botones-pilotos" class="grid-pilotos"></div>
     </div>
 
-    <!-- ==========================
-         NUEVO: MODAL MENSAJE (solo UI)
-         ========================== -->
+    <!-- MODAL MENSAJE -->
     <div id="modal-mensaje">
         <div class="msg-top">
             <button class="btn" style="background:#444; flex:1" onclick="cerrarModalMensaje()">✕</button>
-            <button class="btn" style="background:#ff8800; color:#000; flex:2" onclick="cerrarModalMensaje()">CERRAR</button>
+            <button class="btn" style="background:#ff8800; color:#000; flex:2" onclick="enviarMensajePista()">ENVIAR</button>
         </div>
 
         <div class="msg-box">
             <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
-            <div class="msg-hint">Solo interfaz (aún no se envía)</div>
+            <div class="msg-hint" id="msg-hint">Listo para enviar</div>
         </div>
     </div>
 
@@ -135,9 +133,7 @@
         <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
         <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
 
-        <!-- ==========================
-             NUEVO: BOTÓN (solo abre el modal)
-             ========================== -->
+        <!-- BOTÓN MENSAJE -->
         <button id="btn-msg" class="btn" style="background:#ff8800; color:#000" onclick="abrirModalMensaje()">MENSAJE A PISTA</button>
     </div>
 
@@ -156,17 +152,43 @@
         let inscritosD = {}; let seleccionados = [];
 
         /* ==========================
-           NUEVO: funciones UI del mensaje (sin Firebase)
+           MENSAJE A PISTA (ENVÍO SIMPLE)
+           - NO sesiones
+           - NO confirmaciones
+           - Solo: escribo y lo publico en Firebase
            ========================== */
         window.abrirModalMensaje = () => {
             const modal = document.getElementById('modal-mensaje');
             const txt = document.getElementById('msg-text');
+            const hint = document.getElementById('msg-hint');
             txt.value = "";
+            hint.innerText = "Listo para enviar";
             modal.style.display = 'flex';
             setTimeout(()=>txt.focus(), 50);
         };
+
         window.cerrarModalMensaje = () => {
             document.getElementById('modal-mensaje').style.display = 'none';
+        };
+
+        window.enviarMensajePista = async () => {
+            const txt = document.getElementById('msg-text').value.trim();
+            const hint = document.getElementById('msg-hint');
+            if (!txt) { hint.innerText = "Escribe un mensaje"; return; }
+
+            // Publicamos en un nodo fijo (último mensaje), fácil de leer desde "pista"
+            const payload = { texto: txt, ts: Date.now() };
+
+            try {
+                hint.innerText = "Enviando...";
+                await set(ref(db, 'mensaje_pista'), payload);
+                hint.innerText = "Enviado ✅";
+                // Cerrar a los 600ms para que se vea el OK
+                setTimeout(() => { cerrarModalMensaje(); }, 600);
+            } catch (e) {
+                console.error(e);
+                hint.innerText = "Error al enviar";
+            }
         };
 
         // 1. Cargar inscritos

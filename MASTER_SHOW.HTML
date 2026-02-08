@@ -1,4 +1,3 @@
-1
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -47,32 +46,19 @@
         .btn-piloto-selec.selected { background: #332200; border-color: #ffcc00; }
 
         /* ==========================
-           MODAL MENSAJE
+           MENSAJE INLINE (debajo botón)
            ========================== */
-        #modal-mensaje {
+        #panel-mensaje {
             display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #000;
-            z-index: 1100;
-            flex-direction: column;
-            padding: 10px;
-        }
-        .msg-top {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .msg-box {
-            background: #111;
+            margin-top: 10px;
+            background: #0d0d0d;
             border: 1px solid #333;
             border-radius: 12px;
             padding: 12px;
         }
         #msg-text {
             width: 100%;
-            min-height: 120px;
+            min-height: 110px;
             padding: 12px;
             border-radius: 10px;
             border: 1px solid #444;
@@ -90,6 +76,57 @@
             font-weight: bold;
             text-align: center;
         }
+        .msg-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-mini {
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+            width: 100%;
+        }
+        .btn-enviar {
+            background: #ff8800;
+            color: #000;
+        }
+        .btn-borrar {
+            background: #ff4444;
+            color: #fff;
+        }
+        .msg-sent {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            background: #121212;
+            border: 1px solid #2a2a2a;
+        }
+        .msg-sent-title{
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            color: #bbb;
+            margin-bottom: 6px;
+        }
+        .msg-sent-body{
+            color: #ffcc00;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 1.05em;
+        }
+        .msg-sent-meta{
+            margin-top: 8px;
+            font-size: 0.8em;
+            color: #777;
+            text-transform: uppercase;
+            font-weight: bold;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -100,19 +137,6 @@
             <button class="btn" style="background:green; flex:1" onclick="confirmarSeleccion()">✓ LISTO</button>
         </div>
         <div id="lista-botones-pilotos" class="grid-pilotos"></div>
-    </div>
-
-    <!-- MODAL MENSAJE -->
-    <div id="modal-mensaje">
-        <div class="msg-top">
-            <button class="btn" style="background:#444; flex:1" onclick="cerrarModalMensaje()">✕</button>
-            <button class="btn" style="background:#ff8800; color:#000; flex:2" onclick="enviarMensajePista()">ENVIAR</button>
-        </div>
-
-        <div class="msg-box">
-            <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
-            <div class="msg-hint" id="msg-hint">Listo para enviar</div>
-        </div>
     </div>
 
     <img src="logo2.jpg" alt="Logo" class="header-logo">
@@ -135,7 +159,25 @@
         <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
 
         <!-- BOTÓN MENSAJE -->
-        <button id="btn-msg" class="btn" style="background:#ff8800; color:#000" onclick="abrirModalMensaje()">MENSAJE A PISTA</button>
+        <button id="btn-msg" class="btn" style="background:#ff8800; color:#000" onclick="togglePanelMensaje()">MENSAJE A PISTA</button>
+
+        <!-- PANEL INLINE -->
+        <div id="panel-mensaje">
+            <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
+
+            <div class="msg-row">
+                <button class="btn-mini btn-enviar" onclick="enviarMensajePista()">ENVIAR</button>
+                <button class="btn-mini btn-borrar" onclick="borrarMensajePista()">ELIMINAR</button>
+            </div>
+
+            <div class="msg-hint" id="msg-hint">Listo</div>
+
+            <div id="msg-sent" class="msg-sent" style="display:none;">
+                <div class="msg-sent-title">Mensaje enviado</div>
+                <div id="msg-sent-body" class="msg-sent-body"></div>
+                <div id="msg-sent-meta" class="msg-sent-meta"></div>
+            </div>
+        </div>
     </div>
 
     <div class="card">
@@ -145,13 +187,11 @@
         <button class="btn btn-reset" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
     </div>
 
-    <!-- CAMBIO 1: Firebase por scripts normales (sin type="module") -->
+    <!-- Firebase compat -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
-    <!-- CAMBIO 2: Tu lógica JS igual, pero usando firebase global -->
     <script>
-        // Inicializar Firebase (compat)
         firebase.initializeApp({
             databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com"
         });
@@ -160,22 +200,60 @@
         let inscritosD = {};
         let seleccionados = [];
 
-        /* ==========================
-           MENSAJE A PISTA (ENVÍO SIMPLE)
-           ========================== */
-        window.abrirModalMensaje = () => {
-            const modal = document.getElementById('modal-mensaje');
-            const txt = document.getElementById('msg-text');
-            const hint = document.getElementById('msg-hint');
-            txt.value = "";
-            hint.innerText = "Listo para enviar";
-            modal.style.display = 'flex';
-            setTimeout(()=>txt.focus(), 50);
+        // =========================
+        // MENSAJE INLINE
+        // =========================
+        function fmtFecha(ts){
+            try{
+                const d = new Date(ts);
+                const hh = String(d.getHours()).padStart(2,'0');
+                const mm = String(d.getMinutes()).padStart(2,'0');
+                const ss = String(d.getSeconds()).padStart(2,'0');
+                return hh + ":" + mm + ":" + ss;
+            }catch(e){
+                return "";
+            }
+        }
+
+        window.togglePanelMensaje = () => {
+            const p = document.getElementById('panel-mensaje');
+            const sent = document.getElementById('msg-sent');
+            // Si hay mensaje enviado, lo mantenemos visible
+            if (sent && sent.style.display !== 'none') {
+                p.style.display = 'block';
+                return;
+            }
+            p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none';
+            if (p.style.display === 'block') setTimeout(()=>document.getElementById('msg-text').focus(), 50);
         };
 
-        window.cerrarModalMensaje = () => {
-            document.getElementById('modal-mensaje').style.display = 'none';
-        };
+        function mostrarMensajeEnPanel(m){
+            const panel = document.getElementById('panel-mensaje');
+            const sent = document.getElementById('msg-sent');
+            const body = document.getElementById('msg-sent-body');
+            const meta = document.getElementById('msg-sent-meta');
+            const textarea = document.getElementById('msg-text');
+
+            if (!m) {
+                sent.style.display = 'none';
+                body.textContent = "";
+                meta.textContent = "";
+                // Si no hay mensaje enviado, si el usuario no lo ha abierto, lo dejamos cerrado
+                // (no forzamos visible)
+                return;
+            }
+
+            // Siempre visible si hay mensaje
+            panel.style.display = 'block';
+            sent.style.display = 'block';
+
+            body.textContent = m.texto || "";
+            meta.textContent = "ENVIADO " + fmtFecha(m.ts || Date.now());
+
+            // No sobrescribimos lo que está escribiendo el usuario si quiere preparar otro
+            // Pero sí limpiamos si el textarea está vacío (opcional):
+            if (!textarea.value.trim()) textarea.value = "";
+        }
 
         window.enviarMensajePista = async () => {
             const txt = document.getElementById('msg-text').value.trim();
@@ -188,21 +266,48 @@
                 hint.innerText = "Enviando...";
                 await db.ref('mensaje_pista').set(payload);
                 hint.innerText = "Enviado ✅";
-                setTimeout(() => { cerrarModalMensaje(); }, 600);
+                document.getElementById('msg-text').value = "";
+                // El onValue lo pintará, pero lo pintamos ya por inmediatez
+                mostrarMensajeEnPanel(payload);
             } catch (e) {
                 console.error(e);
                 hint.innerText = "Error al enviar";
             }
         };
 
-        // 1. Cargar inscritos
-        db.ref('inscritos_drift').on('value', s => {
-            inscritosD = s.val() || {};
-            document.getElementById('txt-count').innerText =
-                "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
+        window.borrarMensajePista = async () => {
+            const hint = document.getElementById('msg-hint');
+            try{
+                hint.innerText = "Eliminando...";
+                await db.ref('mensaje_pista').remove();
+                hint.innerText = "Eliminado";
+                // Ocultamos panel y bloque enviado
+                document.getElementById('msg-sent').style.display = 'none';
+                document.getElementById('panel-mensaje').style.display = 'none';
+                document.getElementById('msg-text').value = "";
+            }catch(e){
+                console.error(e);
+                hint.innerText = "Error al eliminar";
+            }
+        };
+
+        // Listener para mantener el panel visible mientras exista mensaje
+        db.ref('mensaje_pista').on('value', (snap) => {
+            const m = snap.val();
+            mostrarMensajeEnPanel(m);
         });
 
-        // 2. ESCUCHAR ORDEN DE LIMPIEZA REMOTA (Desde Ventana Pista)
+        // =========================
+        // 1. Cargar inscritos
+        // =========================
+        db.ref('inscritos_drift').on('value', s => { 
+            inscritosD = s.val() || {}; 
+            document.getElementById('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
+        });
+
+        // =========================
+        // 2. Orden limpieza remota
+        // =========================
         db.ref('comando_limpiar').on('value', (snapshot) => {
             if (snapshot.exists()) {
                 document.getElementById('d-show').value = "";
@@ -210,11 +315,13 @@
             }
         });
 
-        // 3. Lógica para abrir votación
+        // =========================
+        // 3. Abrir votación
+        // =========================
         window.abrirVoto = async () => {
             const val = document.getElementById('d-show').value.trim();
             if (!val) return alert("Introduce un dorsal primero");
-
+            
             const dorsalesArr = val.split(/\s+/);
             let items = {};
 
@@ -225,37 +332,30 @@
             dorsalesArr.forEach(d => {
                 const p = inscritosD[d];
                 let h_ap = 0, h_up = 0, h_dw = 0;
-
                 historial.filter(h => h.dorsal === d).forEach(v => {
-                    h_ap += (v.ap || 0);
-                    h_up += (v.up || 0);
-                    h_dw += (v.dw || 0);
+                    h_ap += (v.ap || 0); h_up += (v.up || 0); h_dw += (v.dw || 0);
                 });
-
-                items[d] = {
-                    nombre: p ? p.piloto : "PILOTO " + d,
-                    coche: p ? p.coche : "",
-                    ap: 0, up: 0, dw: 0,
-                    h_ap, h_up, h_dw
+                items[d] = { 
+                    nombre: p ? p.piloto : "PILOTO " + d, 
+                    coche: p ? p.coche : "", 
+                    ap: 0, up: 0, dw: 0, h_ap, h_up, h_dw 
                 };
             });
 
-            if (dorsalesArr.length > 1) {
-                items["BATALLA"] = { nombre: "🔥 BATALLA", coche: "", ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
-            }
+            if (dorsalesArr.length > 1) items["BATALLA"] = { nombre: "🔥 BATALLA", coche: "", ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0 };
 
             await db.ref('votacion_activa').set({ dorsal: val, activa: true, timer: 0, items: items });
             await db.ref('estado_pista').set({ mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
         };
 
-        // 4. Visualización de votos en vivo
+        // =========================
+        // 4. Votos en vivo
+        // =========================
         db.ref('votacion_activa').on('value', snap => {
             const v = snap.val();
             const container = document.getElementById('votos-en-vivo');
             if (!v || !v.activa) { container.innerHTML = ""; return; }
-
-            let html = v.timer > 0 ? '<div class="timer-master">⏱️ CIERRE EN: ' + v.timer + 's</div>' : "";
-
+            let html = v.timer > 0 ? `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>` : "";
             if (v.items) {
                 html += Object.entries(v.items).map(([id, data]) => `
                     <div class="piloto-voto-row">
@@ -267,14 +367,15 @@
                         </div>
                     </div>
                 `).join('');
+                container.innerHTML = html;
             }
-            container.innerHTML = html;
         });
 
-        // 5. Cambio de estados de pista
+        // =========================
+        // 5. Estados de pista
+        // =========================
         window.setEstado = async (msg, col, id) => {
             await db.ref('estado_pista').set({ mensaje: msg, color: col, id: id });
-
             if (id === 'btn-libre') {
                 document.getElementById('d-show').value = "";
                 document.getElementById('preview-show').innerText = "Introduce dorsal...";
@@ -287,8 +388,7 @@
                     const pushes = [];
 
                     Object.entries(items).forEach(([idItem, data]) => {
-                        const total = (data.ap || 0) + (data.up || 0) + (data.dw || 0);
-                        if (total > 0) {
+                        if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
                             pushes.push(
                                 db.ref('historial_votos').push({
                                     dorsal: idItem,
@@ -306,20 +406,21 @@
 
                     let count = 5;
                     await db.ref('votacion_activa').update({ timer: count });
-
                     let interval = setInterval(async () => {
                         count--;
                         await db.ref('votacion_activa').update({ timer: count });
-                        if (count <= 0) {
-                            clearInterval(interval);
-                            await db.ref('votacion_activa').set({ activa: false, timer: 0, dorsal: "" });
+                        if (count <= 0) { 
+                            clearInterval(interval); 
+                            await db.ref('votacion_activa').set({ activa: false, timer: 0, dorsal: "" }); 
                         }
                     }, 1000);
                 }
             }
         };
 
+        // =========================
         // 6. Carga de CSV
+        // =========================
         window.cargarCSV = (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -329,91 +430,27 @@
                 const lines = e.target.result.split(/\r?\n/);
                 let obj = {};
                 const sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
-
                 lines.slice(1).forEach(l => {
-                    if (!l.trim()) return;
+                    if(!l.trim()) return;
                     const c = l.split(sep);
-                    if (c[0]) obj[c[0].trim()] = { piloto: (c[1] || "").trim(), coche: (c[2] || "").trim() };
+                    if(c[0]) obj[c[0].trim()] = { piloto: (c[1] || "").trim(), coche: (c[2] || "").trim() };
                 });
-
                 await db.ref('inscritos_drift').set(obj);
                 alert("Cargados " + Object.keys(obj).length + " pilotos");
             };
             reader.readAsText(file);
         };
 
-        // 7. Exportación optimizada
+        // =========================
+        // 7. Exportación
+        // =========================
         window.exportarVotos = async () => {
             const snap = await db.ref('historial_votos').once('value');
             if (!snap.exists()) return alert("No hay historial");
-
             let csv = "Dorsal,Piloto,Aplausos,Up,Down,Fecha_Hora\n";
             Object.values(snap.val()).forEach(v => {
                 const fecha = new Date(v.ts).toLocaleString('es-ES').replace(/,/g, '');
                 csv += `${v.dorsal},"${String(v.info || "").replace(/"/g, '')}",${v.ap},${v.up},${v.dw},"${fecha}"\n`;
             });
-
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' }));
-            link.download = "votos_drift.csv";
-            link.click();
-
-            if (confirm("¿Borrar historial de la nube?")) await db.ref('historial_votos').remove();
-        };
-
-        // 8. Utilidades de búsqueda y selector
-        window.buscarPilotoShow = (val) => {
-            if (!val.trim()) {
-                document.getElementById('preview-show').innerText = "Introduce dorsal...";
-                return;
-            }
-            const dorsales = val.trim().split(/\s+/);
-            const encontrados = dorsales
-                .map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : ""))
-                .filter(x => x);
-
-            document.getElementById('preview-show').innerText =
-                encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
-        };
-
-        window.abrirSelector = () => {
-            const grid = document.getElementById('lista-botones-pilotos');
-            grid.innerHTML = "";
-            seleccionados = [];
-
-            Object.keys(inscritosD).sort((a,b)=>a-b).forEach(d => {
-                const btn = document.createElement('div');
-                btn.className = 'btn-piloto-selec';
-                btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto}</small>`;
-                btn.onclick = () => {
-                    btn.classList.toggle('selected');
-                    seleccionados.includes(d)
-                        ? seleccionados = seleccionados.filter(x => x !== d)
-                        : seleccionados.push(d);
-                };
-                grid.appendChild(btn);
-            });
-
-            document.getElementById('modal-selector').style.display = 'flex';
-        };
-
-        window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
-
-        window.confirmarSeleccion = () => {
-            document.getElementById('d-show').value = seleccionados.join(" ");
-            buscarPilotoShow(seleccionados.join(" "));
-            cerrarSelector();
-        };
-
-        // 9. Resaltar botón de estado activo
-        db.ref('estado_pista').on('value', s => {
-            document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-            const val = s.val();
-            if (val && val.id) {
-                const active = document.getElementById(val.id);
-                if (active) active.classList.add('pista-activa');
-            }
-        });
-    </script>
-</body>
-</html>
+            link.href = URL.createObj

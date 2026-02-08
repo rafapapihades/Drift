@@ -18,6 +18,7 @@
         .active-now { opacity: 1 !important; outline: 6px solid #fff; outline-offset: -6px; box-shadow: 0 0 40px rgba(255,255,255,0.3); z-index: 2; }
         .inactive { opacity: 0.15; transform: scale(0.95); }
 
+        /* AVISO PERSONALIZADO (En lugar de alert) */
         #toast {
             position: fixed;
             top: -100px;
@@ -37,66 +38,26 @@
         }
         #toast.show { top: 20px; }
 
-        /* NUEVO: Modal mensaje */
-        #msg-modal {
-            display:none;
-            position:fixed;
-            inset:0;
-            background:rgba(0,0,0,0.85);
-            z-index:9998;
-            padding:12px;
-            align-items:center;
-            justify-content:center;
+        /* === POPUP MENSAJE MASTER === */
+        #modal-master-msg{
+          display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
+          z-index:9998; padding:14px; align-items:center; justify-content:center;
         }
-        .msg-card {
-            width:100%;
-            max-width:520px;
-            background:#0b0b0b;
-            border:2px solid #ff8800;
-            border-radius:16px;
-            padding:16px;
-            box-shadow:0 0 30px rgba(0,0,0,0.6);
+        #modal-master-msg .box{
+          width:100%; max-width:520px; background:#111; border:2px solid #ff8800;
+          border-radius:16px; padding:16px; box-shadow:0 0 30px rgba(0,0,0,.7);
         }
-        .msg-title {
-            font-weight:900;
-            text-transform:uppercase;
-            color:#ff8800;
-            margin-bottom:10px;
-            font-size:1.1em;
-            text-align:center;
+        #modal-master-msg .title{
+          font-weight:bold; text-transform:uppercase; margin-bottom:10px; color:#ffcc00;
         }
-        .msg-body {
-            color:#fff;
-            font-size:1.05em;
-            line-height:1.35;
-            background:#000;
-            border:1px solid #333;
-            border-radius:12px;
-            padding:12px;
-            white-space:pre-wrap;
-            max-height:40vh;
-            overflow:auto;
+        #modal-master-msg .text{
+          white-space:pre-wrap; color:#fff; font-size:1.1em; line-height:1.35;
+          background:#000; border:1px solid #333; border-radius:12px; padding:12px;
         }
-        .msg-btn {
-            width:100%;
-            margin-top:12px;
-            padding:14px;
-            border:none;
-            border-radius:12px;
-            font-weight:900;
-            text-transform:uppercase;
-            cursor:pointer;
-            background:#ff8800;
-            color:#000;
-            font-size:1.05em;
-        }
-        .msg-sub {
-            margin-top:10px;
-            font-size:0.8em;
-            color:#888;
-            text-align:center;
-            text-transform:uppercase;
-            font-weight:bold;
+        #modal-master-msg .btn-ok{
+          width:100%; margin-top:12px; padding:16px; border:none; border-radius:12px;
+          font-weight:bold; text-transform:uppercase; cursor:pointer;
+          background:#ff8800; color:#000;
         }
     </style>
 </head>
@@ -104,19 +65,19 @@
 
     <div id="toast">⚠️ Espera a que el Máster asigne piloto</div>
 
+    <!-- POPUP MENSAJE DESDE MASTER -->
+    <div id="modal-master-msg">
+      <div class="box">
+        <div class="title">Mensaje del Máster</div>
+        <div id="master-msg-text" class="text"></div>
+        <button class="btn-ok" onclick="confirmarLecturaMensaje()">LEÍDO</button>
+      </div>
+    </div>
+
     <button id="btn-libre" class="btn-pista btn-libre" onclick="enviarEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
     <button id="btn-coche" class="btn-pista btn-coche" onclick="intentarCocheEnPista()">COCHE EN PISTA</button>
     <button id="btn-obs" class="btn-pista btn-obs" onclick="enviarEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
     <button id="btn-acc" class="btn-pista btn-acc" onclick="enviarEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
-
-    <div id="msg-modal">
-        <div class="msg-card">
-            <div class="msg-title">MENSAJE DEL MÁSTER</div>
-            <div id="msg-body" class="msg-body"></div>
-            <button class="msg-btn" onclick="confirmarLecturaMensaje()">CONFIRMAR LECTURA</button>
-            <div id="msg-sub" class="msg-sub"></div>
-        </div>
-    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -124,21 +85,33 @@
 
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-        // ===== NUEVO: sesión persistente + heartbeat online =====
-        const SESSION_KEY = "pista_session_id";
-        let sessionId = localStorage.getItem(SESSION_KEY);
-        if (!sessionId) {
-            sessionId = "pista-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
-            localStorage.setItem(SESSION_KEY, sessionId);
-        }
+        /* ==========================
+           NUEVO: escuchar mensaje del master (mensaje_pista)
+           ========================== */
+        let ultimoMsgTs = 0;
 
-        async function heartbeat() {
-            await set(ref(db, `pista_sessions/${sessionId}`), { lastSeen: Date.now() });
-        }
-        heartbeat();
-        setInterval(heartbeat, 10000);
+        onValue(ref(db, 'mensaje_pista'), (snap) => {
+          const m = snap.val();
+          if(!m || !m.ts || !m.texto) return;
 
-        // ===== Resaltado de estado (tu original) =====
+          // Solo mostrar si es nuevo
+          if(m.ts <= ultimoMsgTs) return;
+          ultimoMsgTs = m.ts;
+
+          document.getElementById('master-msg-text').innerText = m.texto;
+          document.getElementById('modal-master-msg').style.display = 'flex';
+          if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+        });
+
+        window.confirmarLecturaMensaje = async () => {
+          document.getElementById('modal-master-msg').style.display = 'none';
+          // ACK mínimo (sin sesiones todavía)
+          await set(ref(db, 'mensaje_pista_ack/last'), { read: true, ts: Date.now() });
+        };
+
+        /* ==========================
+           TU LÓGICA ORIGINAL (sin tocar)
+           ========================== */
         onValue(ref(db, 'estado_pista'), (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -154,7 +127,6 @@
             }
         });
 
-        // ===== Toast (tu original) =====
         window.showToast = () => {
             const t = document.getElementById('toast');
             t.classList.add('show');
@@ -162,59 +134,17 @@
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
         };
 
-        // ===== NUEVO: mensajes =====
-        let currentMsgId = "";
-
-        function mostrarMensaje(msg) {
-            document.getElementById('msg-body').innerText = msg.text || "";
-            document.getElementById('msg-sub').innerText = `Sesión: ${sessionId}`;
-            document.getElementById('msg-modal').style.display = 'flex';
-            if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
-        }
-
-        onValue(ref(db, 'pista_messages'), async (snap) => {
-            const all = snap.val() || {};
-            const arr = Object.values(all)
-                .filter(x => x && x.id && x.text)
-                .sort((a,b) => (b.ts||0) - (a.ts||0));
-
-            if (!arr.length) return;
-            const msg = arr[0];
-            if (!msg?.id) return;
-
-            if (msg.id === currentMsgId) return;
-
-            // si ya leído, no mostrar
-            const r = await get(ref(db, `pista_message_reads/${msg.id}/${sessionId}`));
-            if (r.exists() && r.val()?.read === true) {
-                currentMsgId = msg.id;
-                return;
-            }
-
-            currentMsgId = msg.id;
-            mostrarMensaje(msg);
-        });
-
-        window.confirmarLecturaMensaje = async () => {
-            if (!currentMsgId) return;
-            await set(ref(db, `pista_message_reads/${currentMsgId}/${sessionId}`), { read: true, readAt: Date.now() });
-            document.getElementById('msg-modal').style.display = 'none';
-            if (navigator.vibrate) navigator.vibrate(60);
-        };
-
-        // ===== Tu lógica original de "coche en pista" =====
         window.intentarCocheEnPista = async () => {
             const snapVot = await get(ref(db, 'votacion_activa'));
             const vot = snapVot.val();
 
             if (!vot || !vot.activa || !vot.dorsal) {
-                showToast();
+                showToast(); // Llamamos al mensaje visual en lugar del alert
                 return;
             }
             enviarEstado('🏎️ COCHE EN PISTA: ' + vot.dorsal, '#007bff', 'btn-coche');
         };
 
-        // ===== Tu lógica original de enviarEstado + cierre =====
         window.enviarEstado = async (msg, col, id) => {
             if (navigator.vibrate) navigator.vibrate(60);
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
@@ -226,9 +156,7 @@
                 if (v && v.activa) {
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
-                            const payload = { dorsal: idItem, info: data.nombre, ap: data.ap || 0, up: data.up || 0, dw: data.dw || 0, ts: Date.now() };
-                            if (idItem === "BATALLA") payload.participantes = String(v.dorsal || "").trim();
-                            push(ref(db, 'historial_votos'), payload);
+                            push(ref(db, 'historial_votos'), { dorsal: idItem, info: data.nombre, ap: data.ap || 0, up: data.up || 0, dw: data.dw || 0, ts: Date.now() });
                         }
                     });
                     let count = 5;

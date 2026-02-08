@@ -89,6 +89,45 @@
             font-weight: bold;
             text-align: center;
         }
+
+        /* ==========================
+           NUEVO: LISTA SESIONES PISTA (solo dentro del modal)
+           ========================== */
+        .sess-bar {
+            display:flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            background:#0c0c0c;
+            border:1px solid #222;
+            font-size:0.85em;
+            text-transform: uppercase;
+            font-weight: bold;
+            color:#bbb;
+        }
+        .sess-list {
+            margin-top: 10px;
+            max-height: 38vh;
+            overflow: auto;
+        }
+        .sess-row{
+            background:#151515;
+            border:1px solid #333;
+            border-radius:10px;
+            padding:10px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:6px;
+        }
+        .sess-left{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+        .sess-id{ font-weight:bold; color:#fff; font-size:0.9em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .sess-last{ font-size:0.75em; color:#888; }
+        .badge { padding:6px 10px; border-radius:999px; font-weight:bold; font-size:0.75em; white-space:nowrap; }
+        .badge-ok { background:#00b050; color:#000; }
+        .badge-no { background:#ff4444; color:#000; }
     </style>
 </head>
 <body>
@@ -111,6 +150,13 @@
         <div class="msg-box">
             <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
             <div class="msg-hint" id="msg-hint">Listo para enviar</div>
+
+            <!-- NUEVO: sesiones pista -->
+            <div class="sess-bar">
+                <div>PISTA ONLINE: <span id="sess-online">0</span></div>
+                <div>LEÍDOS: <span id="sess-read">0</span>/<span id="sess-total">0</span></div>
+            </div>
+            <div id="sess-list" class="sess-list"></div>
         </div>
     </div>
 
@@ -151,11 +197,79 @@
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
         let inscritosD = {}; let seleccionados = [];
 
+        /* =========================================================
+           NUEVO: sesiones de PISTA + confirmación de lectura
+           - Lee pista_sessions
+           - Considera "online" si lastSeen < TTL
+           - Considera "leído" si lastReadTs >= mensaje_pista.ts
+           ========================================================= */
+        const PISTA_TTL_MS = 15000;
+
+        let pistaSessions = {};           // snapshot de pista_sessions
+        let lastMsgTs = 0;                // ts del último mensaje enviado (o el que haya en Firebase)
+
+        const pad2 = (n)=>String(n).padStart(2,'0');
+        const fmtHMS = (ts)=>{ const d=new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
+
+        function getOnlineSessions() {
+            const now = Date.now();
+            return Object.entries(pistaSessions || {})
+                .map(([id, v]) => ({ id, v: v || {}, lastSeen: v?.lastSeen || 0, lastReadTs: v?.lastReadTs || 0 }))
+                .filter(s => (now - s.lastSeen) <= PISTA_TTL_MS)
+                .sort((a,b) => (b.lastSeen - a.lastSeen));
+        }
+
+        function renderSessionsUI() {
+            const modal = document.getElementById('modal-mensaje');
+            if (!modal || modal.style.display !== 'flex') return;
+
+            const list = document.getElementById('sess-list');
+            const online = getOnlineSessions();
+
+            // stats
+            document.getElementById('sess-online').innerText = String(online.length);
+            document.getElementById('sess-total').innerText = String(online.length);
+
+            let readCount = 0;
+            list.innerHTML = "";
+
+            online.forEach(s => {
+                const isRead = (lastMsgTs > 0) ? (s.lastReadTs >= lastMsgTs) : false;
+                if (isRead) readCount++;
+
+                const row = document.createElement('div');
+                row.className = 'sess-row';
+                row.innerHTML = `
+                    <div class="sess-left">
+                        <div class="sess-id">${s.id}</div>
+                        <div class="sess-last">Último: ${s.lastSeen ? fmtHMS(s.lastSeen) : '-'}</div>
+                    </div>
+                    <div class="badge ${isRead ? 'badge-ok' : 'badge-no'}">${isRead ? 'LEÍDO' : 'PENDIENTE'}</div>
+                `;
+                list.appendChild(row);
+            });
+
+            document.getElementById('sess-read').innerText = String(readCount);
+        }
+
+        // Escuchar sesiones de pista
+        onValue(ref(db, 'pista_sessions'), snap => {
+            pistaSessions = snap.val() || {};
+            renderSessionsUI();
+        });
+
+        // Escuchar último mensaje (para que el master sepa qué comparar)
+        onValue(ref(db, 'mensaje_pista'), snap => {
+            const m = snap.val();
+            lastMsgTs = (m && m.ts) ? m.ts : 0;
+            renderSessionsUI();
+        });
+
+        // refresco suave por TTL (expiran online)
+        setInterval(renderSessionsUI, 3000);
+
         /* ==========================
            MENSAJE A PISTA (ENVÍO SIMPLE)
-           - NO sesiones
-           - NO confirmaciones
-           - Solo: escribo y lo publico en Firebase
            ========================== */
         window.abrirModalMensaje = () => {
             const modal = document.getElementById('modal-mensaje');
@@ -165,6 +279,7 @@
             hint.innerText = "Listo para enviar";
             modal.style.display = 'flex';
             setTimeout(()=>txt.focus(), 50);
+            renderSessionsUI();
         };
 
         window.cerrarModalMensaje = () => {
@@ -176,14 +291,14 @@
             const hint = document.getElementById('msg-hint');
             if (!txt) { hint.innerText = "Escribe un mensaje"; return; }
 
-            // Publicamos en un nodo fijo (último mensaje), fácil de leer desde "pista"
             const payload = { texto: txt, ts: Date.now() };
 
             try {
                 hint.innerText = "Enviando...";
                 await set(ref(db, 'mensaje_pista'), payload);
                 hint.innerText = "Enviado ✅";
-                // Cerrar a los 600ms para que se vea el OK
+                lastMsgTs = payload.ts;  // para comparar lecturas sin esperar al onValue
+                renderSessionsUI();
                 setTimeout(() => { cerrarModalMensaje(); }, 600);
             } catch (e) {
                 console.error(e);
@@ -232,7 +347,6 @@
 
             set(ref(db, 'votacion_activa'), { dorsal: val, activa: true, timer: 0, items: items });
             set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
-            // NO borramos el input aquí, esperamos a "Pista Libre"
         };
 
         // 4. Visualización de votos en vivo
@@ -260,7 +374,6 @@
         window.setEstado = async (msg, col, id) => {
             set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id: id });
             if (id === 'btn-libre') {
-                // Limpiar localmente
                 document.getElementById('d-show').value = "";
                 document.getElementById('preview-show').innerText = "Introduce dorsal...";
                 
@@ -314,48 +427,4 @@
                 csv += `${v.dorsal},"${v.info.replace(/"/g, '')}",${v.ap},${v.up},${v.dw},"${fecha}"\n`;
             });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:'text/csv;charset=utf-8;'}));
-            link.download = "votos_drift.csv";
-            link.click();
-            if(confirm("¿Borrar historial de la nube?")) remove(ref(db, 'historial_votos'));
-        };
-
-        // 8. Utilidades de búsqueda y selector
-        window.buscarPilotoShow = (val) => {
-            if (!val.trim()) { document.getElementById('preview-show').innerText = "Introduce dorsal..."; return; }
-            const dorsales = val.trim().split(/\s+/);
-            const encontrados = dorsales.map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : "")).filter(x=>x);
-            document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
-        };
-
-        window.abrirSelector = () => {
-            const grid = document.getElementById('lista-botones-pilotos');
-            grid.innerHTML = ""; seleccionados = [];
-            Object.keys(inscritosD).sort((a,b)=>a-b).forEach(d => {
-                const btn = document.createElement('div');
-                btn.className = 'btn-piloto-selec';
-                btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto}</small>`;
-                btn.onclick = () => { btn.classList.toggle('selected'); seleccionados.includes(d) ? seleccionados = seleccionados.filter(x=>x!==d) : seleccionados.push(d); };
-                grid.appendChild(btn);
-            });
-            document.getElementById('modal-selector').style.display = 'flex';
-        };
-
-        window.cerrarSelector = () => document.getElementById('modal-selector').style.display = 'none';
-        window.confirmarSeleccion = () => { 
-            document.getElementById('d-show').value = seleccionados.join(" "); 
-            buscarPilotoShow(seleccionados.join(" ")); 
-            cerrarSelector(); 
-        };
-
-        // 9. Resaltar botón de estado activo
-        onValue(ref(db, 'estado_pista'), s => {
-            document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-            if(s.val()?.id) {
-                const active = document.getElementById(s.val().id);
-                if(active) active.classList.add('pista-activa');
-            }
-        });
-    </script>
-</body>
-</html>
+            link.href = URL.createObjectURL(new Blob(["\ufeff"

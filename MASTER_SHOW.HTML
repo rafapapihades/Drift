@@ -1,3 +1,4 @@
+1
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -148,7 +149,15 @@
     .tag.wait{ border-color:#ff8800; color:#ff8800; }
   </style>
 </head>
-
+<script>
+  (function(){
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;padding:10px;border-radius:10px;background:#222;border:1px solid #444;color:#ffcc00;z-index:99999;font-weight:bold;text-transform:uppercase;text-align:center;';
+    bar.id = "debugbar";
+    bar.textContent = "JS OK (cargado) · " + new Date().toLocaleTimeString();
+    document.body.appendChild(bar);
+  })();
+</script>
 <body>
   <div id="modal-selector">
     <div style="display:flex; gap:10px; margin-bottom:10px;">

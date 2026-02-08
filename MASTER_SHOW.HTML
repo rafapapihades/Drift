@@ -1,4 +1,4 @@
-
+1
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -159,12 +159,27 @@
   })();
 </script>
 <script>
+  // Captura errores JS (incluye fallos de módulos/imports)
+  window.addEventListener("error", (e) => {
+    const bar = document.getElementById("debugbar") || document.body.appendChild(Object.assign(document.createElement("div"), {id:"debugbar"}));
+    bar.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;padding:10px;border-radius:10px;background:#550000;border:1px solid #aa0000;color:#fff;z-index:99999;font-weight:bold;text-transform:uppercase;text-align:center;';
+    bar.textContent = "ERROR: " + (e.message || "desconocido");
+  });
+
+  window.addEventListener("unhandledrejection", (e) => {
+    const bar = document.getElementById("debugbar") || document.body.appendChild(Object.assign(document.createElement("div"), {id:"debugbar"}));
+    bar.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;padding:10px;border-radius:10px;background:#550000;border:1px solid #aa0000;color:#fff;z-index:99999;font-weight:bold;text-transform:uppercase;text-align:center;';
+    bar.textContent = "PROMISE ERROR: " + (e.reason?.message || e.reason || "desconocido");
+  });
+
+  // Comprueba si el módulo llegó a definir funciones (si no, el import falló)
   setTimeout(() => {
     const bar = document.getElementById("debugbar");
-    const ok = (typeof firebase !== "undefined") && firebase?.database;
-    bar.textContent = bar.textContent + " · Firebase: " + (ok ? "OK" : "NO CARGA");
-    if(!ok) bar.style.background = "#550000";
-  }, 1200);
+    if (!bar) return;
+    const ok = (typeof window.cargarCSV === "function") && (typeof window.abrirVoto === "function") && (typeof window.abrirSelector === "function");
+    bar.textContent = (bar.textContent || "") + " · MODULO: " + (ok ? "OK" : "NO EJECUTA");
+    if (!ok) bar.style.background = "#550000";
+  }, 1500);
 </script>
 <body>
   <div id="modal-selector">

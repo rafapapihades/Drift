@@ -31,12 +31,13 @@
     .btn-cargar { background:#222; border:1px dashed #444; color:#bbb; font-size:0.8em; margin-top:5px; padding:12px; margin-bottom:5px; }
     .pilotos-count { color:#888; font-size:0.75em; margin:2px 0 12px 0; text-align:center; text-transform:uppercase; font-weight:bold; }
 
+    /* Modal selector */
     #modal-selector { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:1000; flex-direction:column; padding:10px; }
     .grid-pilotos { display:grid; grid-template-columns:1fr 1fr; gap:8px; overflow-y:auto; flex:1; }
     .btn-piloto-selec { background:#111; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; text-align:center; min-height:70px; display:flex; flex-direction:column; justify-content:center; }
     .btn-piloto-selec.selected { background:#332200; border-color:#ffcc00; }
 
-    /* Panel Mensaje a Pista */
+    /* Panel mensaje a pista */
     #panel-msg-pista { display:none; margin-top:10px; background:#0b0b0b; border:1px solid #444; border-radius:12px; padding:12px; }
     #msg-text { width:100%; min-height:90px; resize:vertical; padding:12px; border-radius:10px; border:1px solid #444; background:#000; color:#ffcc00; font-size:1.05em; outline:none; }
 
@@ -61,10 +62,11 @@
 </head>
 <body>
 
+  <!-- Modal selector -->
   <div id="modal-selector">
     <div style="display:flex; gap:10px; margin-bottom:10px;">
-      <button id="sel-cerrar" class="btn" style="background:#444; flex:1">✕</button>
-      <button id="sel-listo" class="btn" style="background:green; flex:1">✓ LISTO</button>
+      <button class="btn" style="background:#444; flex:1" id="btn-sel-close">✕</button>
+      <button class="btn" style="background:green; flex:1" id="btn-sel-ok">✓ LISTO</button>
     </div>
     <div id="lista-botones-pilotos" class="grid-pilotos"></div>
   </div>
@@ -74,13 +76,14 @@
   <div class="card">
     <div class="input-group">
       <input type="text" id="d-show" placeholder="DORSALES">
-      <button id="btn-lupa" class="btn-lupa">🔍</button>
+      <button class="btn-lupa" id="btn-open-selector">🔍</button>
     </div>
     <div id="preview-show" style="text-align:center; margin-top:10px; color:#aaa; font-weight:bold;">Introduce dorsal...</div>
   </div>
 
   <div class="card">
     <button id="btn-coche" class="btn btn-pista" style="background:#007bff">COCHE EN PISTA</button>
+
     <div id="votos-en-vivo" class="vote-stats-container"></div>
 
     <button id="btn-libre" class="btn btn-pista" style="background:green">PISTA LIBRE</button>
@@ -107,71 +110,56 @@
   </div>
 
   <div class="card">
-    <button id="btn-cargar-csv" class="btn btn-cargar">📂 CARGAR DRIFT.CSV</button>
+    <button class="btn btn-cargar" id="btn-cargar-csv">📂 CARGAR DRIFT.CSV</button>
     <div id="txt-count" class="pilotos-count">PILOTOS CARGADOS: 0</div>
     <input type="file" id="xl-d" accept=".csv, text/csv, text/plain" style="display:none">
-    <button id="btn-export" class="btn btn-reset">💾 DESCARGAR VOTOS Y LIMPIAR</button>
+    <button class="btn btn-reset" id="btn-export">💾 DESCARGAR VOTOS Y LIMPIAR</button>
   </div>
 
-  <!-- SCRIPT NO-MÓDULO: UI crítica SIEMPRE funciona -->
+  <!-- UI (sin Firebase): panel + selector básico siempre activos -->
   <script>
-    (function(){
-      const $ = (id) => document.getElementById(id);
+    const $ = (id) => document.getElementById(id);
 
-      // Panel mensaje: abre/cierra aunque Firebase falle
-      window.togglePanelMsg = function(show){
-        const panel = $('panel-msg-pista');
-        panel.style.display = show ? 'block' : 'none';
-        if (!show) {
-          $('msg-text').value = '';
-          $('lista-sesiones').innerHTML = '';
-          $('stat-online').innerText = '0';
-          $('stat-leidos').innerText = '0';
-          $('stat-total').innerText = '0';
-        }
-      };
+    // Panel mensaje
+    function togglePanelMsg(show) {
+      $('panel-msg-pista').style.display = show ? 'block' : 'none';
+      if (!show) {
+        $('msg-text').value = "";
+        $('lista-sesiones').innerHTML = "";
+        $('stat-online').innerText = "0";
+        $('stat-leidos').innerText = "0";
+        $('stat-total').innerText = "0";
+      }
+    }
+    $('btn-msg').addEventListener('click', () => togglePanelMsg(true));
+    $('btn-cancel-msg').addEventListener('click', () => togglePanelMsg(false));
 
-      // Resaltado local (para no quedarte “ciego” aunque se caiga Firebase)
-      window.setActiveLocal = function(id){
-        document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-        const el = document.getElementById(id);
-        if (el) el.classList.add('pista-activa');
-      };
+    // Preview (se mejora con Firebase cuando cargue inscritos)
+    function previewBasico() {
+      const val = $('d-show').value.trim();
+      $('preview-show').innerText = val ? val : "Introduce dorsal...";
+    }
+    $('d-show').addEventListener('input', previewBasico);
 
-      // Preview local básico (se completa con inscritos si Firebase va)
-      window.buscarPilotoShow = function(){
-        const val = $('d-show').value.trim();
-        $('preview-show').innerText = val ? val : 'Introduce dorsal...';
-      };
-
-      // Wire UI
-      $('d-show').addEventListener('input', () => window.buscarPilotoShow());
-      $('btn-msg').addEventListener('click', () => window.togglePanelMsg(true));
-      $('btn-cancel-msg').addEventListener('click', () => window.togglePanelMsg(false));
-
-      // Botones pista: si Firebase va, el módulo sustituirá con el real; si no, al menos resaltado local
-      $('btn-libre').addEventListener('click', () => window.setActiveLocal('btn-libre'));
-      $('btn-coche').addEventListener('click', () => window.setActiveLocal('btn-coche'));
-      $('btn-obs').addEventListener('click', () => window.setActiveLocal('btn-obs'));
-      $('btn-acc').addEventListener('click', () => window.setActiveLocal('btn-acc'));
-    })();
+    // Selector UI (contenido lo llena el módulo cuando tenga inscritos)
+    $('btn-open-selector').addEventListener('click', () => { $('modal-selector').style.display = 'flex'; });
+    $('btn-sel-close').addEventListener('click', () => { $('modal-selector').style.display = 'none'; });
   </script>
 
-  <!-- MÓDULO: Firebase + lógica real -->
+  <!-- Firebase + lógica -->
   <script type="module">
-    try {
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-      import { getDatabase, ref, set, onValue, get, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    (async () => {
+      // Dynamic import (robusto en móvil)
+      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+      const { getDatabase, ref, set, onValue, get, update, push, remove } =
+        await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
 
       const DB_URL = "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com";
       const db = getDatabase(initializeApp({ databaseURL: DB_URL }));
 
       const $ = (id) => document.getElementById(id);
 
-      let inscritosD = {};
-      let seleccionados = [];
-
-      // ===== Helpers fecha =====
+      // ========== util fecha ==========
       function formatFechaISO(ts) {
         const d = new Date(ts);
         const pad = (n) => String(n).padStart(2, '0');
@@ -183,125 +171,87 @@
         $('preview-show').innerText = "Introduce dorsal...";
       }
 
-      // ====== Mensajes a Pista ======
-      const ONLINE_TTL_MS = 25000;
-      let pistaSessionsRaw = {};
-      let pistaOnline = [];
-      let activeMessageId = "";
-      let readsForActive = {};
+      // ========== inscritos + selector ==========
+      let inscritosD = {};
+      let seleccionados = [];
 
-      function recalcularOnline() {
-        const now = Date.now();
-        pistaOnline = Object.entries(pistaSessionsRaw || {})
-          .map(([id, v]) => ({ id, lastSeen: v?.lastSeen || 0 }))
-          .filter(s => (now - s.lastSeen) <= ONLINE_TTL_MS)
-          .sort((a,b) => b.lastSeen - a.lastSeen);
-
-        $('stat-online').innerText = String(pistaOnline.length);
+      function actualizarPreviewConNombres() {
+        const val = $('d-show').value.trim();
+        if (!val) { $('preview-show').innerText = "Introduce dorsal..."; return; }
+        const dorsales = val.split(/\s+/);
+        const encontrados = dorsales.map(d => inscritosD[d]?.piloto || (d ? "?" : "")).filter(Boolean);
+        $('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
       }
 
-      function renderSesiones() {
-        const list = $('lista-sesiones');
-        list.innerHTML = "";
+      function abrirSelector() {
+        const grid = $('lista-botones-pilotos');
+        grid.innerHTML = "";
+        seleccionados = [];
 
-        const total = pistaOnline.length;
-        let leidos = 0;
+        Object.keys(inscritosD)
+          .sort((a,b) => Number(a) - Number(b))
+          .forEach(d => {
+            const btn = document.createElement('div');
+            btn.className = 'btn-piloto-selec';
+            btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d]?.piloto || ""}</small>`;
+            btn.onclick = () => {
+              btn.classList.toggle('selected');
+              seleccionados.includes(d) ? (seleccionados = seleccionados.filter(x => x !== d)) : seleccionados.push(d);
+            };
+            grid.appendChild(btn);
+          });
 
-        pistaOnline.forEach(s => {
-          const readObj = activeMessageId ? (readsForActive?.[s.id] || null) : null;
-          const isRead = !!(readObj && readObj.read === true);
-          if (isRead) leidos++;
-
-          const badgeClass = !activeMessageId ? "badge-wait" : (isRead ? "badge-ok" : "badge-no");
-          const badgeText  = !activeMessageId ? "SIN MENSAJE" : (isRead ? "LEÍDO" : "PENDIENTE");
-
-          const row = document.createElement('div');
-          row.className = "session-item";
-          row.innerHTML = `
-            <div class="session-left">
-              <div class="session-id">${s.id}</div>
-              <div class="session-last">Último latido: ${s.lastSeen ? formatFechaISO(s.lastSeen) : "-"}</div>
-            </div>
-            <div class="badge ${badgeClass}">${badgeText}</div>
-          `;
-          list.appendChild(row);
-        });
-
-        $('stat-total').innerText = String(total);
-        $('stat-leidos').innerText = String(activeMessageId ? leidos : 0);
+        $('modal-selector').style.display = 'flex';
       }
 
-      onValue(ref(db, 'pista_sessions'), snap => {
-        pistaSessionsRaw = snap.val() || {};
-        recalcularOnline();
-        if ($('panel-msg-pista').style.display === 'block') renderSesiones();
+      // Reemplaza el click del icono lupa por el selector real (con pilotos)
+      $('btn-open-selector').addEventListener('click', (e) => {
+        e.preventDefault();
+        abrirSelector();
       });
 
-      function listenReads(messageId) {
-        onValue(ref(db, `pista_message_reads/${messageId}`), snap => {
-          if (messageId !== activeMessageId) return;
-          readsForActive = snap.val() || {};
-          if ($('panel-msg-pista').style.display === 'block') {
-            recalcularOnline();
-            renderSesiones();
-          }
-        });
-      }
-
-      // Botón enviar mensaje (real)
-      $('btn-send-msg').addEventListener('click', async () => {
-        const txt = String($('msg-text').value || "").trim();
-        if (!txt) return alert("Escribe un mensaje.");
-
-        recalcularOnline();
-        if (pistaOnline.length === 0) return alert("No hay sesiones de Pista online.");
-
-        const msgRef = push(ref(db, 'pista_messages'));
-        const messageId = msgRef.key;
-
-        const updates = {};
-        updates[`pista_messages/${messageId}`] = { id: messageId, text: txt, ts: Date.now() };
-        pistaOnline.forEach(s => {
-          updates[`pista_message_reads/${messageId}/${s.id}`] = { read: false, readAt: 0 };
-        });
-
-        await update(ref(db), updates);
-
-        activeMessageId = messageId;
-        readsForActive = {};
-        listenReads(messageId);
-
-        $('msg-text').value = "";
-        recalcularOnline();
-        renderSesiones();
+      $('btn-sel-ok').addEventListener('click', () => {
+        const txt = seleccionados.join(" ");
+        $('d-show').value = txt;
+        actualizarPreviewConNombres();
+        $('modal-selector').style.display = 'none';
       });
 
-      setInterval(() => {
-        recalcularOnline();
-        if ($('panel-msg-pista').style.display === 'block') renderSesiones();
-      }, 5000);
+      $('btn-sel-close').addEventListener('click', () => { $('modal-selector').style.display = 'none'; });
 
-      // ====== Inscritos ======
+      $('d-show').addEventListener('input', actualizarPreviewConNombres);
+
       onValue(ref(db, 'inscritos_drift'), s => {
         inscritosD = s.val() || {};
         $('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
-        // mejorar preview
-        window.buscarPilotoShow = function(){
-          const val = $('d-show').value.trim();
-          if (!val) { $('preview-show').innerText = "Introduce dorsal..."; return; }
-          const dorsales = val.split(/\s+/);
-          const encontrados = dorsales.map(d => inscritosD[d] ? inscritosD[d].piloto : (d ? "?" : "")).filter(x => x);
-          $('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
-        };
-        $('d-show').dispatchEvent(new Event('input'));
+        actualizarPreviewConNombres();
       });
 
-      // ===== Limpieza remota =====
-      onValue(ref(db, 'comando_limpiar'), (snapshot) => {
-        if (snapshot.exists()) limpiarInputLocal();
+      // ========== estado pista (resaltado) ==========
+      function marcarActivo(id) {
+        document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
+        const el = document.getElementById(id);
+        if (el) el.classList.add('pista-activa');
+      }
+
+      onValue(ref(db, 'estado_pista'), s => {
+        const id = s.val()?.id;
+        if (id) marcarActivo(id);
       });
 
-      // ===== Cierre / historial =====
+      async function setEstadoReal(msg, col, id) {
+        await set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id });
+        if (id === 'btn-libre') {
+          limpiarInputLocal();
+          await iniciarCierreVotacion();
+        }
+      }
+
+      $('btn-libre').addEventListener('click', () => setEstadoReal('🟢 PISTA LIBRE','green','btn-libre'));
+      $('btn-obs').addEventListener('click', () => setEstadoReal('⚠️ OBSTÁCULO','#ffcc00','btn-obs'));
+      $('btn-acc').addEventListener('click', () => setEstadoReal('🔴 ACCIDENTE','red','btn-acc'));
+
+      // ========== votación (igual que antes) ==========
       let cierreInterval = null;
       let cierreEnCurso = false;
 
@@ -343,7 +293,6 @@
           cierreInterval = setInterval(async () => {
             count--;
             await update(ref(db, 'votacion_activa'), { timer: count });
-
             if (count <= 0) {
               clearInterval(cierreInterval);
               cierreInterval = null;
@@ -356,87 +305,39 @@
         }
       }
 
-      // ===== Estados pista (real + resalta) =====
-      async function setEstadoReal(msg, col, id) {
-        await set(ref(db, 'estado_pista'), { mensaje: msg, color: col, id });
-        if (id === 'btn-libre') {
-          limpiarInputLocal();
-          await iniciarCierreVotacion();
-        }
-      }
-
-      $('btn-libre').addEventListener('click', () => setEstadoReal('🟢 PISTA LIBRE','green','btn-libre'));
-      $('btn-obs').addEventListener('click', () => setEstadoReal('⚠️ OBSTÁCULO','#ffcc00','btn-obs'));
-      $('btn-acc').addEventListener('click', () => setEstadoReal('🔴 ACCIDENTE','red','btn-acc'));
-
-      // coche en pista: se mantiene como antes (abrir votación lo pone también)
-      $('btn-coche').addEventListener('click', async () => {
+      window.abrirVoto = async () => {
         const val = $('d-show').value.trim();
         if (!val) return alert("Introduce un dorsal primero");
-        await setEstadoReal('🏎️ EN PISTA: ' + val, '#007bff', 'btn-coche');
-      });
 
-      // Listener que manda el “resaltado correcto” desde la nube
-      onValue(ref(db, 'estado_pista'), s => {
-        document.querySelectorAll('.btn-pista').forEach(b => b.classList.remove('pista-activa'));
-        const id = s.val()?.id;
-        if (id) {
-          const active = document.getElementById(id);
-          if (active) active.classList.add('pista-activa');
-        }
-      });
+        if (cierreInterval) { clearInterval(cierreInterval); cierreInterval = null; }
+        cierreEnCurso = false;
 
-      // ===== Selector pilotos =====
-      $('btn-lupa').addEventListener('click', () => {
-        const grid = $('lista-botones-pilotos');
-        grid.innerHTML = "";
-        seleccionados = [];
-        Object.keys(inscritosD).sort((a,b)=>Number(a)-Number(b)).forEach(d => {
-          const btn = document.createElement('div');
-          btn.className = 'btn-piloto-selec';
-          btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto || ""}</small>`;
-          btn.onclick = () => {
-            btn.classList.toggle('selected');
-            seleccionados.includes(d) ? (seleccionados = seleccionados.filter(x=>x!==d)) : seleccionados.push(d);
-          };
-          grid.appendChild(btn);
-        });
-        $('modal-selector').style.display = 'flex';
-      });
+        const dorsalesArr = val.split(/\s+/);
+        let items = {};
 
-      $('sel-cerrar').addEventListener('click', () => $('modal-selector').style.display = 'none');
-      $('sel-listo').addEventListener('click', () => {
-        $('d-show').value = seleccionados.join(" ");
-        $('d-show').dispatchEvent(new Event('input'));
-        $('modal-selector').style.display = 'none';
-      });
+        const histSnap = await get(ref(db, 'historial_votos'));
+        const historial = histSnap.val() ? Object.values(histSnap.val()) : [];
 
-      // ===== CSV inscritos =====
-      $('btn-cargar-csv').addEventListener('click', () => $('xl-d').click());
-      $('xl-d').addEventListener('change', (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const lines = String(e.target.result || "").split(/\r?\n/);
-          let obj = {};
-          const sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
-
-          lines.slice(1).forEach(l => {
-            if (!l.trim()) return;
-            const c = l.split(sep);
-            if (c[0]) obj[c[0].trim()] = { piloto: c[1]?.trim() || "", coche: c[2]?.trim() || "" };
+        dorsalesArr.forEach(d => {
+          const p = inscritosD[d];
+          let h_ap = 0, h_up = 0, h_dw = 0;
+          historial.filter(h => h.dorsal === d).forEach(v => {
+            h_ap += (v.ap || 0);
+            h_up += (v.up || 0);
+            h_dw += (v.dw || 0);
           });
 
-          await set(ref(db, 'inscritos_drift'), obj);
-          alert("Cargados " + Object.keys(obj).length + " pilotos");
-          event.target.value = "";
-        };
-        reader.readAsText(file);
-      });
+          items[d] = { nombre: p ? p.piloto : "PILOTO " + d, coche: p ? p.coche : "", ap:0, up:0, dw:0, h_ap, h_up, h_dw };
+        });
 
-      // ===== Votación en vivo =====
+        if (dorsalesArr.length > 1) items["BATALLA"] = { nombre:"🔥 BATALLA", coche:"", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
+
+        await set(ref(db, 'votacion_activa'), { dorsal: val, activa: true, timer: 0, items });
+        await set(ref(db, 'estado_pista'), { mensaje: '🏎️ EN PISTA: ' + val, color: '#007bff', id: 'btn-coche' });
+      };
+
+      $('btn-coche').addEventListener('click', () => window.abrirVoto());
+
       onValue(ref(db, 'votacion_activa'), snap => {
         const v = snap.val();
         const container = $('votos-en-vivo');
@@ -449,4 +350,101 @@
               <div class="p-info">${id === 'BATALLA' ? '🔥 BATALLA' : '#' + id + ' ' + (data.nombre || '')}</div>
               <div class="p-stats">
                 <span>👏 ${data.ap || 0} (${(data.ap || 0) + (data.h_ap || 0)})</span>
-                <span>👍 ${data.up |
+                <span>👍 ${data.up || 0} (${(data.up || 0) + (data.h_up || 0)})</span>
+                <span>👎 ${data.dw || 0} (${(data.dw || 0) + (data.h_dw || 0)})</span>
+              </div>
+            </div>
+          `).join('');
+        }
+        container.innerHTML = html;
+      });
+
+      // ========== CSV inscritos ==========
+      $('btn-cargar-csv').addEventListener('click', () => $('xl-d').click());
+      $('xl-d').addEventListener('change', (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const lines = String(e.target.result || "").split(/\r?\n/);
+          let obj = {};
+          const sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
+          lines.slice(1).forEach(l => {
+            if (!l.trim()) return;
+            const c = l.split(sep);
+            if (c[0]) obj[c[0].trim()] = { piloto: c[1]?.trim() || "", coche: c[2]?.trim() || "" };
+          });
+          await set(ref(db, 'inscritos_drift'), obj);
+          alert("Cargados " + Object.keys(obj).length + " pilotos");
+          event.target.value = "";
+        };
+        reader.readAsText(file);
+      });
+
+      // ========== Exportación (ranking + batallas) ==========
+      $('btn-export').addEventListener('click', async () => {
+        const snap = await get(ref(db, 'historial_votos'));
+        if (!snap.exists()) return alert("No hay historial");
+
+        const registros = Object.values(snap.val());
+        const totales = {};
+        const batallas = [];
+
+        registros.forEach(r => {
+          const dorsal = String(r.dorsal || "").trim();
+          if (!dorsal) return;
+
+          if (dorsal === "BATALLA") {
+            batallas.push({ participantes: String(r.participantes || "").trim(), ap:r.ap||0, up:r.up||0, dw:r.dw||0, ts:r.ts });
+            return;
+          }
+
+          if (!totales[dorsal]) totales[dorsal] = { piloto: r.info || ("PILOTO " + dorsal), ap:0, up:0, dw:0 };
+          totales[dorsal].ap += (r.ap || 0);
+          totales[dorsal].up += (r.up || 0);
+          totales[dorsal].dw += (r.dw || 0);
+        });
+
+        const ranking = Object.entries(totales).map(([dorsal, t]) => ({
+          dorsal, piloto: t.piloto, ap: t.ap, up: t.up, dw: t.dw
+        })).sort((a,b) => {
+          if (b.ap !== a.ap) return b.ap - a.ap;
+          if (b.up !== a.up) return b.up - a.up;
+          if (a.dw !== b.dw) return a.dw - b.dw;
+          return Number(a.dorsal) - Number(b.dorsal);
+        });
+
+        let csv = "Tipo,Dorsal,Piloto,Participantes,Aplausos,Up,Down,Fecha_Hora\n";
+
+        ranking.forEach(r => {
+          const piloto = String(r.piloto || "").replace(/"/g, "");
+          csv += `PILOTO,${r.dorsal},"${piloto}",,${r.ap},${r.up},${r.dw},\n`;
+        });
+
+        csv += "\n";
+
+        batallas.sort((a,b) => (a.ts||0) - (b.ts||0)).forEach(b => {
+          const participantes = String(b.participantes || "").replace(/"/g, "");
+          const fecha = b.ts ? formatFechaISO(b.ts) : "";
+          csv += `BATALLA,,,\"${participantes}\",${b.ap},${b.up},${b.dw},"${fecha}"\n`;
+        });
+
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" }));
+        link.download = "votos_drift_totales_y_batallas.csv";
+        link.click();
+
+        if (confirm("¿Borrar historial de la nube?")) await remove(ref(db, 'historial_votos'));
+      });
+
+      // ========== Limpieza remota desde pista ==========
+      onValue(ref(db, 'comando_limpiar'), (snapshot) => {
+        if (snapshot.exists()) limpiarInputLocal();
+      });
+
+      // ======================================================
+      // MENSAJE A PISTA (online + tracking lecturas)
+      // ======================================================
+      const ONLINE_TTL_MS = 25000;
+      let pistaS

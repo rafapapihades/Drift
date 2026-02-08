@@ -1,67 +1,35 @@
+1
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PISTA - DRIFT SHOW</title>
 
   <style>
     * { box-sizing: border-box; }
-    body { background: #000; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; gap: 10px; font-family: sans-serif; overflow: hidden; }
+    body { background:#000; margin:0; padding:10px; height:100vh; display:flex; flex-direction:column; gap:10px; font-family:sans-serif; overflow:hidden; }
 
-    .btn-pista { flex: 1; border: none; border-radius: 15px; color: white; font-size: 1.8em; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; }
+    .btn-pista { flex:1; border:none; border-radius:15px; color:white; font-size:1.8em; font-weight:bold; text-transform:uppercase; cursor:pointer; transition:0.3s; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px; }
+    .btn-libre { background:#008000; }
+    .btn-coche { background:#007bff; }
+    .btn-obs   { background:#ffcc00; color:#000; }
+    .btn-acc   { background:#cc0000; }
 
-    .btn-libre { background: #008000; }
-    .btn-coche { background: #007bff; }
-    .btn-obs   { background: #ffcc00; color: #000; }
-    .btn-acc   { background: #cc0000; }
+    .active-now { opacity:1 !important; outline:6px solid #fff; outline-offset:-6px; box-shadow:0 0 40px rgba(255,255,255,0.3); z-index:2; }
+    .inactive { opacity:0.15; transform:scale(0.95); }
 
-    .active-now { opacity: 1 !important; outline: 6px solid #fff; outline-offset: -6px; box-shadow: 0 0 40px rgba(255,255,255,0.3); z-index: 2; }
-    .inactive { opacity: 0.15; transform: scale(0.95); }
+    #toast { position:fixed; top:-100px; left:50%; transform:translateX(-50%); background:#ff4444; color:white; padding:20px; border-radius:10px; font-weight:bold; width:90%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.5); transition:0.5s; z-index:9999; text-transform:uppercase; }
+    #toast.show { top:20px; }
 
-    #toast {
-      position: fixed;
-      top: -100px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ff4444;
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-      font-weight: bold;
-      width: 90%;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      transition: 0.5s;
-      z-index: 9999;
-      text-transform: uppercase;
-    }
-    #toast.show { top: 20px; }
-
-    /* POPUP MENSAJE MASTER */
-    #modal-master-msg{
-      display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
-      z-index:9998; padding:14px; align-items:center; justify-content:center;
-    }
-    #modal-master-msg .box{
-      width:100%; max-width:520px; background:#111; border:2px solid #ff8800;
-      border-radius:16px; padding:16px; box-shadow:0 0 30px rgba(0,0,0,.7);
-    }
-    #modal-master-msg .title{
-      font-weight:bold; text-transform:uppercase; margin-bottom:10px; color:#ffcc00;
-    }
-    #modal-master-msg .text{
-      white-space:pre-wrap; color:#fff; font-size:1.1em; line-height:1.35;
-      background:#000; border:1px solid #333; border-radius:12px; padding:12px;
-    }
-    #modal-master-msg .btn-ok{
-      width:100%; margin-top:12px; padding:16px; border:none; border-radius:12px;
-      font-weight:bold; text-transform:uppercase; cursor:pointer;
-      background:#ff8800; color:#000;
-    }
+    #modal-master-msg{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:9998; padding:14px; align-items:center; justify-content:center; }
+    #modal-master-msg .box{ width:100%; max-width:520px; background:#111; border:2px solid #ff8800; border-radius:16px; padding:16px; box-shadow:0 0 30px rgba(0,0,0,.7); }
+    #modal-master-msg .title{ font-weight:bold; text-transform:uppercase; margin-bottom:10px; color:#ffcc00; }
+    #modal-master-msg .text{ white-space:pre-wrap; color:#fff; font-size:1.1em; line-height:1.35; background:#000; border:1px solid #333; border-radius:12px; padding:12px; }
+    #modal-master-msg .btn-ok{ width:100%; margin-top:12px; padding:16px; border:none; border-radius:12px; font-weight:bold; text-transform:uppercase; cursor:pointer; background:#ff8800; color:#000; }
   </style>
 
-  <!-- Firebase COMPAT (sin módulos) -->
+  <!-- Firebase COMPAT -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
@@ -83,25 +51,26 @@
   <button id="btn-acc" class="btn-pista btn-acc" onclick="enviarEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
 
   <script>
-    firebase.initializeApp({
-      databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com"
-    });
+    function getOnce(db, path){
+      return new Promise((resolve, reject)=>{
+        db.ref(path).once('value', (snap)=>resolve(snap), (err)=>reject(err));
+      });
+    }
+
+    firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
     const db = firebase.database();
 
-    /* =========================================================
-       SESIÓN PISTA (para que MASTER vea online + lecturas)
-       ========================================================= */
+    /* SESIÓN PISTA */
     const LS_KEY = "DRIFT_PISTA_SESSION_ID";
     let sessionId = localStorage.getItem(LS_KEY);
     if (!sessionId) {
       sessionId = "pista_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now().toString(36);
       localStorage.setItem(LS_KEY, sessionId);
     }
-
     const sessionRef = db.ref("pista_sessions/" + sessionId);
     const startedAt = Date.now();
 
-    function heartbeat() {
+    function heartbeat(){
       sessionRef.update({
         lastSeen: Date.now(),
         startedAt: startedAt,
@@ -111,46 +80,36 @@
     heartbeat();
     setInterval(heartbeat, 5000);
 
-    /* =========================================================
-       MENSAJE DESDE MASTER
-       ========================================================= */
+    /* MENSAJE DESDE MASTER */
     let ultimoMsgTs = 0;
-
-    db.ref('mensaje_pista').on('value', (snap) => {
+    db.ref('mensaje_pista').on('value', (snap)=>{
       const m = snap.val();
-      if (!m || !m.ts || !m.texto) return;
-
-      // Solo si es nuevo
-      if (m.ts <= ultimoMsgTs) return;
+      if(!m || !m.ts || !m.texto) return;
+      if(m.ts <= ultimoMsgTs) return;
       ultimoMsgTs = m.ts;
 
       document.getElementById('master-msg-text').innerText = m.texto;
       document.getElementById('modal-master-msg').style.display = 'flex';
+      if (navigator.vibrate) navigator.vibrate([80,60,80]);
 
-      if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
-
-      // Debug/telemetría opcional
       sessionRef.update({ lastMsgReceivedTs: m.ts }).catch(()=>{});
     });
 
     window.confirmarLecturaMensaje = async () => {
       document.getElementById('modal-master-msg').style.display = 'none';
-      const now = Date.now();
-      await sessionRef.update({ lastReadTs: now }).catch(()=>{});
+      await sessionRef.update({ lastReadTs: Date.now() }).catch(()=>{});
     };
 
-    /* =========================================================
-       TU LÓGICA ORIGINAL (resaltar estado)
-       ========================================================= */
-    db.ref('estado_pista').on('value', (snapshot) => {
+    /* ESTADO PISTA (resaltado) */
+    db.ref('estado_pista').on('value', (snapshot)=>{
       const data = snapshot.val();
-      if (data) {
-        document.querySelectorAll('.btn-pista').forEach(btn => {
+      if(data){
+        document.querySelectorAll('.btn-pista').forEach(btn=>{
           btn.classList.add('inactive');
           btn.classList.remove('active-now');
         });
         const activeBtn = document.getElementById(data.id);
-        if (activeBtn) {
+        if(activeBtn){
           activeBtn.classList.remove('inactive');
           activeBtn.classList.add('active-now');
         }
@@ -160,15 +119,15 @@
     window.showToast = () => {
       const t = document.getElementById('toast');
       t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3000);
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      setTimeout(()=>t.classList.remove('show'), 3000);
+      if (navigator.vibrate) navigator.vibrate([100,50,100]);
     };
 
     window.intentarCocheEnPista = async () => {
-      const snapVot = await db.ref('votacion_activa').get();
+      const snapVot = await getOnce(db, 'votacion_activa');   /* <-- antes .get() */
       const vot = snapVot.val();
 
-      if (!vot || !vot.activa || !vot.dorsal) {
+      if(!vot || !vot.activa || !vot.dorsal){
         showToast();
         return;
       }
@@ -179,35 +138,29 @@
       if (navigator.vibrate) navigator.vibrate(60);
       await db.ref('estado_pista').set({ mensaje: msg, color: col, id: id });
 
-      if (id === 'btn-libre') {
+      if(id === 'btn-libre'){
         await db.ref('comando_limpiar').set(Date.now());
 
-        const snap = await db.ref('votacion_activa').get();
+        const snap = await getOnce(db, 'votacion_activa');     /* <-- antes .get() */
         const v = snap.val();
 
-        if (v && v.activa) {
-          Object.entries(v.items).forEach(([idItem, data]) => {
-            if ((data.ap || 0) + (data.up || 0) + (data.dw || 0) > 0) {
+        if(v && v.activa){
+          Object.entries(v.items).forEach(([idItem, data])=>{
+            if((data.ap||0)+(data.up||0)+(data.dw||0) > 0){
               db.ref('historial_votos').push({
-                dorsal: idItem,
-                info: data.nombre,
-                ap: data.ap || 0,
-                up: data.up || 0,
-                dw: data.dw || 0,
-                ts: Date.now()
+                dorsal: idItem, info: data.nombre, ap: data.ap||0, up: data.up||0, dw: data.dw||0, ts: Date.now()
               });
             }
           });
 
           let count = 5;
           await db.ref('votacion_activa').update({ timer: count });
-
-          let interval = setInterval(async () => {
+          const interval = setInterval(async ()=>{
             count--;
             await db.ref('votacion_activa').update({ timer: count });
-            if (count <= 0) {
+            if(count <= 0){
               clearInterval(interval);
-              await db.ref('votacion_activa').set({ activa: false, timer: 0, dorsal: "" });
+              await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
             }
           }, 1000);
         }

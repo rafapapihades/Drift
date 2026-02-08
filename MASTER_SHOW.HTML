@@ -522,50 +522,139 @@ window.exportarVotos = async function () {
     if ((b.ap || 0) !== (a.ap || 0)) return (b.ap || 0) - (a.ap || 0);
     return String(a.participantes).localeCompare(String(b.participantes));
   });
+window.exportarVotos = async function () {
+  // Lee historial
+  const snapHist = await getOnce('historial_votos');
+  if (!snapHist.exists()) return alert("No hay historial");
 
-  // 4) Construir CSVs
-  var csvPilotos = "Rank,Dorsal,Piloto,Coche,Aplausos,Up,Down,Score,Veces,Primera,Ultima\n";
-  pilotos.forEach(function (p, idx) {
+  const histObj = snapHist.val() || {};
+  let rows = Object.values(histObj).filter(r => r && r.dorsal && r.ts);
+
+  // Orden cronológico
+  rows.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+
+  // Lee inscritos para nombre+coche (no depende de variables del try)
+  const snapIns = await getOnce('inscritos_drift');
+  const inscritos = (snapIns.exists() && snapIns.val()) ? snapIns.val() : {};
+
+  const CLUSTER_MS = 1500;
+  const ONLINE_SCORE = (ap, up, dw) => (ap * 2) + up - dw;
+
+  // Agrupar por tanda para detectar participantes de BATALLA
+  const clusters = [];
+  let cur = [];
+  for (const r of rows) {
+    if (!cur.length) { cur.push(r); continue; }
+    const prev = cur[cur.length - 1];
+    if ((r.ts - (prev.ts || 0)) <= CLUSTER_MS) cur.push(r);
+    else { clusters.push(cur); cur = [r]; }
+  }
+  if (cur.length) clusters.push(cur);
+
+  clusters.forEach(c => {
+    let battle = null;
+    const parts = [];
+    for (const r of c) {
+      const d = String(r.dorsal || "");
+      if (d === "BATALLA") battle = r;
+      else parts.push(d);
+    }
+    if (battle) {
+      battle._participants = (parts.length === 2) ? `${parts[0]} vs ${parts[1]}` : (parts.join(" ") || "?");
+    }
+  });
+
+  function fmtDate(ts) {
+    return ts ? new Date(ts).toLocaleString('es-ES').replace(/,/g, '') : "";
+  }
+  function esc(s) { return String(s || "").replace(/"/g, ''); }
+
+  // 1) Agregar PILOTOS
+  const agg = {}; // dorsal -> datos
+  function ensurePilot(d) {
+    if (!agg[d]) {
+      const p = inscritos[d];
+      agg[d] = {
+        dorsal: d,
+        nombre: p ? (p.piloto || ("PILOTO " + d)) : ("PILOTO " + d),
+        coche: p ? (p.coche || "") : "",
+        ap: 0, up: 0, dw: 0,
+        veces: 0,
+        firstTs: null,
+        lastTs: null
+      };
+    }
+    return agg[d];
+  }
+
+  // 2) Agregar BATALLAS
+  const battAgg = {}; // key -> datos
+  function ensureBattle(key) {
+    if (!battAgg[key]) {
+      battAgg[key] = { participantes: key, ap: 0, up: 0, dw: 0, veces: 0, firstTs: null, lastTs: null };
+    }
+    return battAgg[key];
+  }
+
+  for (const v of rows) {
+    const dorsal = String(v.dorsal || "");
+    const ap = Number(v.ap || 0), up = Number(v.up || 0), dw = Number(v.dw || 0);
+
+    if (dorsal === "BATALLA") {
+      const key = v._participants || "?";
+      const b = ensureBattle(key);
+      b.ap += ap; b.up += up; b.dw += dw;
+      b.veces += 1;
+      if (b.firstTs === null || v.ts < b.firstTs) b.firstTs = v.ts;
+      if (b.lastTs === null || v.ts > b.lastTs) b.lastTs = v.ts;
+      continue;
+    }
+
+    const p = ensurePilot(dorsal);
+    p.ap += ap; p.up += up; p.dw += dw;
+    p.veces += 1;
+    if (p.firstTs === null || v.ts < p.firstTs) p.firstTs = v.ts;
+    if (p.lastTs === null || v.ts > p.lastTs) p.lastTs = v.ts;
+  }
+
+  // Orden pilotos por score desc
+  const pilotos = Object.values(agg).map(p => ({ ...p, score: ONLINE_SCORE(p.ap, p.up, p.dw) }));
+  pilotos.sort((a, b) => (b.score - a.score) || (b.ap - a.ap) || (Number(a.dorsal) - Number(b.dorsal)));
+
+  // Orden batallas por score desc
+  const batallas = Object.values(battAgg).map(b => ({ ...b, score: ONLINE_SCORE(b.ap, b.up, b.dw) }));
+  batallas.sort((a, b) => (b.score - a.score) || (b.ap - a.ap) || String(a.participantes).localeCompare(String(b.participantes)));
+
+  // CSV Pilotos
+  let csvPilotos = "Rank,Dorsal,Piloto,Coche,Aplausos,Up,Down,Score,Veces,Primera,Ultima\n";
+  pilotos.forEach((p, idx) => {
     csvPilotos +=
-      (idx + 1) + "," +
-      esc(p.dorsal) + "," +
-      "\"" + esc(p.nombre) + "\"," +
-      "\"" + esc(p.coche) + "\"," +
-      (p.ap || 0) + "," + (p.up || 0) + "," + (p.dw || 0) + "," +
-      (p.score || 0) + "," +
-      (p.veces || 0) + "," +
-      "\"" + esc(fmtDate(p.firstTs)) + "\"," +
-      "\"" + esc(fmtDate(p.lastTs)) + "\"" +
-      "\n";
+      `${idx + 1},${esc(p.dorsal)},"${esc(p.nombre)}","${esc(p.coche)}",` +
+      `${p.ap},${p.up},${p.dw},${p.score},${p.veces},` +
+      `"${esc(fmtDate(p.firstTs))}","${esc(fmtDate(p.lastTs))}"\n`;
   });
 
-  var csvBatallas = "Rank,Participantes,Aplausos,Up,Down,Score,Veces,Primera,Ultima\n";
-  battles.forEach(function (b, idx) {
+  // CSV Batallas
+  let csvBatallas = "Rank,Participantes,Aplausos,Up,Down,Score,Veces,Primera,Ultima\n";
+  batallas.forEach((b, idx) => {
     csvBatallas +=
-      (idx + 1) + "," +
-      "\"" + esc(b.participantes) + "\"," +
-      (b.ap || 0) + "," + (b.up || 0) + "," + (b.dw || 0) + "," +
-      (b.score || 0) + "," +
-      (b.veces || 0) + "," +
-      "\"" + esc(fmtDate(b.firstTs)) + "\"," +
-      "\"" + esc(fmtDate(b.lastTs)) + "\"" +
-      "\n";
+      `${idx + 1},"${esc(b.participantes)}",${b.ap},${b.up},${b.dw},${b.score},${b.veces},` +
+      `"${esc(fmtDate(b.firstTs))}","${esc(fmtDate(b.lastTs))}"\n`;
   });
 
-  // Descargar 2 archivos
   function downloadCsv(filename, content) {
-    var link = document.createElement("a");
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob(["\ufeff" + content], { type: 'text/csv;charset=utf-8;' }));
     link.download = filename;
     link.click();
   }
 
   downloadCsv("ranking_pilotos.csv", csvPilotos);
-  setTimeout(function () {
-    downloadCsv("batallas.csv", csvBatallas);
-  }, 250);
+  setTimeout(() => downloadCsv("batallas.csv", csvBatallas), 250);
 
-  if (confirm("¿Borrar historial de la nube?")) db.ref('historial_votos').remove();
+  if (confirm("¿Borrar historial de la nube?")) {
+    firebase.database().ref('historial_votos').remove();
+  }
 };
 
       window.abrirVoto = async function(){

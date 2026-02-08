@@ -56,7 +56,7 @@
     .badge-warn{ color:#ffcc00; }
     .badge-off{ color:#888; }
 
-    /* DEBUG BAR */
+    /* DEBUG BAR (sin "JS OK / FIREBASE OK") */
     #dbg{ position:fixed; left:10px; right:10px; bottom:10px; z-index:9999;
       background:#111; border:1px solid #333; border-radius:12px; padding:10px;
       text-align:center; font-weight:bold; color:#ffcc00; opacity:.92; }
@@ -123,7 +123,8 @@
     <button class="btn btn-reset" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
   </div>
 
-  <div id="dbg">JS OK (CARGADO)</div>
+  <!-- Debug bar: solo errores o info útil -->
+  <div id="dbg" style="display:none">...</div>
 
   <script>
     /* ===== Helpers COMPAT: reemplazo de .get() ===== */
@@ -135,12 +136,18 @@
         );
       });
     }
-    function setDbg(txt, bad){
+    function showDbg(txt, bad){
       const el = document.getElementById('dbg');
       if(!el) return;
+      el.style.display = 'block';
       el.innerText = txt;
       el.style.background = bad ? '#6b0000' : '#111';
       el.style.color = bad ? '#fff' : '#ffcc00';
+    }
+    function hideDbg(){
+      const el = document.getElementById('dbg');
+      if(!el) return;
+      el.style.display = 'none';
     }
 
     try {
@@ -177,6 +184,7 @@
         } catch(e){
           console.error(e);
           hint.innerText = "Error al enviar";
+          showDbg("Error al enviar mensaje: " + (e && e.message ? e.message : e), true);
         }
       };
 
@@ -192,6 +200,7 @@
         } catch(e){
           console.error(e);
           hint.innerText = "Error al eliminar";
+          showDbg("Error al eliminar mensaje: " + (e && e.message ? e.message : e), true);
         }
       };
 
@@ -256,7 +265,7 @@
         const dorsalesArr = val.split(/\s+/);
         let items = {};
 
-        const histSnap = await getOnce('historial_votos');   /* <-- antes .get() */
+        const histSnap = await getOnce('historial_votos');
         const historial = histSnap.exists() ? Object.values(histSnap.val()) : [];
 
         dorsalesArr.forEach(d=>{
@@ -265,7 +274,11 @@
           historial.filter(h=>h.dorsal===d).forEach(v=>{
             h_ap += (v.ap||0); h_up += (v.up||0); h_dw += (v.dw||0);
           });
-          items[d] = { nombre: p ? p.piloto : "PILOTO " + d, coche: p ? p.coche : "", ap:0, up:0, dw:0, h_ap, h_up, h_dw };
+          items[d] = {
+            nombre: p ? p.piloto : "PILOTO " + d,
+            coche: p ? (p.coche || "") : "",
+            ap:0, up:0, dw:0, h_ap, h_up, h_dw
+          };
         });
 
         if(dorsalesArr.length > 1) items["BATALLA"] = { nombre:"🔥 BATALLA", coche:"", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
@@ -274,6 +287,7 @@
         await db.ref('estado_pista').set({ mensaje:'🏎️ EN PISTA: ' + val, color:'#007bff', id:'btn-coche' });
       };
 
+      // ===== CAMBIO: mostrar también el coche en la fila =====
       db.ref('votacion_activa').on('value', (snap)=>{
         const v = snap.val();
         const container = document.getElementById('votos-en-vivo');
@@ -281,16 +295,20 @@
 
         let html = v.timer > 0 ? `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>` : "";
         if(v.items){
-          html += Object.entries(v.items).map(([id,data])=>`
-            <div class="piloto-voto-row">
-              <div class="p-info">${id==='BATALLA'?'🔥 BATALLA':'#'+id+' '+data.nombre}</div>
-              <div class="p-stats">
-                <span>👏 ${data.ap||0} (${(data.ap||0)+(data.h_ap||0)})</span>
-                <span>👍 ${data.up||0} (${(data.up||0)+(data.h_up||0)})</span>
-                <span>👎 ${data.dw||0} (${(data.dw||0)+(data.h_dw||0)})</span>
+          html += Object.entries(v.items).map(([id,data])=>{
+            const coche = (data.coche || "").trim();
+            const sub = (id === 'BATALLA') ? "" : (coche ? `<div style="color:#aaa; font-style:italic; font-size:0.85em; margin-top:2px;">${coche}</div>` : "");
+            return `
+              <div class="piloto-voto-row">
+                <div class="p-info">${id==='BATALLA'?'🔥 BATALLA':'#'+id+' '+data.nombre}${sub}</div>
+                <div class="p-stats">
+                  <span>👏 ${data.ap||0} (${(data.ap||0)+(data.h_ap||0)})</span>
+                  <span>👍 ${data.up||0} (${(data.up||0)+(data.h_up||0)})</span>
+                  <span>👎 ${data.dw||0} (${(data.dw||0)+(data.h_dw||0)})</span>
+                </div>
               </div>
-            </div>
-          `).join('');
+            `;
+          }).join('');
         }
         container.innerHTML = html;
       });
@@ -302,7 +320,7 @@
           document.getElementById('d-show').value = "";
           document.getElementById('preview-show').innerText = "Introduce dorsal...";
 
-          const snap = await getOnce('votacion_activa');     /* <-- antes .get() */
+          const snap = await getOnce('votacion_activa');
           const v = snap.val();
 
           if(v && v.activa){
@@ -351,7 +369,7 @@
       };
 
       window.exportarVotos = async () => {
-        const snap = await getOnce('historial_votos');       /* <-- antes .get() */
+        const snap = await getOnce('historial_votos');
         if(!snap.exists()) return alert("No hay historial");
 
         let csv = "Dorsal,Piloto,Aplausos,Up,Down,Fecha_Hora\n";
@@ -369,22 +387,36 @@
         if(confirm("¿Borrar historial de la nube?")) db.ref('historial_votos').remove();
       };
 
+      // ===== CAMBIO: preview incluye piloto + coche =====
       window.buscarPilotoShow = (val)=>{
-        if(!val.trim()){ document.getElementById('preview-show').innerText="Introduce dorsal..."; return; }
+        if(!val.trim()){
+          document.getElementById('preview-show').innerText="Introduce dorsal...";
+          return;
+        }
         const dorsales = val.trim().split(/\s+/);
-        const encontrados = dorsales.map(d=> inscritosD[d]?inscritosD[d].piloto:(d?"?":"")).filter(x=>x);
-        document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
+        const encontrados = dorsales.map(d=>{
+          const p = inscritosD[d];
+          if(!p) return (d ? "?" : "");
+          const coche = (p.coche || "").trim();
+          return coche ? `${p.piloto} (${coche})` : `${p.piloto}`;
+        }).filter(x=>x);
+
+        document.getElementById('preview-show').innerText =
+          encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
       };
 
+      // ===== CAMBIO: selector muestra coche =====
       window.abrirSelector = ()=>{
         const grid = document.getElementById('lista-botones-pilotos');
         grid.innerHTML = "";
         seleccionados = [];
 
         Object.keys(inscritosD).sort((a,b)=>Number(a)-Number(b)).forEach(d=>{
+          const p = inscritosD[d] || {};
+          const coche = (p.coche || "").trim();
           const btn = document.createElement('div');
           btn.className = 'btn-piloto-selec';
-          btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto}</small>`;
+          btn.innerHTML = `<b>#${d}</b><br><small>${p.piloto || ''}${coche ? `<br><span style="color:#aaa; font-style:italic;">${coche}</span>` : ''}</small>`;
           btn.onclick = ()=>{
             btn.classList.toggle('selected');
             if(seleccionados.includes(d)) seleccionados = seleccionados.filter(x=>x!==d);
@@ -405,20 +437,4 @@
       };
 
       db.ref('estado_pista').on('value', (s)=>{
-        document.querySelectorAll('.btn-pista').forEach(b=>b.classList.remove('pista-activa'));
-        const id = s.val() && s.val().id;
-        if(id){
-          const active = document.getElementById(id);
-          if(active) active.classList.add('pista-activa');
-        }
-      });
-
-      setDbg("JS OK (CARGADO) · FIREBASE OK", false);
-
-    } catch(err){
-      console.error(err);
-      setDbg("JS OK (CARGADO) · ERROR: " + (err && err.message ? err.message : "desconocido"), true);
-    }
-  </script>
-</body>
-</html>
+        document.queryS

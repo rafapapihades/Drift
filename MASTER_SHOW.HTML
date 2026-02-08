@@ -1,425 +1,131 @@
-1
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>MASTER DRIFT SHOW - CONTROL</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MASTER DRIFT SHOW - CONTROL</title>
 
-  <style>
-    * { box-sizing: border-box; }
-    body { background: #000; color: #fff; font-family: sans-serif; padding: 0 10px 10px 10px; margin: 0; overflow-x: hidden; }
+<style>
+*{box-sizing:border-box}
+body{background:#000;color:#fff;font-family:sans-serif;padding:0 10px 10px;margin:0}
 
-    .header-logo { display:block; margin:0 auto; width:100%; max-width:500px; height:auto; padding:5px 0; }
-    .card { background:#111; padding:15px; border-radius:12px; margin-bottom:10px; border:1px solid #333; width:100%; }
+/* ---------- GENÉRICO ---------- */
+.card{background:#111;padding:14px;border-radius:12px;margin-bottom:10px;border:1px solid #333}
+.btn{width:100%;padding:16px;border-radius:10px;border:none;font-weight:bold;margin-bottom:8px;cursor:pointer;text-transform:uppercase}
+.btn-pista{opacity:.25}
+.pista-activa{opacity:1!important;outline:3px solid #fff}
 
-    .btn { width:100%; padding:18px; border-radius:10px; border:none; font-weight:bold; margin-bottom:8px; cursor:pointer; transition:0.3s; color:white; text-transform:uppercase; }
-    .btn-pista { opacity:0.25; }
-    .pista-activa { opacity:1 !important; transform:scale(1.02); outline:3px solid #fff; box-shadow:0 0 20px rgba(255,255,255,0.5); }
+/* ---------- INPUT PILOTOS ---------- */
+.input-group{display:flex;gap:8px}
+input{flex:1;padding:14px;background:#000;color:#ffcc00;border:1px solid #444;border-radius:8px;font-size:1.3em;text-align:center}
+.btn-lupa{width:60px;background:#222;border:1px solid #444;border-radius:8px;color:#ffcc00;font-size:1.5em}
 
-    .input-group { display:flex; gap:8px; width:100%; }
-    input { flex:1; min-width:0; padding:15px; background:#000; color:#ffcc00; border:1px solid #444; border-radius:8px; text-align:center; font-size:1.4em; }
-    .btn-lupa { width:60px; flex-shrink:0; background:#222; border:1px solid #444; border-radius:8px; color:#ffcc00; font-size:1.5em; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+/* ---------- MENSAJE A PISTA ---------- */
+#panel-mensaje{margin-top:10px;padding-top:10px;border-top:1px solid #333}
+#msg-text{width:100%;min-height:70px;max-height:160px;background:#000;color:#ffcc00;
+border:1px solid #444;border-radius:10px;padding:10px;font-size:1em}
+.msg-actions{display:flex;gap:8px;margin-top:8px}
+.msg-hint{margin-top:6px;font-size:.75em;color:#888;text-align:center}
 
-    .vote-stats-container { margin:10px 0; }
-    .piloto-voto-row { background:#222; padding:10px; border-radius:8px; margin-bottom:5px; border-left:4px solid #ffcc00; }
-    .p-info { font-weight:bold; font-size:0.9em; margin-bottom:5px; color:#fff; text-transform:uppercase; }
-    .p-stats { display:flex; justify-content:space-around; color:#ffcc00; font-size:1.1em; }
-
-    .timer-master { background:#ff4444; color:white; padding:10px; border-radius:8px; font-weight:bold; margin-bottom:10px; font-size:1.2em; animation:parpadeo 1s infinite; text-align:center; }
-    @keyframes parpadeo { 50% { opacity:0.5; } }
-
-    .btn-reset { background:#444; opacity:1; font-size:0.7em; margin-top:5px; }
-    .btn-cargar { background:#222; border:1px dashed #444; color:#bbb; font-size:0.8em; margin-top:5px; padding:12px; margin-bottom:5px; }
-
-    .pilotos-count { color:#888; font-size:0.75em; margin:2px 0 12px 0; text-align:center; text-transform:uppercase; font-weight:bold; }
-
-    #modal-selector { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:1000; flex-direction:column; padding:10px; }
-    .grid-pilotos { display:grid; grid-template-columns:1fr 1fr; gap:8px; overflow-y:auto; flex:1; }
-    .btn-piloto-selec { background:#111; border:1px solid #333; color:#fff; padding:10px; border-radius:8px; text-align:center; min-height:70px; display:flex; flex-direction:column; justify-content:center; }
-    .btn-piloto-selec.selected { background:#332200; border-color:#ffcc00; }
-
-    /* MENSAJE A PISTA (DESPLEGABLE) */
-    #panel-mensaje { display:none; margin-top:10px; background:#0d0d0d; border:1px solid #333; border-radius:12px; padding:12px; }
-    #msg-text { width:100%; min-height:70px; padding:12px; border-radius:10px; border:1px solid #444; background:#000; color:#ffcc00; font-size:1.0em; outline:none; resize:vertical; }
-    .msg-actions { display:flex; gap:10px; margin-top:10px; }
-    .btn-mini { padding:14px; border-radius:10px; border:none; font-weight:bold; cursor:pointer; text-transform:uppercase; }
-    .btn-send { flex:2; background:#ff8800; color:#000; }
-    .btn-del  { flex:1; background:#444; color:#fff; }
-    .msg-hint { margin-top:10px; font-size:0.85em; color:#888; text-transform:uppercase; font-weight:bold; text-align:center; }
-
-    /* SESIONES */
-    #panel-sesiones { margin-top:12px; padding-top:12px; border-top:1px solid #333; }
-    .sesion-row{ background:#121212; border:1px solid #333; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; gap:10px; }
-    .sesion-left{ color:#fff; font-weight:bold; font-size:0.9em; }
-    .sesion-right{ font-weight:bold; text-transform:uppercase; font-size:0.85em; }
-    .badge-ok{ color:#00ff99; }
-    .badge-warn{ color:#ffcc00; }
-    .badge-off{ color:#888; }
-
-    /* DEBUG BAR */
-    #dbg{ position:fixed; left:10px; right:10px; bottom:10px; z-index:9999;
-      background:#111; border:1px solid #333; border-radius:12px; padding:10px;
-      text-align:center; font-weight:bold; color:#ffcc00; opacity:.92; }
-  </style>
-
-  <!-- Firebase COMPAT -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+/* ---------- SESIONES ---------- */
+#sesiones-resumen{font-size:.75em;color:#aaa;text-align:center;margin-top:6px}
+#sesiones-lista{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.session-row{
+  background:#0d0d0d;border:1px solid #222;border-radius:10px;
+  padding:8px 10px;display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center
+}
+.badge{padding:4px 8px;border-radius:999px;font-size:.7em;font-weight:bold}
+.badge-online{background:#143;color:#9f9}
+.badge-read{background:#440;color:#ffcc00}
+.badge-pending{background:#411;color:#ff9a9a}
+.badge-off{background:#222;color:#888}
+</style>
 </head>
 
 <body>
 
-  <div id="modal-selector">
-    <div style="display:flex; gap:10px; margin-bottom:10px;">
-      <button class="btn" style="background:#444; flex:1" onclick="cerrarSelector()">✕</button>
-      <button class="btn" style="background:green; flex:1" onclick="confirmarSeleccion()">✓ LISTO</button>
+<!-- PILOTOS -->
+<div class="card">
+  <div class="input-group">
+    <input id="d-show" placeholder="DORSALES" oninput="buscarPilotoShow(this.value)">
+    <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
+  </div>
+  <div id="preview-show" style="text-align:center;margin-top:6px;color:#888">Introduce dorsal…</div>
+</div>
+
+<!-- CONTROL PISTA -->
+<div class="card">
+  <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
+  <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE','green','btn-libre')">PISTA LIBRE</button>
+  <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00;color:#000" onclick="setEstado('⚠️ OBSTÁCULO','#ffcc00','btn-obs')">OBSTÁCULO</button>
+  <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE','red','btn-acc')">ACCIDENTE</button>
+
+  <!-- MENSAJE -->
+  <button class="btn" style="background:#ff8800;color:#000" onclick="toggleMensaje()">MENSAJE A PISTA</button>
+
+  <div id="panel-mensaje" style="display:none">
+    <textarea id="msg-text" placeholder="Mensaje para pista…"></textarea>
+    <div class="msg-actions">
+      <button class="btn" style="background:#ff8800;color:#000" onclick="enviarMensaje()">ENVIAR</button>
+      <button class="btn" style="background:#333" onclick="borrarMensaje()">ELIMINAR</button>
     </div>
-    <div id="lista-botones-pilotos" class="grid-pilotos"></div>
+    <div id="msg-hint" class="msg-hint">Sin mensaje activo</div>
+
+    <div id="sesiones-resumen">Online: 0 · Leído: 0 · Pendiente: 0</div>
+    <div id="sesiones-lista"></div>
   </div>
+</div>
 
-  <img src="logo2.jpg" alt="Logo" class="header-logo">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-  <div class="card">
-    <div class="input-group">
-      <input type="text" id="d-show" placeholder="DORSALES" oninput="buscarPilotoShow(this.value)">
-      <button class="btn-lupa" onclick="abrirSelector()">🔍</button>
-    </div>
-    <div id="preview-show" style="text-align:center; margin-top:10px; color:#aaa; font-weight:bold;">Introduce dorsal...</div>
-  </div>
+const db = getDatabase(initializeApp({
+  databaseURL:"https://lectura-sonido-drift-show-default-rtdb.firebaseio.com"
+}));
 
-  <div class="card">
-    <button id="btn-coche" class="btn btn-pista" style="background:#007bff" onclick="abrirVoto()">COCHE EN PISTA</button>
+/* -------- MENSAJE -------- */
+let panel=document.getElementById('panel-mensaje');
+window.toggleMensaje=()=>panel.style.display=panel.style.display?'':'block';
 
-    <div id="votos-en-vivo" class="vote-stats-container"></div>
+window.enviarMensaje=async()=>{
+  const t=msgText.value.trim();
+  if(!t)return;
+  await set(ref(db,'mensaje_pista'),{texto:t,ts:Date.now()});
+  msgHint.innerText="Mensaje enviado";
+};
+window.borrarMensaje=async()=>{
+  await set(ref(db,'mensaje_pista'),null);
+  panel.style.display='none';
+};
 
-    <button id="btn-libre" class="btn btn-pista" style="background:green" onclick="setEstado('🟢 PISTA LIBRE', 'green', 'btn-libre')">PISTA LIBRE</button>
-    <button id="btn-obs" class="btn btn-pista" style="background:#ffcc00; color:black" onclick="setEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
-    <button id="btn-acc" class="btn btn-pista" style="background:red" onclick="setEstado('🔴 ACCIDENTE', 'red', 'btn-acc')">ACCIDENTE</button>
+/* -------- SESIONES -------- */
+let msgTs=0;
+onValue(ref(db,'mensaje_pista'),s=>{msgTs=s.val()?.ts||0});
 
-    <button id="btn-msg" class="btn" style="background:#ff8800; color:#000" onclick="togglePanelMensaje()">MENSAJE A PISTA</button>
+onValue(ref(db,'pista_sessions'),snap=>{
+  const now=Date.now();
+  const all=snap.val()||{};
+  const online=Object.entries(all).filter(([_,s])=>now-(s.lastSeen||0)<15000);
 
-    <div id="panel-mensaje">
-      <textarea id="msg-text" placeholder="Escribe el mensaje para PISTA..."></textarea>
+  let leidos=0;
+  online.forEach(([_,s])=>{ if(msgTs && (s.lastReadTs||0)>=msgTs) leidos++; });
 
-      <div class="msg-actions">
-        <button class="btn-mini btn-send" onclick="enviarMensajePista()">ENVIAR</button>
-        <button class="btn-mini btn-del" onclick="eliminarMensajePista()">ELIMINAR</button>
-      </div>
+  sesionesResumen.innerText=
+    `Online: ${online.length} · Leído: ${leidos} · Pendiente: ${online.length-leidos}`;
 
-      <div class="msg-hint" id="msg-hint">Listo</div>
-
-      <div id="panel-sesiones">
-        <div class="msg-hint" style="margin-top:0;">SESIONES PISTA</div>
-        <div id="sesiones-resumen" class="msg-hint" style="display:block; margin-top:8px;">Online: 0 · Leído: 0</div>
-        <div id="sesiones-lista" style="margin-top:10px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <button class="btn btn-cargar" onclick="document.getElementById('xl-d').click()">📂 CARGAR DRIFT.CSV</button>
-    <div id="txt-count" class="pilotos-count">PILOTOS CARGADOS: 0</div>
-    <input type="file" id="xl-d" accept=".csv" style="display:none" onchange="cargarCSV(event)">
-    <button class="btn btn-reset" onclick="exportarVotos()">💾 DESCARGAR VOTOS Y LIMPIAR</button>
-  </div>
-
-  <div id="dbg">JS OK (CARGADO)</div>
-
-  <script>
-    /* ===== Helpers COMPAT: reemplazo de .get() ===== */
-    function getOnce(path){
-      return new Promise((resolve, reject)=>{
-        firebase.database().ref(path).once('value',
-          (snap)=>resolve(snap),
-          (err)=>reject(err)
-        );
-      });
-    }
-    function setDbg(txt, bad){
-      const el = document.getElementById('dbg');
-      if(!el) return;
-      el.innerText = txt;
-      el.style.background = bad ? '#6b0000' : '#111';
-      el.style.color = bad ? '#fff' : '#ffcc00';
-    }
-
-    try {
-      firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
-      const db = firebase.database();
-
-      let inscritosD = {};
-      let seleccionados = [];
-
-      let panelManual = false;
-      let currentMsgTs = 0;
-      const ONLINE_MS = 15000;
-
-      function mostrarPanelMensaje(show){
-        document.getElementById('panel-mensaje').style.display = show ? 'block' : 'none';
-      }
-
-      window.togglePanelMensaje = () => {
-        panelManual = true;
-        const panel = document.getElementById('panel-mensaje');
-        const visible = panel.style.display !== 'none' && panel.style.display !== '';
-        mostrarPanelMensaje(!visible);
-      };
-
-      window.enviarMensajePista = async () => {
-        const texto = (document.getElementById('msg-text').value || "").trim();
-        const hint = document.getElementById('msg-hint');
-        if(!texto){ hint.innerText = "Escribe un mensaje"; return; }
-        hint.innerText = "Enviando...";
-        const payload = { texto, ts: Date.now() };
-        try {
-          await db.ref('mensaje_pista').set(payload);
-          hint.innerText = "Enviado ✅";
-        } catch(e){
-          console.error(e);
-          hint.innerText = "Error al enviar";
-        }
-      };
-
-      window.eliminarMensajePista = async () => {
-        const hint = document.getElementById('msg-hint');
-        hint.innerText = "Eliminando...";
-        try {
-          await db.ref('mensaje_pista').remove();
-          document.getElementById('msg-text').value = "";
-          hint.innerText = "Eliminado";
-          panelManual = false;
-          mostrarPanelMensaje(false);
-        } catch(e){
-          console.error(e);
-          hint.innerText = "Error al eliminar";
-        }
-      };
-
-      db.ref('mensaje_pista').on('value', (snap)=>{
-        const m = snap.val();
-        if(m && m.ts && m.texto){
-          currentMsgTs = m.ts;
-          const txtEl = document.getElementById('msg-text');
-          if(!txtEl.value.trim()) txtEl.value = m.texto;
-          mostrarPanelMensaje(true);
-          document.getElementById('msg-hint').innerText = "Mensaje activo";
-        } else {
-          currentMsgTs = 0;
-          if(!panelManual) mostrarPanelMensaje(false);
-          document.getElementById('msg-hint').innerText = "Listo";
-        }
-      });
-
-      db.ref('pista_sessions').on('value', (snap)=>{
-        const all = snap.val() || {};
-        const now = Date.now();
-        const entries = Object.entries(all).map(([id, s]) => ({ id, ...(s||{}) }));
-        const online = entries.filter(s => (now - (s.lastSeen || 0)) <= ONLINE_MS);
-
-        let leidos = 0;
-        if(currentMsgTs){
-          leidos = online.filter(s => (s.lastReadTs || 0) >= currentMsgTs).length;
-        }
-        document.getElementById('sesiones-resumen').innerText = `Online: ${online.length} · Leído: ${leidos}`;
-
-        const cont = document.getElementById('sesiones-lista');
-        online.sort((a,b)=> (b.lastSeen||0)-(a.lastSeen||0));
-
-        cont.innerHTML = online.length ? online.map(s=>{
-          const seenAgo = Math.max(0, Math.round((now - (s.lastSeen||0))/1000));
-          const readOk = currentMsgTs && ((s.lastReadTs||0) >= currentMsgTs);
-          const estadoTxt = !currentMsgTs ? "SIN MENSAJE" : (readOk ? "LEÍDO" : "PENDIENTE");
-          const estadoCls = !currentMsgTs ? "badge-off" : (readOk ? "badge-ok" : "badge-warn");
-          return `<div class="sesion-row">
-            <div class="sesion-left">${s.id}</div>
-            <div class="sesion-right ${estadoCls}">${estadoTxt} · ${seenAgo}s</div>
-          </div>`;
-        }).join('') : `<div class="msg-hint" style="margin-top:8px;">No hay sesiones online</div>`;
-      });
-
-      db.ref('inscritos_drift').on('value', (s)=>{
-        inscritosD = s.val() || {};
-        document.getElementById('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
-      });
-
-      db.ref('comando_limpiar').on('value', (snapshot)=>{
-        if(snapshot.exists()){
-          document.getElementById('d-show').value = "";
-          document.getElementById('preview-show').innerText = "Introduce dorsal...";
-        }
-      });
-
-      window.abrirVoto = async () => {
-        const val = document.getElementById('d-show').value.trim();
-        if(!val) return alert("Introduce un dorsal primero");
-
-        const dorsalesArr = val.split(/\s+/);
-        let items = {};
-
-        const histSnap = await getOnce('historial_votos');   /* <-- antes .get() */
-        const historial = histSnap.exists() ? Object.values(histSnap.val()) : [];
-
-        dorsalesArr.forEach(d=>{
-          const p = inscritosD[d];
-          let h_ap=0, h_up=0, h_dw=0;
-          historial.filter(h=>h.dorsal===d).forEach(v=>{
-            h_ap += (v.ap||0); h_up += (v.up||0); h_dw += (v.dw||0);
-          });
-          items[d] = { nombre: p ? p.piloto : "PILOTO " + d, coche: p ? p.coche : "", ap:0, up:0, dw:0, h_ap, h_up, h_dw };
-        });
-
-        if(dorsalesArr.length > 1) items["BATALLA"] = { nombre:"🔥 BATALLA", coche:"", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
-
-        await db.ref('votacion_activa').set({ dorsal: val, activa:true, timer:0, items });
-        await db.ref('estado_pista').set({ mensaje:'🏎️ EN PISTA: ' + val, color:'#007bff', id:'btn-coche' });
-      };
-
-      db.ref('votacion_activa').on('value', (snap)=>{
-        const v = snap.val();
-        const container = document.getElementById('votos-en-vivo');
-        if(!v || !v.activa){ container.innerHTML=""; return; }
-
-        let html = v.timer > 0 ? `<div class="timer-master">⏱️ CIERRE EN: ${v.timer}s</div>` : "";
-        if(v.items){
-          html += Object.entries(v.items).map(([id,data])=>`
-            <div class="piloto-voto-row">
-              <div class="p-info">${id==='BATALLA'?'🔥 BATALLA':'#'+id+' '+data.nombre}</div>
-              <div class="p-stats">
-                <span>👏 ${data.ap||0} (${(data.ap||0)+(data.h_ap||0)})</span>
-                <span>👍 ${data.up||0} (${(data.up||0)+(data.h_up||0)})</span>
-                <span>👎 ${data.dw||0} (${(data.dw||0)+(data.h_dw||0)})</span>
-              </div>
-            </div>
-          `).join('');
-        }
-        container.innerHTML = html;
-      });
-
-      window.setEstado = async (msg, col, id) => {
-        await db.ref('estado_pista').set({ mensaje: msg, color: col, id });
-
-        if(id === 'btn-libre'){
-          document.getElementById('d-show').value = "";
-          document.getElementById('preview-show').innerText = "Introduce dorsal...";
-
-          const snap = await getOnce('votacion_activa');     /* <-- antes .get() */
-          const v = snap.val();
-
-          if(v && v.activa){
-            Object.entries(v.items).forEach(([idItem,data])=>{
-              if((data.ap||0)+(data.up||0)+(data.dw||0) > 0){
-                db.ref('historial_votos').push({ dorsal:idItem, info:data.nombre, ap:data.ap||0, up:data.up||0, dw:data.dw||0, ts:Date.now() });
-              }
-            });
-
-            let count = 5;
-            await db.ref('votacion_activa').update({ timer: count });
-            const interval = setInterval(async ()=>{
-              count--;
-              await db.ref('votacion_activa').update({ timer: count });
-              if(count <= 0){
-                clearInterval(interval);
-                await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
-              }
-            }, 1000);
-          }
-        }
-      };
-
-      window.cargarCSV = (event) => {
-        const file = event.target.files && event.target.files[0];
-        if(!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e)=>{
-          const lines = String(e.target.result||"").split(/\r?\n/);
-          let obj = {};
-          const sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
-
-          lines.slice(1).forEach(l=>{
-            if(!l.trim()) return;
-            const c = l.split(sep);
-            if(c[0]) obj[c[0].trim()] = { piloto:(c[1]||"").trim(), coche:(c[2]||"").trim() };
-          });
-
-          db.ref('inscritos_drift').set(obj).then(()=>{
-            alert("Cargados " + Object.keys(obj).length + " pilotos");
-            event.target.value = "";
-          });
-        };
-        reader.readAsText(file);
-      };
-
-      window.exportarVotos = async () => {
-        const snap = await getOnce('historial_votos');       /* <-- antes .get() */
-        if(!snap.exists()) return alert("No hay historial");
-
-        let csv = "Dorsal,Piloto,Aplausos,Up,Down,Fecha_Hora\n";
-        Object.values(snap.val()).forEach(v=>{
-          const fecha = new Date(v.ts).toLocaleString('es-ES').replace(/,/g,'');
-          const info = String(v.info||"").replace(/"/g,'');
-          csv += `${v.dorsal},"${info}",${v.ap||0},${v.up||0},${v.dw||0},"${fecha}"\n`;
-        });
-
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'}));
-        link.download = "votos_drift.csv";
-        link.click();
-
-        if(confirm("¿Borrar historial de la nube?")) db.ref('historial_votos').remove();
-      };
-
-      window.buscarPilotoShow = (val)=>{
-        if(!val.trim()){ document.getElementById('preview-show').innerText="Introduce dorsal..."; return; }
-        const dorsales = val.trim().split(/\s+/);
-        const encontrados = dorsales.map(d=> inscritosD[d]?inscritosD[d].piloto:(d?"?":"")).filter(x=>x);
-        document.getElementById('preview-show').innerText = encontrados.length ? encontrados.join(' | ') : "Piloto no encontrado";
-      };
-
-      window.abrirSelector = ()=>{
-        const grid = document.getElementById('lista-botones-pilotos');
-        grid.innerHTML = "";
-        seleccionados = [];
-
-        Object.keys(inscritosD).sort((a,b)=>Number(a)-Number(b)).forEach(d=>{
-          const btn = document.createElement('div');
-          btn.className = 'btn-piloto-selec';
-          btn.innerHTML = `<b>#${d}</b><br><small>${inscritosD[d].piloto}</small>`;
-          btn.onclick = ()=>{
-            btn.classList.toggle('selected');
-            if(seleccionados.includes(d)) seleccionados = seleccionados.filter(x=>x!==d);
-            else seleccionados.push(d);
-          };
-          grid.appendChild(btn);
-        });
-
-        document.getElementById('modal-selector').style.display='flex';
-      };
-
-      window.cerrarSelector = ()=> document.getElementById('modal-selector').style.display='none';
-      window.confirmarSeleccion = ()=>{
-        const val = seleccionados.join(" ");
-        document.getElementById('d-show').value = val;
-        buscarPilotoShow(val);
-        cerrarSelector();
-      };
-
-      db.ref('estado_pista').on('value', (s)=>{
-        document.querySelectorAll('.btn-pista').forEach(b=>b.classList.remove('pista-activa'));
-        const id = s.val() && s.val().id;
-        if(id){
-          const active = document.getElementById(id);
-          if(active) active.classList.add('pista-activa');
-        }
-      });
-
-      setDbg("JS OK (CARGADO) · FIREBASE OK", false);
-
-    } catch(err){
-      console.error(err);
-      setDbg("JS OK (CARGADO) · ERROR: " + (err && err.message ? err.message : "desconocido"), true);
-    }
-  </script>
+  sesionesLista.innerHTML=online.map(([id,s])=>{
+    const read=(s.lastReadTs||0)>=msgTs;
+    return `
+      <div class="session-row">
+        <div>${id}</div>
+        <span class="badge badge-online">ONLINE</span>
+        <span class="badge ${read?'badge-read':'badge-pending'}">
+          ${read?'LEÍDO':'PENDIENTE'}
+        </span>
+      </div>`;
+  }).join('');
+});
+</script>
 </body>
 </html>

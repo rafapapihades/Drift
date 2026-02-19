@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGÍSTICA TAXI DRIFT</title>
+    <title>LOGÍSTICA TAXI DRIFT - PRO</title>
     <style>
-        :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; }
+        :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #f39c12; }
         
         body { 
             background-image: url('Fibra3.png'); 
@@ -22,12 +22,7 @@
         }
 
         .header-logo { 
-            display: block; 
-            margin: 0 auto; 
-            width: 100%;       
-            max-width: 400px;  
-            height: auto; 
-            object-fit: contain;
+            display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain;
         }
         
         .event-name-input { 
@@ -37,15 +32,12 @@
         }
 
         .controls-row { 
-            display: flex; 
-            width: 100%; 
-            gap: 10px; 
-            justify-content: center;
-            margin-top: 10px;
-            margin-bottom: 30px;
+            display: flex; width: 100%; gap: 10px; justify-content: center;
+            margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap;
         }
-        .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; max-width: 200px; }
+        .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 10px; border-radius: 6px; font-size: 0.75em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
         .btn-reset { color: var(--red); border-color: #522; }
+        .btn-status { color: var(--orange); border-color: var(--orange); }
 
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
@@ -118,6 +110,7 @@
 
     <div class="controls-row">
         <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (<span id="count-tag">0</span>)</button>
+        <button class="btn-mini btn-status" id="btn-gestionar-bajas">GESTIONAR BAJAS</button>
         <button class="btn-mini btn-reset" id="btn-reset">EXPORTAR Y REINICIAR</button>
     </div>
     <input type="file" id="csv-pilotos" hidden accept=".csv">
@@ -172,13 +165,34 @@
 
         firmaChk.onchange = fnValidar;
 
+        // --- NODO PRINCIPAL DE ESCUCHA (SINCRONIZACIÓN) ---
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
+            
+            // 1. Número correlativo
             document.getElementById('v-proximo-numero').innerText = ((data.ultimo_numero || 0) + 1).toString().padStart(3, '0');
-            document.getElementById('count-tag').innerText = data.config_pilotos ? Object.keys(data.config_pilotos).length : 0;
+            
+            // 2. Gestión de Pilotos y Bajas
+            const todosLosPilotos = data.config_pilotos ? Object.values(data.config_pilotos) : [];
+            const pilotosDeBaja = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
+            
+            // Filtrar solo los activos para el array de trabajo
+            pilotosArray = todosLosPilotos.filter(p => !pilotosDeBaja.includes(p));
+            document.getElementById('count-tag').innerText = pilotosArray.length;
+
+            // Rellenar Select con activos
+            selPiloto.innerHTML = '';
+            pilotosArray.forEach(p => {
+                let opt = document.createElement('option');
+                opt.value = p; opt.innerText = p;
+                selPiloto.appendChild(opt);
+            });
+
+            // 3. Asignación Automática (Solo sobre activos)
             const todosViajes = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
             const conteo = {};
             todosViajes.forEach(v => { conteo[v.piloto] = (conteo[v.piloto] || 0) + 1; });
+
             if(pilotosArray.length > 0) {
                 let sugerido = pilotosArray[0];
                 let min = conteo[sugerido] || 0;
@@ -187,6 +201,8 @@
                 });
                 if(document.activeElement.id !== 'c-piloto') selPiloto.value = sugerido;
             }
+
+            // 4. Render Tabla Espera
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
@@ -214,6 +230,8 @@
                     };
                 });
             }
+
+            // 5. Render Tabla Completados
             const tComp = document.getElementById('tabla-completados');
             tComp.innerHTML = "";
             if(data.completados) {
@@ -232,20 +250,19 @@
             }
         });
 
+        // Botón Confirmar Registro
         btnAdd.onclick = async () => {
             const nombreNuevo = nombreInput.value.trim();
             const pilotoSeleccionado = selPiloto.value;
             const horaActual = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
             
             if (registroRecuperado) {
-                // ELIMINAR DE COMPLETADOS SI EXISTE
                 const snapC = await get(ref(db, 'copilotajes/completados'));
                 if(snapC.exists()){
                     Object.entries(snapC.val()).forEach(([id, reg]) => {
                         if(reg.nPapel === registroRecuperado.nPapel) remove(ref(db, `copilotajes/completados/${id}`));
                     });
                 }
-                // MOVER A ESPERA: enRecinto SIEMPRE false al entrar en cola
                 await push(ref(db, 'copilotajes/espera'), {
                     ...registroRecuperado,
                     piloto: pilotoSeleccionado,
@@ -271,6 +288,7 @@
             fnValidar();
         };
 
+        // Cargar CSV Pilotos
         document.getElementById('csv-pilotos').onchange = (e) => {
             const r = new FileReader();
             r.onload = (ev) => {
@@ -283,23 +301,41 @@
                     }
                 });
                 set(ref(db, 'copilotajes/config_pilotos'), obj);
+                remove(ref(db, 'copilotajes/pilotos_baja')); // Limpiar bajas al cargar lista nueva
             };
             r.readAsText(e.target.files[0]);
         };
 
-        onValue(ref(db, 'copilotajes/config_pilotos'), (snap) => {
-            selPiloto.innerHTML = ''; 
-            pilotosArray = [];
-            if(snap.exists()){
-                Object.values(snap.val()).forEach(p => {
-                    pilotosArray.push(p);
-                    let opt = document.createElement('option');
-                    opt.value = p; opt.innerText = p;
-                    selPiloto.appendChild(opt);
-                });
-            }
-        });
+        // --- GESTIÓN DE BAJAS ---
+        document.getElementById('btn-gestionar-bajas').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            const data = snap.val() || {};
+            const todos = data.config_pilotos ? Object.values(data.config_pilotos) : [];
+            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
 
+            if(todos.length === 0) return alert("Carga pilotos primero.");
+
+            let menu = "--- GESTIÓN DE PILOTOS ---\nEscribe el NÚMERO para cambiar su estado:\n\n";
+            todos.forEach((p, i) => {
+                const isBaja = bajas.includes(p);
+                menu += `${i + 1}. ${isBaja ? '❌ [BAJA]' : '✅ [ACTIVO]'} - ${p}\n`;
+            });
+
+            const index = prompt(menu);
+            if(index && todos[index-1]) {
+                const pSel = todos[index-1];
+                if(bajas.includes(pSel)) {
+                    // Quitar de bajas
+                    const keyBaja = Object.keys(data.pilotos_baja).find(k => data.pilotos_baja[k] === pSel);
+                    await remove(ref(db, `copilotajes/pilotos_baja/${keyBaja}`));
+                } else {
+                    // Añadir a bajas
+                    await push(ref(db, 'copilotajes/pilotos_baja'), pSel);
+                }
+            }
+        };
+
+        // Exportar y Reiniciar
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             if (!snap.exists()) return;
@@ -317,6 +353,7 @@
             }, 500);
         };
 
+        // Nombre del evento
         onValue(ref(db, 'copilotajes/nombre_evento'), s => document.getElementById('nombre-evento').value = s.val() || "");
         document.getElementById('nombre-evento').onchange = (e) => set(ref(db, 'copilotajes/nombre_evento'), e.target.value);
     </script>

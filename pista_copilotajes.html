@@ -40,7 +40,6 @@
         .btn-salida { background: var(--orange); color: white; border: none; padding: 12px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e; }
         .btn-change { background: #222; color: var(--accent); border: 1px solid #444; padding: 10px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 10px; text-transform: uppercase; width: 100%; font-weight: bold; }
 
-        /* MODALES UNIFICADOS */
         #modal-cambio, #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 450px; text-align: center; }
         .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; font-size: 1.1em; }
@@ -99,9 +98,9 @@
         let idSeleccionado = null;
         let confirmAction = null;
         let estadisticasViajes = {};
-        let listaPilotosFB = [];
+        let ultimoTicketPiloto = {};
+        let listaPilotosActivos = [];
 
-        // LÓGICA MODAL DE CONFIRMACIÓN
         window.showConfirm = (texto, callback) => {
             document.getElementById('confirm-text').innerText = texto;
             document.getElementById('custom-confirm').style.display = 'flex';
@@ -143,7 +142,23 @@
 
         window.abrirModalCambio = (id) => {
             idSeleccionado = id;
-            const sugerido = listaPilotosFB.reduce((prev, curr) => (estadisticasViajes[prev] || 0) <= (estadisticasViajes[curr] || 0) ? prev : curr, listaPilotosFB[0]);
+            if (listaPilotosActivos.length === 0) return alert("No hay pilotos activos disponibles.");
+
+            // Lógica de sugerencia inteligente (Menos viajes + Rotación)
+            let sugerido = listaPilotosActivos[0];
+            let minViajes = estadisticasViajes[sugerido] || 0;
+            let ticketReferencia = ultimoTicketPiloto[sugerido] || 0;
+
+            listaPilotosActivos.forEach(p => {
+                const v = estadisticasViajes[p] || 0;
+                const t = ultimoTicketPiloto[p] || 0;
+                if (v < minViajes) {
+                    minViajes = v; ticketReferencia = t; sugerido = p;
+                } else if (v === minViajes && t < ticketReferencia) {
+                    ticketReferencia = t; sugerido = p;
+                }
+            });
+
             document.getElementById('nuevo-piloto-select').value = sugerido;
             document.getElementById('modal-cambio').style.display = 'flex';
         };
@@ -159,23 +174,34 @@
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             const sel = document.getElementById('nuevo-piloto-select');
-            sel.innerHTML = ""; listaPilotosFB = [];
-            if(data.config_pilotos) {
-                Object.values(data.config_pilotos).forEach(p => {
-                    listaPilotosFB.push(p);
-                    let opt = document.createElement('option');
-                    opt.value = p;
-                    const dMatch = p.match(/\[#(\d+)\]/) || p.match(/^(\d+)/);
-                    const nLimpio = p.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
-                    opt.innerText = `DORSAL ${dMatch ? dMatch[1] : '?' } - ${nLimpio}`;
-                    sel.appendChild(opt);
-                });
-            }
+            
+            // 1. FILTRAR PILOTOS BAJA PARA EL SELECT DE REASIGNACIÓN
+            const todosLosPilotos = data.config_pilotos ? Object.values(data.config_pilotos) : [];
+            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
+            listaPilotosActivos = todosLosPilotos.filter(p => !bajas.includes(p));
 
+            sel.innerHTML = "";
+            listaPilotosActivos.forEach(p => {
+                let opt = document.createElement('option');
+                opt.value = p;
+                const dMatch = p.match(/\[#(\d+)\]/) || p.match(/^(\d+)/);
+                const nLimpio = p.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
+                opt.innerText = `DORSAL ${dMatch ? dMatch[1] : '?' } - ${nLimpio}`;
+                sel.appendChild(opt);
+            });
+
+            // 2. CALCULAR ESTADÍSTICAS PARA SUGERENCIA
             estadisticasViajes = {};
-            const todos = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
-            todos.forEach(v => { estadisticasViajes[v.piloto] = (estadisticasViajes[v.piloto] || 0) + 1; });
+            ultimoTicketPiloto = {};
+            const todosLosRegistros = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
+            todosLosRegistros.forEach(v => { 
+                estadisticasViajes[v.piloto] = (estadisticasViajes[v.piloto] || 0) + 1; 
+                if(!ultimoTicketPiloto[v.piloto] || v.nPapel > ultimoTicketPiloto[v.piloto]) {
+                    ultimoTicketPiloto[v.piloto] = v.nPapel;
+                }
+            });
 
+            // 3. RENDERIZAR COLA DE ESPERA
             const tEspera = document.getElementById('lista-espera'); tEspera.innerHTML = "";
             if(data.espera) {
                 Object.keys(data.espera).forEach(id => {
@@ -190,6 +216,7 @@
                 });
             }
 
+            // 4. RENDERIZAR PISTA ACTIVA
             const tPista = document.getElementById('lista-pista-activa'); tPista.innerHTML = "";
             if(data.completados) {
                 Object.keys(data.completados).forEach(id => {

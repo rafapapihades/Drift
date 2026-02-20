@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGÍSTICA TAXI DRIFT - PRO</title>
+    <title>LOGÍSTICA TAXI DRIFT</title>
     <style>
-        :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #f39c12; }
+        :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; }
         
         body { 
             background-image: url('Fibra3.png'); 
@@ -32,20 +32,17 @@
         }
 
         .controls-row { 
-            display: flex; width: 100%; gap: 10px; justify-content: center;
-            margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap;
+            display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap;
         }
-        .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 10px; border-radius: 6px; font-size: 0.75em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
+        .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
         .btn-reset { color: var(--red); border-color: #522; }
-        .btn-status { color: var(--orange); border-color: var(--orange); }
 
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
         
         .asistente-aviso {
-            background: #4a0000; color: #ffadad; padding: 12px; border-radius: 10px; 
-            margin-bottom: 15px; display: none; font-size: 0.9em; 
-            border: 2px solid var(--red); font-family: sans-serif; line-height: 1.4;
+            padding: 12px; border-radius: 10px; margin-bottom: 15px; display: none; font-size: 0.9em; 
+            border: 2px solid var(--green); background: #052c05; color: #afffaf; font-family: sans-serif; line-height: 1.4;
         }
 
         .doc-box { background: #000; border: 1px solid var(--accent); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px; }
@@ -56,6 +53,7 @@
         .chk-massive input { transform: scale(2); }
 
         .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
+        .btn-add-massive:active { transform: translateY(3px); box-shadow: 0 3px 0 #155d27; }
         .btn-add-massive:disabled { background: #333; color: #555; box-shadow: none; opacity: 0.5; }
 
         .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
@@ -70,6 +68,10 @@
         .status-chk { transform: scale(2.2); cursor: pointer; margin-bottom: 8px; }
         .label-dentro { color: var(--green); }
         .label-fuera { color: #666; }
+
+        /* Modal de gestión de pilotos */
+        #modal-bajas { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; box-sizing:border-box; overflow-y:auto; }
+        .modal-card { background:#1a1a1a; padding:20px; border-radius:15px; border:1px solid var(--accent); max-width:500px; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -109,8 +111,8 @@
     </div>
 
     <div class="controls-row">
-        <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (<span id="count-tag">0</span>)</button>
-        <button class="btn-mini btn-status" id="btn-gestionar-bajas">GESTIONAR BAJAS</button>
+        <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR CSV (<span id="count-tag">0</span>)</button>
+        <button class="btn-mini" id="btn-gestionar-pilotos" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS</button>
         <button class="btn-mini btn-reset" id="btn-reset">EXPORTAR Y REINICIAR</button>
     </div>
     <input type="file" id="csv-pilotos" hidden accept=".csv">
@@ -152,7 +154,7 @@
             ];
             const encontrado = todos.find(r => r.copiloto.toLowerCase() === nombreBusqueda);
             if (encontrado) {
-                avisoBox.innerHTML = `⚠️ <b>¡YA REGISTRADO!</b><br>Tiene el <b>Ticket #${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>No necesita firmar otra vez.`;
+                avisoBox.innerHTML = `✅ <b>¡YA REGISTRADO!</b><br>Tiene el <b>Ticket #${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>Sus datos se han cargado automáticamente.`;
                 avisoBox.style.display = 'block';
                 firmaChk.checked = true;
                 registroRecuperado = encontrado;
@@ -165,22 +167,19 @@
 
         firmaChk.onchange = fnValidar;
 
-        // --- NODO PRINCIPAL DE ESCUCHA (SINCRONIZACIÓN) ---
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
-            
-            // 1. Número correlativo
             document.getElementById('v-proximo-numero').innerText = ((data.ultimo_numero || 0) + 1).toString().padStart(3, '0');
             
-            // 2. Gestión de Pilotos y Bajas
-            const todosLosPilotos = data.config_pilotos ? Object.values(data.config_pilotos) : [];
-            const pilotosDeBaja = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
+            // FILTRADO DE PILOTOS ACTIVOS
+            const todosLosPilotosConfig = data.config_pilotos ? Object.values(data.config_pilotos) : [];
+            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
             
-            // Filtrar solo los activos para el array de trabajo
-            pilotosArray = todosLosPilotos.filter(p => !pilotosDeBaja.includes(p));
+            pilotosArray = todosLosPilotosConfig.filter(p => !bajas.includes(p));
             document.getElementById('count-tag').innerText = pilotosArray.length;
 
-            // Rellenar Select con activos
+            // ACTUALIZAR SELECT
+            const valorActual = selPiloto.value;
             selPiloto.innerHTML = '';
             pilotosArray.forEach(p => {
                 let opt = document.createElement('option');
@@ -188,21 +187,36 @@
                 selPiloto.appendChild(opt);
             });
 
-            // 3. Asignación Automática (Solo sobre activos)
+            // LÓGICA DE ASIGNACIÓN AUTOMÁTICA (Mantiene rotación)
             const todosViajes = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
             const conteo = {};
-            todosViajes.forEach(v => { conteo[v.piloto] = (conteo[v.piloto] || 0) + 1; });
+            const ultimoTicket = {};
+
+            todosViajes.forEach(v => { 
+                conteo[v.piloto] = (conteo[v.piloto] || 0) + 1; 
+                if(!ultimoTicket[v.piloto] || v.nPapel > ultimoTicket[v.piloto]) {
+                    ultimoTicket[v.piloto] = v.nPapel;
+                }
+            });
 
             if(pilotosArray.length > 0) {
                 let sugerido = pilotosArray[0];
-                let min = conteo[sugerido] || 0;
+                let minViajes = conteo[sugerido] || 0;
+                let ticketUltimo = ultimoTicket[sugerido] || 0;
+
                 pilotosArray.forEach(p => {
-                    if((conteo[p] || 0) < min) { min = (conteo[p] || 0); sugerido = p; }
+                    const v = conteo[p] || 0;
+                    const t = ultimoTicket[p] || 0;
+                    if (v < minViajes) {
+                        minViajes = v; ticketUltimo = t; sugerido = p;
+                    } else if (v === minViajes && t < ticketUltimo) {
+                        ticketUltimo = t; sugerido = p;
+                    }
                 });
                 if(document.activeElement.id !== 'c-piloto') selPiloto.value = sugerido;
             }
 
-            // 4. Render Tabla Espera
+            // TABLAS
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
@@ -231,7 +245,6 @@
                 });
             }
 
-            // 5. Render Tabla Completados
             const tComp = document.getElementById('tabla-completados');
             tComp.innerHTML = "";
             if(data.completados) {
@@ -250,7 +263,6 @@
             }
         });
 
-        // Botón Confirmar Registro
         btnAdd.onclick = async () => {
             const nombreNuevo = nombreInput.value.trim();
             const pilotoSeleccionado = selPiloto.value;
@@ -288,7 +300,43 @@
             fnValidar();
         };
 
-        // Cargar CSV Pilotos
+        // GESTIÓN DE PILOTOS (MODAL CHECKS)
+        document.getElementById('btn-gestionar-pilotos').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            const data = snap.val() || {};
+            const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
+            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
+
+            let modalHtml = `<div id="modal-bajas"><div class="modal-card">
+                <h2 style="color:var(--accent); margin-top:0;">ESTADO PILOTOS</h2>
+                <div style="max-height:60vh; overflow-y:auto; margin-bottom:20px;">`;
+            
+            config.forEach((p, i) => {
+                const activo = !bajas.includes(p);
+                modalHtml += `
+                <label style="display:flex; align-items:center; background:#000; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #333;">
+                    <input type="checkbox" class="chk-piloto-estado" data-nombre="${p}" ${activo?'checked':''} style="transform:scale(1.8); margin-right:20px;">
+                    <span style="font-family:sans-serif; font-size:0.9em;">${p}</span>
+                </label>`;
+            });
+
+            modalHtml += `</div>
+                <button id="btn-cerrar-modal" class="btn-add-massive" style="height:60px;">GUARDAR Y SALIR</button>
+            </div></div>`;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            document.getElementById('btn-cerrar-modal').onclick = async () => {
+                const checks = document.querySelectorAll('.chk-piloto-estado');
+                const nuevasBajas = [];
+                checks.forEach(c => {
+                    if(!c.checked) nuevasBajas.push(c.dataset.nombre);
+                });
+                await set(ref(db, 'copilotajes/pilotos_baja'), nuevasBajas);
+                document.getElementById('modal-bajas').remove();
+            };
+        };
+
         document.getElementById('csv-pilotos').onchange = (e) => {
             const r = new FileReader();
             r.onload = (ev) => {
@@ -301,41 +349,11 @@
                     }
                 });
                 set(ref(db, 'copilotajes/config_pilotos'), obj);
-                remove(ref(db, 'copilotajes/pilotos_baja')); // Limpiar bajas al cargar lista nueva
+                set(ref(db, 'copilotajes/pilotos_baja'), []); // Resetear bajas al cargar nuevo CSV
             };
             r.readAsText(e.target.files[0]);
         };
 
-        // --- GESTIÓN DE BAJAS ---
-        document.getElementById('btn-gestionar-bajas').onclick = async () => {
-            const snap = await get(ref(db, 'copilotajes'));
-            const data = snap.val() || {};
-            const todos = data.config_pilotos ? Object.values(data.config_pilotos) : [];
-            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
-
-            if(todos.length === 0) return alert("Carga pilotos primero.");
-
-            let menu = "--- GESTIÓN DE PILOTOS ---\nEscribe el NÚMERO para cambiar su estado:\n\n";
-            todos.forEach((p, i) => {
-                const isBaja = bajas.includes(p);
-                menu += `${i + 1}. ${isBaja ? '❌ [BAJA]' : '✅ [ACTIVO]'} - ${p}\n`;
-            });
-
-            const index = prompt(menu);
-            if(index && todos[index-1]) {
-                const pSel = todos[index-1];
-                if(bajas.includes(pSel)) {
-                    // Quitar de bajas
-                    const keyBaja = Object.keys(data.pilotos_baja).find(k => data.pilotos_baja[k] === pSel);
-                    await remove(ref(db, `copilotajes/pilotos_baja/${keyBaja}`));
-                } else {
-                    // Añadir a bajas
-                    await push(ref(db, 'copilotajes/pilotos_baja'), pSel);
-                }
-            }
-        };
-
-        // Exportar y Reiniciar
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             if (!snap.exists()) return;
@@ -353,7 +371,6 @@
             }, 500);
         };
 
-        // Nombre del evento
         onValue(ref(db, 'copilotajes/nombre_evento'), s => document.getElementById('nombre-evento').value = s.val() || "");
         document.getElementById('nombre-evento').onchange = (e) => set(ref(db, 'copilotajes/nombre_evento'), e.target.value);
     </script>

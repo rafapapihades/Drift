@@ -16,139 +16,160 @@
             background: linear-gradient(to bottom, #ff0000, #8b0000);
         }
         
-        /* Efecto de resplandor para los logos */
         .logo-glow {
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
         }
 
-        .card-hover:hover {
-            transform: translateY(-10px);
-            border-color: #ff0000;
-            box-shadow: 0 10px 30px -10px rgba(255, 0, 0, 0.5);
+        .card-merch:hover img {
+            transform: scale(1.05);
         }
     </style>
 </head>
 <body class="bg-black text-white">
 
-    <a href="https://wa.me/tu-numero-aqui" class="fixed bottom-6 right-6 z-[100] bg-green-500 p-4 rounded-full shadow-2xl hover:scale-110 transition">
+    <a href="https://wa.me/34600000000" class="fixed bottom-6 right-6 z-[100] bg-green-500 p-4 rounded-full shadow-2xl hover:scale-110 transition duration-300">
         <i class="fab fa-whatsapp text-3xl"></i>
     </a>
 
-    <nav class="fixed w-full z-50 bg-black/90 border-b border-red-900/50 p-3">
+    <nav class="fixed w-full z-50 bg-black/90 border-b border-red-900/50 p-3 backdrop-blur-md">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <img src="logo2.jpg" alt="Drift Show Logo" class="h-12 md:h-16 logo-glow">
-            <div class="hidden lg:flex space-x-6 font-black uppercase text-xs tracking-tighter">
+            <img src="logo.png" alt="Drift Show Logo" class="h-12 md:h-14 logo-glow">
+            <div class="hidden lg:flex space-x-6 font-black uppercase text-[10px] tracking-widest">
                 <a href="#inicio" class="hover:text-red-600 transition">Inicio</a>
                 <a href="#shows" class="hover:text-red-600 transition">Espectáculos</a>
-                <a href="#taxidrift" class="text-yellow-400 hover:text-yellow-200 transition italic">¡TaxiDrift!</a>
+                <a href="#taxidrift" class="text-yellow-400 hover:text-yellow-200 transition italic">TaxiDrift</a>
                 <a href="#galeria-manual" class="hover:text-red-600 transition">Eventos</a>
-                <a href="#ig" class="hover:text-red-600 transition">Instagram</a>
-                <a href="#contacto" class="bg-red-600 px-4 py-2 rounded shadow-lg shadow-red-600/20">Contratación</a>
+                <a href="#merch" class="hover:text-red-600 transition">Tienda</a>
+                <a href="#contacto" class="bg-red-600 px-4 py-2 rounded-sm shadow-lg shadow-red-600/20 hover:bg-red-700 transition">Contratación</a>
             </div>
         </div>
     </nav>
 
-    <section id="inicio" class="h-screen flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center">
-        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-        <div class="relative z-10 text-center">
-            <img src="logo2.jpg" alt="Logo Principal" class="w-80 md:w-[500px] mx-auto mb-8 logo-glow">
-            <p class="text-xl md:text-2xl font-black italic uppercase tracking-widest text-white/90">Organización de Eventos y Espectáculos de Motor</p>
+    <section id="inicio" class="h-screen flex items-center justify-center relative overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="inicio.jpg" alt="Portada Drift" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+        </div>
+        <div class="relative z-10 text-center px-4">
+            <img src="logo.png" alt="Logo Principal" class="w-72 md:w-[450px] mx-auto mb-6 logo-glow animate-pulse">
+            <h2 class="text-xl md:text-2xl font-black italic uppercase tracking-[0.2em] text-white">Adrenalina en cada curva</h2>
         </div>
     </section>
 
-    <section id="taxidrift" class="py-24 bg-zinc-900 overflow-hidden">
-        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
-            <div class="relative">
-                <img src="logotaxi.jpg" alt="Taxi Drift Logo" class="w-full mb-8 logo-glow">
-                <div class="bg-yellow-400 text-black p-6 rounded-lg rotate-1 shadow-2xl">
-                    <h4 class="text-2xl font-black uppercase mb-2">¡Súbete con nosotros!</h4>
-                    <p class="font-bold">Siente la adrenalina pura desde el asiento del copiloto. Experiencia apta para todos los públicos.</p>
+    <section id="taxidrift" class="py-24 bg-zinc-900 overflow-hidden border-y border-white/5">
+        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div class="relative order-2 md:order-1">
+                <img src="taxidrift.png" alt="Taxi Drift Logo" class="w-full max-w-sm mx-auto mb-8 logo-glow">
+                <div class="bg-yellow-400 text-black p-8 rounded-sm -rotate-1 shadow-2xl border-l-8 border-black">
+                    <h4 class="text-3xl font-black uppercase mb-2 italic underline">¡Siente el Humo!</h4>
+                    <p class="font-bold text-lg leading-tight">Copilotajes extremos con pilotos profesionales. Vive la experiencia definitiva desde dentro del cockpit.</p>
                 </div>
             </div>
-            <div class="space-y-6">
-                <h3 class="text-4xl font-black uppercase italic italic">Copilotajes <span class="text-red-600">Extremos</span></h3>
-                <p class="text-gray-400 text-lg">Nuestra flota de coches preparados para TaxiDrift te hará vivir el drifting desde una perspectiva que nunca olvidarás. Humo, velocidad y manos expertas.</p>
-                <ul class="space-y-4 font-bold text-sm uppercase">
-                    <li class="flex items-center gap-3"><i class="fas fa-fire text-yellow-400"></i> Briefing de seguridad previo</li>
-                    <li class="flex items-center gap-3"><i class="fas fa-fire text-yellow-400"></i> Pilotos profesionales certificados</li>
-                    <li class="flex items-center gap-3"><i class="fas fa-fire text-yellow-400"></i> Opción de vídeo On-Board</li>
-                </ul>
-                <button class="w-full bg-yellow-400 text-black font-black py-4 rounded-full hover:bg-yellow-500 transition shadow-xl">RESERVAR MI PLAZA AHORA</button>
+            <div class="space-y-6 order-1 md:order-2">
+                <h3 class="text-5xl font-black uppercase italic text-red-600">TaxiDrift <span class="text-white text-3xl block not-italic font-normal">Experiencia de Copiloto</span></h3>
+                <p class="text-gray-400 text-lg leading-relaxed">¿Te atreves a subirte a uno de nuestros monstruos de tracción trasera? Preparamos sesiones de TaxiDrift en circuitos y exhibiciones para que sientas la velocidad lateral en primera persona.</p>
+                <div class="grid grid-cols-2 gap-4 pt-4 text-center">
+                    <div class="bg-black p-4 border border-zinc-700 rounded"><span class="block text-yellow-400 font-black text-2xl">V8</span><span class="text-[10px] uppercase font-bold text-zinc-500">Potencia</span></div>
+                    <div class="bg-black p-4 border border-zinc-700 rounded"><span class="block text-yellow-400 font-black text-2xl">4K</span><span class="text-[10px] uppercase font-bold text-zinc-500">Video Onboard</span></div>
+                </div>
+                <button class="w-full bg-yellow-400 text-black font-black py-5 rounded shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:scale-105 transition uppercase">Consultar Disponibilidad</button>
             </div>
         </div>
     </section>
 
     <section id="galeria-manual" class="py-24 px-6 bg-black">
         <div class="max-w-7xl mx-auto">
-            <h3 class="text-4xl font-black mb-12 italic uppercase">Eventos <span class="text-red-600 underline">Destacados</span></h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                
-                <div class="group relative overflow-hidden rounded-lg h-64">
-                    <img src="https://images.unsplash.com/photo-1597404294360-feeeda04612e?auto=format&fit=crop&w=800" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
-                    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
-                        <p class="font-black text-red-500 italic">SHOW MADRID 2024</p>
-                        <p class="text-xs font-bold">Exhibición urbana nocturna</p>
+            <div class="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+                <div>
+                    <h3 class="text-4xl font-black italic uppercase italic">Eventos <span class="text-red-600">Pasados</span></h3>
+                    <p class="text-zinc-500 font-bold uppercase text-xs tracking-widest mt-2">Nuestra huella sobre el asfalto</p>
+                </div>
+                <a href="#ig" class="text-red-500 font-bold hover:underline">Ver más en Instagram →</a>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div class="group relative overflow-hidden rounded-lg aspect-video bg-zinc-800 border border-white/5">
+                    <img src="inicio.jpg" class="w-full h-full object-cover group-hover:scale-110 transition duration-700 opacity-70 group-hover:opacity-100">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end p-6">
+                        <span class="text-red-500 font-black italic text-sm">Gira 2024</span>
+                        <h4 class="font-bold uppercase">Gran Premio de Exhibición</h4>
                     </div>
                 </div>
-                <div class="group relative overflow-hidden rounded-lg h-64 border-2 border-dashed border-zinc-800 flex items-center justify-center text-zinc-800">
-                    <p class="font-black uppercase tracking-widest text-sm">Más contenido próximamente</p>
-                </div>
-
-                <div class="group relative overflow-hidden rounded-lg h-64 border-2 border-dashed border-zinc-800 flex items-center justify-center text-zinc-800">
-                    <p class="font-black uppercase tracking-widest text-sm">Más contenido próximamente</p>
+                
+                <div class="hidden md:flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 rounded-lg p-6 text-zinc-700">
+                    <i class="fas fa-plus-circle text-3xl mb-2"></i>
+                    <p class="font-black text-xs uppercase">Añadir nueva foto</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="ig" class="py-24 bg-zinc-950 border-y border-red-900/20">
-        <div class="max-w-6xl mx-auto px-6 text-center">
-            <i class="fab fa-instagram text-5xl mb-4 text-red-600"></i>
-            <h3 class="text-2xl font-black italic uppercase mb-8 tracking-widest">Live from Instagram</h3>
-            <div class="bg-zinc-900 p-10 rounded-xl border border-white/5">
-                <p class="text-zinc-600 italic">[ Pega aquí el script del widget de Instagram ]</p>
+    <section id="merch" class="py-24 px-6 bg-zinc-950">
+        <h3 class="text-4xl font-black text-center mb-16 italic uppercase italic tracking-tighter">Equípate con el <span class="text-red-600">Team</span></h3>
+        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div class="group card-merch transition-all duration-300">
+                <div class="relative overflow-hidden rounded-lg mb-4 bg-zinc-900 border border-white/5">
+                    <img src="camiseta.jpg" alt="Camiseta Oficial" class="w-full aspect-square object-cover transition duration-500">
+                    <div class="absolute top-4 right-4 bg-red-600 text-[10px] font-bold px-2 py-1 rounded">NUEVO</div>
+                </div>
+                <h4 class="font-black text-lg uppercase italic">Camiseta Drift Show</h4>
+                <p class="text-red-600 font-black text-xl mb-4">25,00€</p>
+                <button class="w-full border border-white/20 hover:bg-white hover:text-black py-2 font-bold text-xs uppercase transition">Añadir al carrito</button>
+            </div>
+
+            <div class="group card-merch transition-all duration-300">
+                <div class="relative overflow-hidden rounded-lg mb-4 bg-zinc-900 border border-white/5">
+                    <img src="gorra.jpg" alt="Gorra Oficial" class="w-full aspect-square object-cover transition duration-500">
+                </div>
+                <h4 class="font-black text-lg uppercase italic">Gorra Trucker</h4>
+                <p class="text-red-600 font-black text-xl mb-4">18,00€</p>
+                <button class="w-full border border-white/20 hover:bg-white hover:text-black py-2 font-bold text-xs uppercase transition">Añadir al carrito</button>
+            </div>
+
+            <div class="group card-merch transition-all duration-300">
+                <div class="relative overflow-hidden rounded-lg mb-4 bg-zinc-900 border border-white/5">
+                    <img src="sudadera.jpg" alt="Sudadera Oficial" class="w-full aspect-square object-cover transition duration-500">
+                </div>
+                <h4 class="font-black text-lg uppercase italic">Sudadera Full Zip</h4>
+                <p class="text-red-600 font-black text-xl mb-4">45,00€</p>
+                <button class="w-full border border-white/20 hover:bg-white hover:text-black py-2 font-bold text-xs uppercase transition">Añadir al carrito</button>
             </div>
         </div>
     </section>
 
-    <section id="merch" class="py-24 px-6">
-        <h3 class="text-4xl font-black text-center mb-16 italic uppercase">Colección <span class="text-red-600 italic font-title">Official Merch</span></h3>
-        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 card-hover transition duration-300">
-                <div class="bg-black aspect-square rounded-xl mb-6 flex items-center justify-center text-8xl">👕</div>
-                <h4 class="text-xl font-black uppercase">Camiseta Logo Red</h4>
-                <p class="text-red-500 font-black text-2xl">24,00€</p>
-            </div>
-            <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 card-hover transition duration-300">
-                <div class="bg-black aspect-square rounded-xl mb-6 flex items-center justify-center text-8xl">🧢</div>
-                <h4 class="text-xl font-black uppercase">Gorra Trucker Drift</h4>
-                <p class="text-red-500 font-black text-2xl">18,00€</p>
-            </div>
-            <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 card-hover transition duration-300">
-                <div class="bg-black aspect-square rounded-xl mb-6 flex items-center justify-center text-8xl">🧥</div>
-                <h4 class="text-xl font-black uppercase">Sudadera Full Print</h4>
-                <p class="text-red-500 font-black text-2xl">45,00€</p>
+    <section id="ig" class="py-20 px-6 bg-black border-y border-red-900/10">
+        <div class="max-w-5xl mx-auto text-center">
+            <p class="text-red-600 font-black uppercase text-xs tracking-[0.4em] mb-4 underline">Social Feed</p>
+            <div class="min-h-[400px] flex items-center justify-center bg-zinc-900/30 rounded-xl border border-zinc-800 italic text-zinc-500">
+                [ Pega aquí el código de tu widget de Instagram ]
             </div>
         </div>
     </section>
 
-    <footer id="contacto" class="py-24 bg-black px-6 border-t-4 border-red-600">
-        <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-16">
+    <footer id="contacto" class="py-24 bg-black px-6 border-t-2 border-red-600/50">
+        <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-16">
             <div>
-                <img src="1000154976.jpg" alt="Logo Footer" class="w-48 mb-6">
-                <p class="text-gray-500 font-bold mb-6">Llevamos el espectáculo del motor al siguiente nivel. Contratación para eventos públicos y privados en toda España.</p>
-                <div class="flex space-x-4 text-2xl">
-                    <a href="#" class="text-white hover:text-red-600"><i class="fab fa-facebook"></i></a>
-                    <a href="#" class="text-white hover:text-red-600"><i class="fab fa-youtube"></i></a>
-                    <a href="#" class="text-white hover:text-red-600"><i class="fab fa-tiktok"></i></a>
+                <img src="logo.png" alt="Logo Footer" class="h-16 mb-8 logo-glow">
+                <p class="text-zinc-500 font-bold text-sm mb-8 leading-relaxed uppercase tracking-wider">
+                    Espectáculos de alta precisión, gestión de eventos de motor y experiencias TaxiDrift para marcas y particulares.
+                </p>
+                <div class="space-y-4">
+                    <p class="flex items-center gap-4 text-zinc-400 font-bold"><i class="fas fa-envelope text-red-600"></i> info@driftshow.com</p>
+                    <p class="flex items-center gap-4 text-zinc-400 font-bold"><i class="fas fa-phone text-red-600"></i> +34 600 000 000</p>
                 </div>
             </div>
-            <form action="#" class="space-y-4">
-                <input type="text" placeholder="Nombre / Empresa" class="w-full bg-zinc-900 p-4 border border-zinc-800 rounded outline-none focus:border-red-600">
-                <input type="email" placeholder="Email" class="w-full bg-zinc-900 p-4 border border-zinc-800 rounded outline-none focus:border-red-600">
-                <textarea placeholder="Mensaje" class="w-full bg-zinc-900 p-4 border border-zinc-800 rounded h-32 outline-none focus:border-red-600"></textarea>
-                <button class="w-full drift-gradient py-4 font-black uppercase tracking-widest rounded text-white shadow-lg">Enviar Mensaje</button>
-            </form>
+            <div class="bg-zinc-900 p-8 rounded-lg">
+                <h3 class="text-2xl font-black uppercase mb-6 italic">Solicitar Presupuesto</h3>
+                <form class="space-y-4">
+                    <input type="text" placeholder="Tu Nombre / Empresa" class="w-full bg-black p-4 border border-zinc-700 rounded outline-none focus:border-red-600 text-sm">
+                    <input type="email" placeholder="Email de contacto" class="w-full bg-black p-4 border border-zinc-700 rounded outline-none focus:border-red-600 text-sm">
+                    <textarea placeholder="Cuéntanos sobre tu evento (Ciudad, Fecha, Tipo de Show...)" class="w-full bg-black p-4 border border-zinc-700 rounded h-32 outline-none focus:border-red-600 text-sm"></textarea>
+                    <button class="w-full drift-gradient py-4 font-black uppercase tracking-[0.2em] hover:shadow-[0_0_20px_rgba(255,0,0,0.4)] transition duration-300">Enviar Solicitud</button>
+                </form>
+            </div>
+        </div>
+        <div class="text-center mt-20 pt-8 border-t border-zinc-900 text-zinc-600 text-[10px] font-bold uppercase tracking-widest">
+            © 2024 Drift Show Organization. Todos los derechos reservados.
         </div>
     </footer>
 

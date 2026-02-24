@@ -14,7 +14,6 @@
         .fade-out { opacity: 0; transform: scale(0.8); pointer-events: none; }
         .logo-glow { filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.4)); }
         
-        /* Acordeón Pilotos */
         .piloto-content { 
             max-height: 0; 
             overflow: hidden; 
@@ -24,12 +23,10 @@
         .piloto-item:focus-within .piloto-content { max-height: 2000px; }
         .piloto-item:focus-within { border-color: #ef4444; }
 
-        /* Galería */
         .img-zoom { overflow: hidden; border-radius: 4px; cursor: pointer; background: #111; aspect-ratio: 16/9; border: 1px solid rgba(255,255,255,0.05); }
         .img-zoom img { transition: transform 0.5s ease; width: 100%; height: 100%; object-fit: cover; }
         .img-zoom:hover img { transform: scale(1.1); }
 
-        /* Lightbox */
         #lightbox {
             display: none; position: fixed; z-index: 999; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.95);
@@ -38,6 +35,7 @@
         #lightbox img { max-width: 90%; max-height: 85vh; border: 2px solid #ef4444; }
 
         input, textarea, select { background: #111 !important; border: 1px solid #333 !important; color: white !important; }
+        .text-stroke { -webkit-text-stroke: 1px rgba(255,255,255,0.2); }
     </style>
 </head>
 <body>
@@ -51,8 +49,8 @@
                 <a href="#inicio" class="hover:text-red-600 transition">Inicio</a>
                 <a href="#servicios" class="hover:text-red-600 transition">Servicios</a>
                 <a href="#taxidrift" class="hover:text-red-600 transition">TaxiDrift</a>
+                <a href="#proximos" class="text-red-500 font-bold">Calendario</a>
                 <a href="#concursos" class="text-yellow-500">Tuning & Escapes</a>
-                <a href="#proximos" class="text-red-500">Calendario</a>
                 <a href="#pilotos" class="hover:text-red-600 transition">Pilotos</a>
                 <a href="#contacto" class="bg-red-600 px-4 py-2 rounded-sm hover:bg-red-700 transition">Contratación</a>
             </div>
@@ -90,15 +88,32 @@
     </section>
 
     <section id="taxidrift" class="py-32 relative overflow-hidden bg-black">
-        <div class="absolute inset-0 bg-gradient-to-b from-black via-red-900/40 to-black opacity-80"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-black via-red-600/60 to-black"></div>
         <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
             <img src="taxidrift.png" class="w-full max-w-md mx-auto drop-shadow-2xl logo-glow">
             <div class="space-y-6">
                 <h3 class="text-6xl font-black uppercase italic tracking-tighter text-white">TaxiDrift 🔥</h3>
-                <p class="text-xl font-black italic uppercase bg-red-600 text-white inline-block px-4 py-1">Atracción Estrella</p>
-                <p class="text-lg leading-relaxed text-zinc-200 font-bold italic">
+                <p class="text-xl font-black italic uppercase bg-white text-black inline-block px-4 py-1">Atracción Estrella</p>
+                <p class="text-lg leading-relaxed text-white font-bold italic">
                     ¿Quieres saber qué siente un piloto profesional? El TaxiDrift permite que el público sea partícipe directo de la exhibición. Sentir la aceleración lateral, el humo y la precisión desde el cockpit es una experiencia inigualable.
                 </p>
+            </div>
+        </div>
+    </section>
+
+    <section id="proximos" class="py-24 bg-black px-6 border-b border-white/5">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-5xl font-black italic uppercase mb-12 text-center tracking-tighter">Próximos <span class="text-red-600">Eventos</span></h2>
+            <div class="bg-zinc-900 border-l-8 border-red-600 p-10 flex flex-col md:flex-row justify-between items-center rounded-r-xl">
+                <div class="text-left">
+                    <span class="bg-red-600 text-white px-3 py-1 text-xs font-black uppercase italic">Confirmado</span>
+                    <h3 class="text-4xl font-black uppercase italic mt-4">Circuito Ricardo Tormo</h3>
+                    <p class="text-zinc-400 font-bold italic mt-2 uppercase tracking-widest">Valencia | Drift & Show Experience</p>
+                </div>
+                <div class="mt-8 md:mt-0 text-center">
+                    <div class="text-3xl font-black italic text-white uppercase tracking-tighter">PRÓXIMAMENTE</div>
+                    <p class="text-red-600 font-bold">2026</p>
+                </div>
             </div>
         </div>
     </section>
@@ -121,7 +136,7 @@
 
     <section class="py-24 px-6 bg-black">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-5xl font-black italic uppercase mb-12 text-center">Galería <span class="text-red-600">Completa</span></h2>
+            <h2 class="text-5xl font-black italic uppercase mb-12 text-center">Galería <span class="text-red-600 text-stroke">Show</span></h2>
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div class="img-zoom" onclick="openLightbox('1-0.jpg')"><img src="1-0.jpg"></div>
                 <div class="img-zoom" onclick="openLightbox('2-0.jpg')"><img src="2-0.jpg"></div>
@@ -146,11 +161,11 @@
         <div class="max-w-7xl mx-auto">
             <div class="flex items-center space-x-4 mb-8">
                 <i class="fab fa-instagram text-3xl text-red-600"></i>
-                <h3 class="text-2xl font-black uppercase italic italic">Sigue el <span class="text-red-600">Show</span></h3>
+                <h3 class="text-2xl font-black uppercase italic italic">Instagram <span class="text-red-600">@drift_show</span></h3>
             </div>
             <div class="bg-zinc-900 w-full rounded-lg min-h-[400px] flex items-center justify-center border border-dashed border-zinc-700">
-                <p class="text-zinc-500 font-bold uppercase text-xs tracking-widest">Pega aquí el script de tu Widget de Instagram</p>
-                </div>
+                <p class="text-zinc-500 font-bold uppercase text-xs tracking-widest italic">Pega aquí el script de tu Widget (Elfsight/LightWidget)</p>
+            </div>
         </div>
     </section>
 
@@ -159,10 +174,7 @@
             <h2 class="text-5xl font-black italic uppercase mb-16 text-center">Nuestra <span class="text-red-600">Escudería</span></h2>
             <div class="space-y-6">
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
-                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
-                        <span class="text-2xl font-black italic uppercase">ATILA</span>
-                        <i class="fas fa-chevron-down text-red-600"></i>
-                    </div>
+                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">ATILA <i class="fas fa-chevron-down text-red-600"></i></div>
                     <div class="piloto-content">
                         <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
                             <img src="coche-atila.jpg" class="w-full rounded shadow-2xl">
@@ -171,10 +183,7 @@
                     </div>
                 </div>
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
-                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
-                        <span class="text-2xl font-black italic uppercase">JAVI NIEVES</span>
-                        <i class="fas fa-chevron-down text-red-600"></i>
-                    </div>
+                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">JAVI NIEVES <i class="fas fa-chevron-down text-red-600"></i></div>
                     <div class="piloto-content">
                         <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
                             <img src="coche-javi.jpg" class="w-full rounded shadow-2xl">
@@ -183,10 +192,7 @@
                     </div>
                 </div>
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
-                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
-                        <span class="text-2xl font-black italic uppercase">MIKE RACING</span>
-                        <i class="fas fa-chevron-down text-red-600"></i>
-                    </div>
+                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">MIKE RACING <i class="fas fa-chevron-down text-red-600"></i></div>
                     <div class="piloto-content">
                         <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
                             <img src="coche-mike.jpg" class="w-full rounded shadow-2xl">
@@ -195,10 +201,7 @@
                     </div>
                 </div>
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
-                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
-                        <span class="text-2xl font-black italic uppercase">VALERO</span>
-                        <i class="fas fa-chevron-down text-red-600"></i>
-                    </div>
+                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">VALERO <i class="fas fa-chevron-down text-red-600"></i></div>
                     <div class="piloto-content">
                         <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
                             <img src="coche-valero.jpg" class="w-full rounded shadow-2xl">
@@ -206,12 +209,8 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
-                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
-                        <span class="text-2xl font-black italic uppercase">IVAN RIDER</span>
-                        <i class="fas fa-chevron-down text-red-600"></i>
-                    </div>
+                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">IVAN RIDER <i class="fas fa-chevron-down text-red-600"></i></div>
                     <div class="piloto-content">
                         <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
                             <img src="coche-ivan.jpg" class="w-full rounded shadow-2xl">
@@ -219,11 +218,8 @@
                         </div>
                     </div>
                 </div>
-                    <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
-                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
-                        <span class="text-2xl font-black italic uppercase">HADES</span>
-                        <i class="fas fa-chevron-down text-red-600"></i>
-                    </div>
+                <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
+                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">HADES <i class="fas fa-chevron-down text-red-600"></i></div>
                     <div class="piloto-content">
                         <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
                             <img src="coche-hades.jpg" class="w-full rounded shadow-2xl">

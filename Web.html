@@ -14,6 +14,7 @@
         .fade-out { opacity: 0; transform: scale(0.8); pointer-events: none; }
         .logo-glow { filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.4)); }
         
+        /* Acordeón Pilotos */
         .piloto-content { 
             max-height: 0; 
             overflow: hidden; 
@@ -23,10 +24,12 @@
         .piloto-item:focus-within .piloto-content { max-height: 2000px; }
         .piloto-item:focus-within { border-color: #ef4444; }
 
+        /* Galería */
         .img-zoom { overflow: hidden; border-radius: 4px; cursor: pointer; background: #111; aspect-ratio: 16/9; border: 1px solid rgba(255,255,255,0.05); }
         .img-zoom img { transition: transform 0.5s ease; width: 100%; height: 100%; object-fit: cover; }
         .img-zoom:hover img { transform: scale(1.1); }
 
+        /* Lightbox */
         #lightbox {
             display: none; position: fixed; z-index: 999; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.95);
@@ -35,7 +38,6 @@
         #lightbox img { max-width: 90%; max-height: 85vh; border: 2px solid #ef4444; }
 
         input, textarea, select { background: #111 !important; border: 1px solid #333 !important; color: white !important; }
-        .text-stroke { -webkit-text-stroke: 1px rgba(255,255,255,0.2); }
     </style>
 </head>
 <body>
@@ -49,7 +51,7 @@
                 <a href="#inicio" class="hover:text-red-600 transition">Inicio</a>
                 <a href="#servicios" class="hover:text-red-600 transition">Servicios</a>
                 <a href="#taxidrift" class="hover:text-red-600 transition">TaxiDrift</a>
-                <a href="#proximos" class="text-red-500 font-bold">Calendario</a>
+                <a href="#proximos" class="text-red-500 font-bold border-b border-red-600">Calendario</a>
                 <a href="#concursos" class="text-yellow-500">Tuning & Escapes</a>
                 <a href="#pilotos" class="hover:text-red-600 transition">Pilotos</a>
                 <a href="#contacto" class="bg-red-600 px-4 py-2 rounded-sm hover:bg-red-700 transition">Contratación</a>
@@ -73,16 +75,15 @@
             <div class="space-y-8">
                 <h3 class="text-5xl font-black uppercase italic text-red-600 leading-none">Llevamos el Drift <br><span class="text-white">al siguiente nivel.</span></h3>
                 <div class="text-zinc-400 space-y-4 text-lg leading-relaxed italic font-medium">
-                    <p>En <span class="text-white font-bold">Drift Show ®</span> transformamos recintos en templos del motor. Nos especializamos en la organización integral de eventos de drift y stunt, ofreciendo un paquete llave en mano para ayuntamientos, circuitos y marcas.</p>
-                    <p>Contamos con un plantel de pilotos oficiales altamente experimentados, con capacidad de ampliación logística para grandes eventos. Nuestra trayectoria avala un crecimiento constante.</p>
-                    <p>Disponemos de un equipo de staff cualificado para control de pista y seguridad, además de un software exclusivo de gestión.</p>
+                    <p>En <span class="text-white font-bold">Drift Show ®</span> transformamos recintos en templos del motor. Nos especializamos en la organización integral de eventos de drift y stunt.</p>
+                    <p>Contamos con un plantel de pilotos oficiales experimentados y un equipo de staff cualificado para garantizar la máxima seguridad y espectáculo.</p>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-zinc-900 p-6 border-b-2 border-red-600 text-center font-black uppercase italic text-sm">Organización 360º</div>
                 <div class="bg-zinc-900 p-6 border-b-2 border-red-600 text-center font-black uppercase italic text-sm">Software VIP</div>
                 <div class="bg-zinc-900 p-6 border-b-2 border-red-600 text-center font-black uppercase italic text-sm">Equipo Staff</div>
-                <div class="bg-zinc-900 p-6 border-b-2 border-red-600 text-center font-black uppercase italic text-sm">Garantía de Éxito</div>
+                <div class="bg-zinc-900 p-6 border-b-2 border-red-600 text-center font-black uppercase italic text-sm">Garantía Éxito</div>
             </div>
         </div>
     </section>
@@ -103,16 +104,34 @@
 
     <section id="proximos" class="py-24 bg-black px-6 border-b border-white/5">
         <div class="max-w-6xl mx-auto">
-            <h2 class="text-5xl font-black italic uppercase mb-12 text-center tracking-tighter">Próximos <span class="text-red-600">Eventos</span></h2>
-            <div class="bg-zinc-900 border-l-8 border-red-600 p-10 flex flex-col md:flex-row justify-between items-center rounded-r-xl">
-                <div class="text-left">
-                    <span class="bg-red-600 text-white px-3 py-1 text-xs font-black uppercase italic">Confirmado</span>
-                    <h3 class="text-4xl font-black uppercase italic mt-4">Circuito Ricardo Tormo</h3>
-                    <p class="text-zinc-400 font-bold italic mt-2 uppercase tracking-widest">Valencia | Drift & Show Experience</p>
+            <h2 class="text-5xl font-black italic uppercase mb-16 text-center tracking-tighter italic">Próximos <span class="text-red-600">Shows</span></h2>
+            
+            <div class="space-y-6">
+                <div class="bg-zinc-900 border-l-8 border-red-600 p-8 flex flex-col md:flex-row justify-between items-center rounded-r-xl">
+                    <div class="text-left">
+                        <span class="text-red-600 font-black uppercase tracking-widest">Próximamente</span>
+                        <h3 class="text-4xl font-black uppercase italic">Roow - Circuito Ricardo Tormo</h3>
+                        <p class="text-zinc-400 font-bold italic uppercase mt-2">Valencia, España</p>
+                    </div>
                 </div>
-                <div class="mt-8 md:mt-0 text-center">
-                    <div class="text-3xl font-black italic text-white uppercase tracking-tighter">PRÓXIMAMENTE</div>
-                    <p class="text-red-600 font-bold">2026</p>
+
+                <div class="bg-zinc-900 border-l-8 border-zinc-700 p-8 flex flex-col md:flex-row justify-between items-center rounded-r-xl opacity-80">
+                    <div class="text-left">
+                        <span class="text-zinc-500 font-black uppercase tracking-widest">12 de Abril</span>
+                        <h3 class="text-3xl font-black uppercase italic">Motorshow Torredembarra</h3>
+                        <p class="text-zinc-400 font-bold italic uppercase mt-1">Torredembarra, Tarragona</p>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-900 border-l-8 border-yellow-500 p-8 flex flex-col md:flex-row justify-between items-center rounded-r-xl">
+                    <div class="text-left">
+                        <span class="text-yellow-500 font-black uppercase tracking-widest">12 de Septiembre</span>
+                        <h3 class="text-3xl font-black uppercase italic">Evento Moncada</h3>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 font-black uppercase italic border border-yellow-500/50">Concurso Tuning</span>
+                            <span class="bg-red-500/20 text-red-500 text-[10px] px-2 py-1 font-black uppercase italic border border-red-500/50">Prueba de Escapes</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -124,11 +143,11 @@
             <div class="grid md:grid-cols-2 gap-8">
                 <div class="bg-zinc-900 p-8 rounded-xl border border-zinc-800">
                     <h4 class="text-3xl font-black uppercase italic text-red-600 mb-4">Concurso de Tuning</h4>
-                    <p class="text-zinc-400 italic">Premiamos la personalización extrema. Organizamos certámenes donde se evalúan modificaciones estéticas, interiores y ensanchamientos.</p>
+                    <p class="text-zinc-400 italic">Premiamos la personalización extrema. Organizamos certámenes donde se evalúan modificaciones estéticas e interiores.</p>
                 </div>
                 <div class="bg-zinc-900 p-8 rounded-xl border border-zinc-800">
                     <h4 class="text-3xl font-black uppercase italic text-red-600 mb-4">Pruebas de Sonoridad</h4>
-                    <p class="text-zinc-400 italic">Utilizamos sonómetros de alta precisión para medir la calidad y potencia de los sistemas de escape, premiando la sonoridad más espectacular.</p>
+                    <p class="text-zinc-400 italic">Utilizamos sonómetros de alta precisión para medir la calidad y potencia de los sistemas de escape.</p>
                 </div>
             </div>
         </div>
@@ -136,7 +155,7 @@
 
     <section class="py-24 px-6 bg-black">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-5xl font-black italic uppercase mb-12 text-center">Galería <span class="text-red-600 text-stroke">Show</span></h2>
+            <h2 class="text-5xl font-black italic uppercase mb-12 text-center">Galería <span class="text-red-600">Pro</span></h2>
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div class="img-zoom" onclick="openLightbox('1-0.jpg')"><img src="1-0.jpg"></div>
                 <div class="img-zoom" onclick="openLightbox('2-0.jpg')"><img src="2-0.jpg"></div>
@@ -161,71 +180,41 @@
         <div class="max-w-7xl mx-auto">
             <div class="flex items-center space-x-4 mb-8">
                 <i class="fab fa-instagram text-3xl text-red-600"></i>
-                <h3 class="text-2xl font-black uppercase italic italic">Instagram <span class="text-red-600">@drift_show</span></h3>
+                <h3 class="text-2xl font-black uppercase italic italic">Sigue el <span class="text-red-600">Show</span></h3>
             </div>
             <div class="bg-zinc-900 w-full rounded-lg min-h-[400px] flex items-center justify-center border border-dashed border-zinc-700">
-                <p class="text-zinc-500 font-bold uppercase text-xs tracking-widest italic">Pega aquí el script de tu Widget (Elfsight/LightWidget)</p>
+                <p class="text-zinc-500 font-bold uppercase text-xs tracking-widest italic">Pega aquí el script de tu Widget de Instagram</p>
             </div>
         </div>
     </section>
 
     <section id="pilotos" class="py-24 bg-zinc-950 px-6">
         <div class="max-w-4xl mx-auto">
-            <h2 class="text-5xl font-black italic uppercase mb-16 text-center">Nuestra <span class="text-red-600">Escudería</span></h2>
-            <div class="space-y-6">
+            <h2 class="text-5xl font-black italic uppercase mb-16 text-center text-white">Nuestra <span class="text-red-600">Escudería</span></h2>
+            <div class="space-y-6 text-white">
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
                     <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">ATILA <i class="fas fa-chevron-down text-red-600"></i></div>
-                    <div class="piloto-content">
-                        <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
-                            <img src="coche-atila.jpg" class="w-full rounded shadow-2xl">
-                            <div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">CORVETTE C6</h5><p class="font-bold">2JZ-GTE / 500 CV</p></div>
-                        </div>
-                    </div>
+                    <div class="piloto-content"><div class="p-8 grid md:grid-cols-2 gap-10 items-center"><img src="coche-atila.jpg" class="w-full rounded shadow-2xl"><div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">CORVETTE C6</h5><p class="font-bold">2JZ-GTE / 500 CV</p></div></div></div>
                 </div>
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
                     <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">JAVI NIEVES <i class="fas fa-chevron-down text-red-600"></i></div>
-                    <div class="piloto-content">
-                        <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
-                            <img src="coche-javi.jpg" class="w-full rounded shadow-2xl">
-                            <div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">BMW E46</h5><p class="font-bold">M54B30 / 300 CV</p></div>
-                        </div>
-                    </div>
+                    <div class="piloto-content"><div class="p-8 grid md:grid-cols-2 gap-10 items-center"><img src="coche-javi.jpg" class="w-full rounded shadow-2xl"><div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">BMW E46</h5><p class="font-bold">M54B30 / 300 CV</p></div></div></div>
                 </div>
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
                     <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">MIKE RACING <i class="fas fa-chevron-down text-red-600"></i></div>
-                    <div class="piloto-content">
-                        <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
-                            <img src="coche-mike.jpg" class="w-full rounded shadow-2xl">
-                            <div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">KART DRIFT</h5><p class="font-bold">250cc / 100 CV</p></div>
-                        </div>
-                    </div>
+                    <div class="piloto-content"><div class="p-8 grid md:grid-cols-2 gap-10 items-center"><img src="coche-mike.jpg" class="w-full rounded shadow-2xl"><div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">KART DRIFT</h5><p class="font-bold">250cc / 100 CV</p></div></div></div>
                 </div>
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
                     <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">VALERO <i class="fas fa-chevron-down text-red-600"></i></div>
-                    <div class="piloto-content">
-                        <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
-                            <img src="coche-valero.jpg" class="w-full rounded shadow-2xl">
-                            <div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">RIEJU MRT</h5><p class="font-bold">49cc / 12 CV</p></div>
-                        </div>
-                    </div>
+                    <div class="piloto-content"><div class="p-8 grid md:grid-cols-2 gap-10 items-center"><img src="coche-valero.jpg" class="w-full rounded shadow-2xl"><div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">RIEJU MRT</h5><p class="font-bold">49cc / 12 CV</p></div></div></div>
                 </div>
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
                     <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">IVAN RIDER <i class="fas fa-chevron-down text-red-600"></i></div>
-                    <div class="piloto-content">
-                        <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
-                            <img src="coche-ivan.jpg" class="w-full rounded shadow-2xl">
-                            <div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">YAMAHA R6</h5><p class="font-bold">599cc / 118 CV</p></div>
-                        </div>
-                    </div>
+                    <div class="piloto-content"><div class="p-8 grid md:grid-cols-2 gap-10 items-center"><img src="coche-ivan.jpg" class="w-full rounded shadow-2xl"><div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">YAMAHA R6</h5><p class="font-bold">599cc / 118 CV</p></div></div></div>
                 </div>
                 <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition" tabindex="0">
                     <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">HADES <i class="fas fa-chevron-down text-red-600"></i></div>
-                    <div class="piloto-content">
-                        <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
-                            <img src="coche-hades.jpg" class="w-full rounded shadow-2xl">
-                            <div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">MERCEDES C63 AMG</h5><p class="font-bold">Junior 12V / 600rpm</p></div>
-                        </div>
-                    </div>
+                    <div class="piloto-content"><div class="p-8 grid md:grid-cols-2 gap-10 items-center"><img src="coche-hades.jpg" class="w-full rounded shadow-2xl"><div><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2">MERCEDES C63 AMG</h5><p class="font-bold">Junior 12V / 600rpm</p></div></div></div>
                 </div>
             </div>
         </div>
@@ -233,7 +222,7 @@
 
     <section id="contacto" class="py-24 bg-black px-6">
         <div class="max-w-4xl mx-auto bg-zinc-900/50 p-10 rounded-lg border border-red-600/30">
-            <h3 class="text-4xl font-black uppercase italic mb-8 text-center tracking-tighter italic">Solicitud de <span class="text-red-600">Contratación</span></h3>
+            <h3 class="text-4xl font-black uppercase italic mb-8 text-center tracking-tighter italic italic">Solicitud de <span class="text-red-600">Contratación</span></h3>
             <form class="grid md:grid-cols-2 gap-6">
                 <input type="text" class="p-4 rounded-sm" placeholder="Nombre / Organización">
                 <input type="email" class="p-4 rounded-sm" placeholder="Email Corporativo">

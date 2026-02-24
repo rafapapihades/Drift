@@ -8,118 +8,161 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;900&display=swap');
-        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; background: black; color: white; }
-        .font-title { font-family: 'Archivo Black', sans-serif; }
-        .logo-glow { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)); }
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; background: black; color: white; overflow-x: hidden; }
         
-        /* Estilo para los acordeones de pilotos */
-        .piloto-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-out; }
-        .piloto-item:focus-within .piloto-content { max-height: 1000px; }
-        .piloto-item:focus-within i { transform: rotate(180deg); }
+        /* Efecto Fade del Logo Principal */
+        #logo-hero { transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .fade-out { opacity: 0; transform: scale(0.8); pointer-events: none; }
+
+        .logo-glow { filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.4)); }
+        
+        /* Acordeón Pilotos */
+        .piloto-content { max-height: 0; overflow: hidden; transition: all 0.5s cubic-bezier(0, 1, 0, 1); }
+        .piloto-item:focus-within .piloto-content { max-height: 2000px; transition: all 0.5s cubic-bezier(1, 0, 1, 0); }
+        .piloto-item:focus-within { border-color: #ef4444; }
+
+        .drift-gradient { background: linear-gradient(to bottom, #ff0000, #8b0000); }
     </style>
 </head>
 <body>
 
+    <a href="https://wa.me/34600000000" class="fixed bottom-6 right-6 z-[100] bg-green-500 p-4 rounded-full shadow-2xl hover:scale-110 transition duration-300">
+        <i class="fab fa-whatsapp text-3xl"></i>
+    </a>
+
     <nav class="fixed w-full z-50 bg-black/90 border-b border-red-900/50 p-3 backdrop-blur-md">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <img src="logo.png" alt="Drift Show Logo" class="h-10 md:h-14 logo-glow">
-            <div class="hidden lg:flex space-x-6 font-black uppercase text-[10px] tracking-widest">
-                <a href="#inicio" class="hover:text-red-600 transition">Inicio</a>
-                <a href="#galeria-manual" class="hover:text-red-600 transition">Eventos</a>
-                <a href="#pilotos" class="hover:text-red-600 transition">Pilotos</a>
-                <a href="#taxidrift" class="text-yellow-400 hover:text-yellow-200 transition italic">TaxiDrift</a>
-                <a href="#merch" class="hover:text-red-600 transition">Tienda</a>
-                <a href="#contacto" class="bg-red-600 px-4 py-2 rounded-sm shadow-lg shadow-red-600/20">Contratación</a>
+            <div class="hidden lg:flex space-x-6 font-black uppercase text-[10px] tracking-widest italic">
+                <a href="#inicio" class="hover:text-red-600 transition tracking-tighter">Inicio</a>
+                <a href="#galeria-manual" class="hover:text-red-600 transition tracking-tighter">Eventos</a>
+                <a href="#pilotos" class="hover:text-red-600 transition tracking-tighter">Pilotos</a>
+                <a href="#taxidrift" class="text-yellow-400 hover:text-yellow-200 transition">TaxiDrift 🔥</a>
+                <a href="#merch" class="hover:text-red-600 transition tracking-tighter">Tienda</a>
+                <a href="#contacto" class="bg-red-600 px-4 py-2 rounded-sm shadow-red-600/20 hover:bg-red-700 transition">Contratación</a>
             </div>
         </div>
     </nav>
 
-    <section id="inicio" class="h-[70vh] flex items-center justify-center relative overflow-hidden">
-        <img src="inicio.jpg" class="absolute inset-0 w-full h-full object-cover opacity-60">
-        <div class="relative z-10 text-center">
-            <img src="logo.png" class="w-64 md:w-96 mx-auto mb-4 logo-glow">
+    <header id="inicio" class="h-screen flex items-center justify-center relative overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="inicio.jpg" class="w-full h-full object-cover opacity-60">
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+        </div>
+        <div id="logo-hero" class="relative z-10 text-center px-4">
+            <img src="logo.png" alt="Logo Principal" class="w-72 md:w-[500px] mx-auto mb-6 logo-glow">
+            <h2 class="text-xl md:text-3xl font-black italic uppercase tracking-[0.3em] text-white animate-pulse">Quema Rueda</h2>
+            <p class="text-gray-300 mt-4 max-w-xl mx-auto font-bold uppercase text-sm">Espectáculos de drift profesional y experiencias extremas</p>
+        </div>
+    </header>
+
+    <section id="taxidrift" class="py-24 bg-zinc-900 border-y border-white/5">
+        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div class="relative order-2 md:order-1">
+                <img src="taxidrift.png" class="w-full max-w-sm mx-auto mb-8 logo-glow">
+                <div class="bg-yellow-400 text-black p-8 rounded-sm -rotate-1 shadow-2xl border-l-8 border-black font-black uppercase">
+                    <h4 class="text-3xl mb-2 italic underline">¡Siente el Humo!</h4>
+                    <p class="text-lg leading-tight">Vive la experiencia definitiva desde dentro del cockpit con pilotos profesionales.</p>
+                </div>
+            </div>
+            <div class="space-y-6 order-1 md:order-2">
+                <h3 class="text-5xl font-black uppercase italic text-red-600">TaxiDrift</h3>
+                <p class="text-gray-400 text-lg leading-relaxed italic font-bold">"No lo veas desde la grada. Vívelo desde el asiento del copiloto. Siente la aceleración lateral y la precisión a escasos centímetros del muro."</p>
+                <div class="grid grid-cols-2 gap-4 pt-4 text-center">
+                    <div class="bg-black p-4 border border-zinc-700 rounded"><span class="block text-yellow-400 font-black text-2xl">+500 CV</span><span class="text-[10px] uppercase font-bold text-zinc-500">Pura Potencia</span></div>
+                    <div class="bg-black p-4 border border-zinc-700 rounded"><span class="block text-yellow-400 font-black text-2xl">FULL HD</span><span class="text-[10px] uppercase font-bold text-zinc-500">Video Onboard</span></div>
+                </div>
+            </div>
         </div>
     </section>
 
-    <section id="galeria-manual" class="py-20 px-6">
+    <section id="galeria-manual" class="py-24 px-6 bg-black">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-4xl font-black italic uppercase mb-12 border-l-8 border-red-600 pl-4">Galería de Eventos</h2>
+            <h2 class="text-5xl font-black italic uppercase mb-16 text-center italic tracking-tighter">Galería de <span class="text-red-600">Eventos</span></h2>
 
-            <div class="mb-16">
-                <h3 class="text-xl font-bold text-red-500 mb-6 tracking-widest uppercase italic">Temporada Principal</h3>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    <img src="1-1.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="2-1.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="3-1.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="4-1.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="5-1.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
+            <div class="mb-20">
+                <h3 class="text-xl font-black text-red-500 mb-6 tracking-widest uppercase italic border-b border-red-600 inline-block pb-2">Temporada 2025-26</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <img src="1-1.jpg" class="h-48 w-full object-cover rounded grayscale hover:grayscale-0 transition duration-500 cursor-pointer">
+                    <img src="2-1.jpg" class="h-48 w-full object-cover rounded grayscale hover:grayscale-0 transition duration-500 cursor-pointer">
+                    <img src="3-1.jpg" class="h-48 w-full object-cover rounded grayscale hover:grayscale-0 transition duration-500 cursor-pointer">
+                    <img src="4-1.jpg" class="h-48 w-full object-cover rounded grayscale hover:grayscale-0 transition duration-500 cursor-pointer">
+                    <img src="5-1.jpg" class="h-48 w-full object-cover rounded grayscale hover:grayscale-0 transition duration-500 cursor-pointer">
                 </div>
             </div>
 
-            <div class="mb-16">
-                <h3 class="text-xl font-bold text-red-500 mb-6 tracking-widest uppercase italic text-right">Moncada <span class="text-white text-sm">24-01-26</span></h3>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    <img src="1-2.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="2-2.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="3-2.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="4-2.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="5-2.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
+            <div class="mb-20">
+                <div class="flex justify-between items-end mb-6">
+                    <h3 class="text-xl font-black text-red-500 tracking-widest uppercase italic border-b border-red-600 pb-2">Moncada</h3>
+                    <span class="text-zinc-500 font-bold mb-2">24-01-26</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <img src="1-2.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
+                    <img src="2-2.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
+                    <img src="3-2.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
+                    <img src="4-2.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
+                    <img src="5-2.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
                 </div>
             </div>
 
-            <div class="mb-16">
-                <h3 class="text-xl font-bold text-red-500 mb-6 tracking-widest uppercase italic">ROOW <span class="text-white text-sm">15-02-26</span></h3>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    <img src="1-3.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="2-3.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="3-3.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="4-3.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
-                    <img src="5-3.jpg" class="h-40 w-full object-cover rounded hover:scale-105 transition">
+            <div class="mb-20">
+                <div class="flex justify-between items-end mb-6">
+                    <h3 class="text-xl font-black text-red-500 tracking-widest uppercase italic border-b border-red-600 pb-2">ROOW</h3>
+                    <span class="text-zinc-500 font-bold mb-2">15-02-26</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <img src="1-3.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
+                    <img src="2-3.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
+                    <img src="3-3.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
+                    <img src="4-3.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
+                    <img src="5-3.jpg" class="h-48 w-full object-cover rounded hover:brightness-125 transition duration-500">
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="pilotos" class="py-20 bg-zinc-900 px-6">
+    <section id="pilotos" class="py-24 bg-zinc-950 px-6 border-y border-red-600/20">
         <div class="max-w-4xl mx-auto">
-            <h2 class="text-4xl font-black italic uppercase mb-12 text-center underline decoration-red-600">Pilotos Oficiales</h2>
+            <h2 class="text-4xl font-black italic uppercase mb-12 text-center">Pilotos <span class="text-red-600">Oficiales</span></h2>
             
-            <div class="space-y-4">
-                <div class="piloto-item group" tabindex="0">
-                    <div class="bg-black p-6 flex justify-between items-center cursor-pointer border border-zinc-800 group-hover:border-red-600 transition">
-                        <h4 class="text-2xl font-black italic uppercase">Nombre del Piloto 1</h4>
-                        <i class="fas fa-chevron-down transition-transform"></i>
+            <div class="space-y-6">
+                <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
+                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
+                        <span class="text-2xl font-black italic uppercase tracking-tighter">NOMBRE DEL PILOTO 1</span>
+                        <i class="fas fa-plus text-red-600"></i>
                     </div>
-                    <div class="piloto-content bg-zinc-800">
-                        <div class="p-6 grid md:grid-cols-2 gap-8">
-                            <img src="coche-piloto1.jpg" alt="Coche" class="w-full rounded shadow-xl">
+                    <div class="piloto-content bg-black">
+                        <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
+                            <img src="coche-piloto1.jpg" class="w-full rounded shadow-2xl border border-white/10">
                             <div>
-                                <h5 class="text-red-500 font-black uppercase mb-4">Ficha Técnica</h5>
-                                <ul class="space-y-2 text-sm">
-                                    <li><strong>Vehículo:</strong> BMW E46 Turbo</li>
-                                    <li><strong>Potencia:</strong> 650 CV</li>
-                                    <li><strong>Modificaciones:</strong> Ángulo de giro ampliado, jaula antivuelco, etc.</li>
+                                <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
+                                <ul class="space-y-3 font-bold text-zinc-400">
+                                    <li><span class="text-white">COCHE:</span> BMW E46 DRIFT SPEC</li>
+                                    <li><span class="text-white">MOTOR:</span> 2JZ-GTE / 700 CV</li>
+                                    <li><span class="text-white">PESO:</span> 1.100 KG</li>
                                 </ul>
-                                <p class="mt-6 text-zinc-400 italic">"Sin miedo al muro."</p>
+                                <div class="mt-6 flex space-x-4">
+                                    <i class="fab fa-instagram text-2xl text-white"></i>
+                                    <i class="fab fa-tiktok text-2xl text-white"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="piloto-item group" tabindex="1">
-                    <div class="bg-black p-6 flex justify-between items-center cursor-pointer border border-zinc-800 group-hover:border-red-600 transition">
-                        <h4 class="text-2xl font-black italic uppercase">Nombre del Piloto 2</h4>
-                        <i class="fas fa-chevron-down transition-transform"></i>
+                <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="1">
+                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
+                        <span class="text-2xl font-black italic uppercase tracking-tighter">NOMBRE DEL PILOTO 2</span>
+                        <i class="fas fa-plus text-red-600"></i>
                     </div>
-                    <div class="piloto-content bg-zinc-800">
-                        <div class="p-6 grid md:grid-cols-2 gap-8">
-                            <img src="coche-piloto2.jpg" alt="Coche" class="w-full rounded shadow-xl">
+                    <div class="piloto-content bg-black">
+                        <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
+                            <img src="coche-piloto2.jpg" class="w-full rounded shadow-2xl border border-white/10">
                             <div>
-                                <h5 class="text-red-500 font-black uppercase mb-4">Ficha Técnica</h5>
-                                <ul class="space-y-2 text-sm">
-                                    <li><strong>Vehículo:</strong> Nissan Silvia S15</li>
-                                    <li><strong>Potencia:</strong> 500 CV</li>
-                                    <li><strong>Estilo:</strong> Drifting agresivo de proximidad.</li>
+                                <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
+                                <ul class="space-y-3 font-bold text-zinc-400">
+                                    <li><span class="text-white">COCHE:</span> NISSAN SILVIA S15</li>
+                                    <li><span class="text-white">MOTOR:</span> SR20DET / 450 CV</li>
                                 </ul>
                             </div>
                         </div>
@@ -129,38 +172,43 @@
         </div>
     </section>
 
-    <section id="taxidrift" class="py-24 bg-black border-y border-red-900/20">
-        <div class="max-w-6xl mx-auto px-6 text-center">
-            <img src="taxidrift.png" class="h-24 mx-auto mb-8 logo-glow">
-            <p class="text-2xl font-black italic mb-8 uppercase text-yellow-400">¿Quieres ser el siguiente en subir?</p>
-            <button class="bg-yellow-400 text-black px-12 py-5 font-black text-xl rounded hover:bg-yellow-500 transition shadow-[0_0_30px_rgba(250,204,21,0.2)]">RESERVAR AHORA</button>
-        </div>
-    </section>
-
-    <section id="merch" class="py-24 px-6 bg-zinc-950">
-        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-                <img src="camiseta.jpg" class="w-full aspect-square object-cover rounded mb-4 border border-zinc-800">
-                <h4 class="font-bold">Camiseta Oficial</h4>
+    <section id="merch" class="py-24 px-6 bg-black text-center">
+        <h3 class="text-4xl font-black italic uppercase mb-16 tracking-tighter underline decoration-red-600 underline-offset-8">Equípate con el Team</h3>
+        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div class="group">
+                <img src="camiseta.jpg" class="w-full aspect-square object-cover rounded mb-4 border border-zinc-800 group-hover:border-red-600 transition">
+                <h4 class="font-bold uppercase italic">Camiseta Logo Red</h4>
                 <p class="text-red-600 font-black italic">15€</p>
             </div>
-            <div>
-                <img src="gorra.jpg" class="w-full aspect-square object-cover rounded mb-4 border border-zinc-800">
-                <h4 class="font-bold">Gorra Drift</h4>
+            <div class="group">
+                <img src="gorra.jpg" class="w-full aspect-square object-cover rounded mb-4 border border-zinc-800 group-hover:border-red-600 transition">
+                <h4 class="font-bold uppercase italic">Gorra Trucker</h4>
                 <p class="text-red-600 font-black italic">18€</p>
             </div>
-            <div>
-                <img src="sudadera.jpg" class="w-full aspect-square object-cover rounded mb-4 border border-zinc-800">
-                <h4 class="font-bold">Sudadera Team</h4>
-                <p class="text-red-600 font-black italic">35€</p>
+            <div class="group">
+                <img src="sudadera.jpg" class="w-full aspect-square object-cover rounded mb-4 border border-zinc-800 group-hover:border-red-600 transition">
+                <h4 class="font-bold uppercase italic">Sudadera Team</h4>
+                <p class="text-red-600 font-black italic">30€</p>
             </div>
         </div>
     </section>
 
-    <footer id="contacto" class="py-16 bg-black border-t-4 border-red-600 text-center">
-        <img src="logo.png" class="h-12 mx-auto mb-8 opacity-50">
-        <p class="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">info@driftshow.com | +34 600 000 000</p>
+    <footer id="contacto" class="py-20 bg-zinc-950 text-center border-t-4 border-red-600">
+        <img src="logo.png" class="h-16 mx-auto mb-6 logo-glow opacity-60">
+        <h3 class="text-2xl font-black uppercase mb-8 italic">Contratación & Eventos</h3>
+        <p class="text-zinc-400 font-bold mb-2">INFO@DRIFTSHOW.COM</p>
+        <p class="text-zinc-600 text-xs mt-10 tracking-[0.3em]">© 2026 DRIFT SHOW ORGANIZATION</p>
     </footer>
 
+    <script>
+        window.addEventListener('scroll', function() {
+            const logo = document.getElementById('logo-hero');
+            if (window.scrollY > 150) {
+                logo.classList.add('fade-out');
+            } else {
+                logo.classList.remove('fade-out');
+            }
+        });
+    </script>
 </body>
 </html>

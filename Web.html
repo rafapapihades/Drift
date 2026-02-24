@@ -103,7 +103,7 @@
             <h2 class="text-5xl font-black italic uppercase mb-16 text-center tracking-tighter">Galería de <span class="text-red-600">Eventos</span></h2>
 
             <div class="mb-20">
-                <h3 class="text-xl font-black text-red-500 mb-6 tracking-widest uppercase italic border-b border-red-600 inline-block pb-2">Temporada 2025-26</h3>
+                <h3 class="text-xl font-black text-red-500 mb-6 tracking-widest uppercase italic border-b border-red-600 inline-block pb-2">Nuestro equipo</h3>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div class="img-zoom h-48" onclick="openLightbox('1-0.jpg')"><img src="1-0.jpg"></div>
                     <div class="img-zoom h-48" onclick="openLightbox('2-0.jpg')"><img src="2-0.jpg"></div>
@@ -144,45 +144,127 @@
     </section>
 
     <section id="pilotos" class="py-24 bg-zinc-950 px-6 border-y border-red-600/20">
-        <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-4xl font-black italic uppercase mb-12">Pilotos <span class="text-red-600">Oficiales</span></h2>
-            <div class="space-y-6 text-left">
-                <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
-                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
-                        <span class="text-2xl font-black italic uppercase tracking-tighter">ATILA</span>
-                        <i class="fas fa-plus text-red-600"></i>
-                    </div>
-                    <div class="piloto-content bg-black p-8 grid md:grid-cols-2 gap-10 items-center">
-                        <img src="coche-piloto1.jpg" class="w-full rounded border border-white/10" onclick="openLightbox(this.src)">
-                        <div>
-                            <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
-                            <ul class="space-y-2 font-bold text-zinc-400">
-                                <li><span class="text-white">COCHE:</span> CORVETTE</li>
-                                <li><span class="text-white">MOTOR:</span> 2JZ-GTE / 500 CV</li>
-                                <li><span class="text-white">PESO:</span> 1.100 KG</li>
-                            </ul>
-                        </div>
-                    </div>
+    <div class="max-w-4xl mx-auto">
+        <h2 class="text-4xl font-black italic uppercase mb-12 text-center">Pilotos <span class="text-red-600">Oficiales</span></h2>
+        
+        <div class="space-y-6">
+            <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
+                <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
+                    <span class="text-2xl font-black italic uppercase tracking-tighter">ATILA</span>
+                    <i class="fas fa-plus text-red-600"></i>
                 </div>
-                <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
-                    <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
-                        <span class="text-2xl font-black italic uppercase tracking-tighter">JAVI NIEVES</span>
-                        <i class="fas fa-plus text-red-600"></i>
-                    </div>
-                    <div class="piloto-content bg-black p-8 grid md:grid-cols-2 gap-10 items-center">
-                        <img src="coche-piloto1.jpg" class="w-full rounded border border-white/10" onclick="openLightbox(this.src)">
+                <div class="piloto-content bg-black">
+                    <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
+                        <img src="coche-atila.jpg" class="w-full rounded shadow-2xl border border-white/10" onclick="openLightbox(this.src)">
                         <div>
                             <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
-                            <ul class="space-y-2 font-bold text-zinc-400">
-                                <li><span class="text-white">COCHE:</span> BMW</li>
-                                <li><span class="text-white">MOTOR:</span> 2JZ-GTE / 300 CV</li>
+                            <ul class="space-y-3 font-bold text-zinc-400">
+                                <li><span class="text-white">COCHE:</span> CORVETTE C6</li>
+                                <li><span class="text-white">MOTOR:</span> 2JZ-GTE / 500 CV</li>
                             </ul>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
+                <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
+                    <span class="text-2xl font-black italic uppercase tracking-tighter">JAVI NIEVES</span>
+                    <i class="fas fa-plus text-red-600"></i>
+                </div>
+                <div class="piloto-content bg-black">
+                    <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
+                        <img src="coche-javi.jpg" class="w-full rounded shadow-2xl border border-white/10" onclick="openLightbox(this.src)">
+                        <div>
+                            <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
+                            <ul class="space-y-3 font-bold text-zinc-400">
+                                <li><span class="text-white">COCHE:</span> BMW E46</li>
+                                <li><span class="text-white">MOTOR:</span> M54B30 / 300 CV</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
+                <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
+                    <span class="text-2xl font-black italic uppercase tracking-tighter">MIKE</span>
+                    <i class="fas fa-plus text-red-600"></i>
+                </div>
+                <div class="piloto-content bg-black">
+                    <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
+                        <img src="coche-mike.jpg" class="w-full rounded shadow-2xl border border-white/10" onclick="openLightbox(this.src)">
+                        <div>
+                            <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
+                            <ul class="space-y-3 font-bold text-zinc-400">
+                                <li><span class="text-white">COCHE:</span> KART DRIFT</li>
+                                <li><span class="text-white">MOTOR:</span> SR20DET / 100 CV</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
+                <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
+                    <span class="text-2xl font-black italic uppercase tracking-tighter">VALERO</span>
+                    <i class="fas fa-plus text-red-600"></i>
+                </div>
+                <div class="piloto-content bg-black">
+                    <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
+                        <img src="moto-valero.jpg" class="w-full rounded shadow-2xl border border-white/10" onclick="openLightbox(this.src)">
+                        <div>
+                            <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
+                            <ul class="space-y-3 font-bold text-zinc-400">
+                                <li><span class="text-white">COCHE:</span> RIEJU MRT</li>
+                                <li><span class="text-white">MOTOR:</span> 49cc / 12 CV</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
+                <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
+                    <span class="text-2xl font-black italic uppercase tracking-tighter">PILOTO-5</span>
+                    <i class="fas fa-plus text-red-600"></i>
+                </div>
+                <div class="piloto-content bg-black">
+                    <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
+                        <img src="coche-piloto5.jpg" class="w-full rounded shadow-2xl border border-white/10" onclick="openLightbox(this.src)">
+                        <div>
+                            <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
+                            <ul class="space-y-3 font-bold text-zinc-400">
+                                <li><span class="text-white">COCHE:</span> MAZDA RX7</li>
+                                <li><span class="text-white">MOTOR:</span> ROTATIVO 13B / 400 CV</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition duration-300" tabindex="0">
+                <div class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer">
+                    <span class="text-2xl font-black italic uppercase tracking-tighter">PILOTO 6</span>
+                    <i class="fas fa-plus text-red-600"></i>
+                </div>
+                <div class="piloto-content bg-black">
+                    <div class="p-8 grid md:grid-cols-2 gap-10 items-center">
+                        <img src="coche-piloto6.jpg" class="w-full rounded shadow-2xl border border-white/10" onclick="openLightbox(this.src)">
+                        <div>
+                            <h5 class="text-red-600 font-black uppercase text-xl mb-4 italic">Ficha de Combate</h5>
+                            <ul class="space-y-3 font-bold text-zinc-400">
+                                <li><span class="text-white">COCHE:</span> TOYOTA GT86</li>
+                                <li><span class="text-white">MOTOR:</span> LS3 V8 / 550 CV</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-    </section>
+    </div>
+</section>
 
     <footer id="contacto" class="py-20 bg-zinc-950 text-center border-t-4 border-red-600">
         <img src="logo.png" class="h-16 mx-auto mb-6 logo-glow opacity-60">

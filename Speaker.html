@@ -3,56 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SPEAKER PRO - DRIFT SHOW</title>
-  
+  <title>SPEAKER PRO</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
   <style>
-    :root { --blue: #007bff; --yellow: #ffcc00; --bg: #000; --card: #111; }
-    body { background: var(--bg); color: #eee; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 10px; }
+    :root { --blue: #007bff; --yellow: #ffcc00; --bg: #000; }
+    body { background: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; }
     
     .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 20px; }
-    .header h1 { font-size: 1.1em; color: var(--yellow); text-transform: uppercase; margin: 0; }
+    .header h1 { font-size: 1.2em; color: var(--yellow); text-transform: uppercase; margin: 0; }
 
-    /* CONTENEDOR DE PILOTOS INDEPENDIENTES */
-    #pista-container { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+    #pista-container { display: flex; flex-direction: column; gap: 20px; }
 
-    /* TARJETA ÚNICA POR PILOTO */
     .card-active { 
-      background: var(--card); 
+      background: #111; 
       border: 4px solid var(--blue); 
       border-radius: 30px; 
       padding: 25px; 
       text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-      width: 100%;
       box-sizing: border-box;
     }
     
-    .dorsal { font-size: 6.5em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
-    .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.3em; font-weight: bold; text-transform: uppercase; margin: 15px 0; display: inline-block; }
-    .nombre-pista { font-size: 2.2em; font-weight: bold; text-transform: uppercase; margin: 10px 0; color: #fff; }
+    .dorsal { font-size: 6em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
+    .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.2em; font-weight: bold; text-transform: uppercase; margin: 15px 0; display: inline-block; }
+    .nombre-pista { font-size: 2em; font-weight: bold; text-transform: uppercase; margin: 5px 0; color: #fff; }
 
-    /* VOTOS */
-    .votos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin-top: 20px; }
+    .votos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
     .v-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 20px; border: 1px solid #333; }
-    .v-val { font-size: 2.8em; font-weight: bold; display: block; line-height: 1; }
-    .v-lab { font-size: 0.75em; color: #888; text-transform: uppercase; margin-top: 8px; display: block; }
+    .v-val { font-size: 2.5em; font-weight: bold; display: block; color: #fff; }
+    .v-lab { font-size: 0.7em; color: #888; text-transform: uppercase; margin-top: 5px; display: block; }
 
-    /* BOTÓN INFO */
-    .btn-info-piloto { background: var(--yellow); color: #000; border: none; width: 100%; padding: 22px; border-radius: 20px; font-weight: 900; font-size: 1.3em; cursor: pointer; text-transform: uppercase; margin-top: 25px; }
+    .btn-info { background: var(--yellow); color: #000; border: none; width: 100%; padding: 20px; border-radius: 20px; font-weight: 900; font-size: 1.2em; cursor: pointer; text-transform: uppercase; margin-top: 25px; }
 
-    /* MODAL */
-    #modal-bio { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 9999; padding: 20px; overflow-y: auto; }
-    .bio-card { background: #111; border: 3px solid var(--yellow); border-radius: 35px; padding: 30px; max-width: 500px; margin: 0 auto; }
-    .bio-label { color: var(--yellow); font-size: 0.8em; text-transform: uppercase; font-weight: bold; display: block; margin-top: 25px; text-align: left; border-left: 5px solid var(--yellow); padding-left: 12px; }
-    .bio-val { font-size: 1.4em; color: #fff; margin: 10px 0; text-align: left; line-height: 1.2; }
-    .btn-cerrar { background: #222; color: #fff; border: 1px solid #444; width: 100%; padding: 20px; border-radius: 15px; margin-top: 35px; cursor: pointer; text-transform: uppercase; }
+    #modal-bio { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 9999; padding: 20px; overflow-y: auto; }
+    .bio-card { background: #111; border: 2px solid var(--yellow); border-radius: 30px; padding: 25px; max-width: 500px; margin: 0 auto; text-align: left; }
+    .btn-cerrar { background: #333; color: #fff; border: none; width: 100%; padding: 15px; border-radius: 15px; margin-top: 25px; cursor: pointer; width: 100%; font-weight: bold; }
     
-    /* ZONA CARGA CSV */
-    .admin-csv { margin-top: 50px; text-align: center; border-top: 1px solid #222; padding: 30px 10px; }
-    .csv-text { color: #666; font-size: 0.9em; margin-bottom: 15px; display: block; font-weight: bold; }
+    .admin-csv { margin-top: 50px; text-align: center; opacity: 0.5; padding: 20px; border-top: 1px solid #222; }
   </style>
 </head>
 <body>
@@ -60,13 +48,13 @@
   <div class="header"><h1>🎤 PANEL SPEAKER</h1></div>
 
   <div id="pista-container">
-    <div style="text-align:center; color:#333; padding:100px;">ESPERANDO SEÑAL...</div>
+    <div style="text-align:center; padding:50px; color:#444;">CONECTANDO...</div>
   </div>
 
   <div class="admin-csv">
-    <span class="csv-text">⚙️ CARGA DE DATOS: Selecciona el archivo FICHAS.csv</span>
+    <p style="font-size: 0.8em;">Cargar Fichas (.csv)</p>
     <input type="file" id="csv-file" style="display:none;" onchange="importarCSV(event)">
-    <button onclick="document.getElementById('csv-file').click()" style="background:#1a1a1a; color:var(--yellow); border:1px solid var(--yellow); padding:15px 30px; border-radius:15px; cursor:pointer; font-weight:bold;">📂 IMPORTAR EXCEL (.CSV)</button>
+    <button onclick="document.getElementById('csv-file').click()" style="padding:10px; border-radius:10px; cursor:pointer;">📂 SELECCIONAR CSV</button>
   </div>
 
   <div id="modal-bio"><div class="bio-card" id="bio-body"></div></div>
@@ -81,40 +69,34 @@
     db.ref('votacion_activa').on('value', snap => {
       const v = snap.val();
       const cont = document.getElementById('pista-container');
-      
-      // Limpiamos siempre el contenedor antes de pintar nada nuevo
       cont.innerHTML = "";
 
       if (!v || v.activa === false || !v.items) {
-        cont.innerHTML = '<div style="text-align:center; color:#222; padding:80px; border:2px dashed #111; border-radius:40px;">PISTA VACÍA</div>';
+        cont.innerHTML = '<div style="text-align:center; color:#222; padding:50px;">PISTA LIBRE</div>';
         return;
       }
 
-      // Generamos tarjetas INDIVIDUALES para cada piloto
       Object.keys(v.items).forEach(id => {
         const p = v.items[id];
         const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
         const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
         
+        // --- FILTRO ANTI-BATALLA ---
+        // Si el nombre contiene la palabra Batalla, la borramos fulminantemente
+        let nombreLimpio = (p.Piloto || p.nombre || "PILOTO").replace(/batalla/gi, "").replace(/:/g, "").trim();
+        let cocheLimpio = (p.Coche || p.coche || "DRIFT").replace(/batalla/gi, "").trim();
+
         const card = document.createElement('div');
         card.className = "card-active";
         card.innerHTML = `
           <div class="dorsal">#${id}</div>
-          <div class="coche-tag">${p.Coche || p.coche || "DRIFT"}</div>
-          <div class="nombre-pista">${p.Piloto || p.nombre || "PILOTO"}</div>
-          
+          <div class="coche-tag">${cocheLimpio}</div>
+          <div class="nombre-pista">${nombreLimpio}</div>
           <div class="votos-grid">
-            <div class="v-box">
-              <span class="v-val" style="color:var(--yellow);">👏 ${tAp}</span>
-              <span class="v-lab">Aplausos</span>
-            </div>
-            <div class="v-box">
-              <span class="v-val" style="color:var(--blue);">👍 ${tUp}</span>
-              <span class="v-lab">Dedo Arriba</span>
-            </div>
+            <div class="v-box"> <span class="v-val" style="color:var(--yellow);">${tAp}</span> <span class="v-lab">👏 APLAUSOS</span> </div>
+            <div class="v-box"> <span class="v-val" style="color:var(--blue);">${tUp}</span> <span class="v-lab">👍 LIKES</span> </div>
           </div>
-          
-          <button class="btn-info-piloto" onclick="verFicha('${id}')">🔎 VER FICHA / MOTOR</button>
+          <button class="btn-info" onclick="verFicha('${id}')">🔎 INFO MOTOR</button>
         `;
         cont.appendChild(card);
       });
@@ -122,27 +104,21 @@
 
     window.verFicha = (id) => {
       const f = cacheFichas[id];
-      if (!f) return alert("Carga el CSV para ver la info de #" + id);
+      if (!f) return alert("Sube el CSV para ver info de #" + id);
       const cl = (t) => (t && t.toString().trim() !== "" && t !== "undefined") ? t : "---";
-
       document.getElementById('bio-body').innerHTML = `
-        <div style="text-align:center;">
-          <div style="font-size:5.5em; font-weight:900; color:var(--blue); line-height:1; font-style:italic;">#${id}</div>
-          <h2 style="text-transform:uppercase; margin:10px 0;">${cl(f.nombre)}</h2>
-        </div>
-        <span class="bio-label">Piloto</span>
-        <p class="bio-val">${cl(f.edad)} años | ${cl(f.residencia)}</p>
-        <span class="bio-label">Vehículo</span>
-        <p class="bio-val"><b>${cl(f.coche_modelo)}</b></p>
-        <p class="bio-val"><span style="color:#00ff99">${cl(f.motor)}</span> | ${cl(f.potencia)} CV</p>
-        <span class="bio-label">Instagram</span>
-        <p class="bio-val" style="color:var(--blue); font-weight:bold; font-size:1.6em;">${cl(f.ig)}</p>
-        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR FICHA</button>
+        <h2 style="color:var(--blue); font-size:3em; margin:0; font-style:italic;">#${id}</h2>
+        <h3 style="text-transform:uppercase; margin-bottom:20px;">${cl(f.nombre)}</h3>
+        <p><b>MOTOR:</b> <span style="color:#00ff99">${cl(f.motor)}</span></p>
+        <p><b>POTENCIA:</b> ${cl(f.potencia)} CV</p>
+        <p><b>MODS:</b> <small>${cl(f.mods)}</small></p>
+        <p style="color:var(--yellow);"><i>"${cl(f.curiosidades)}"</i></p>
+        <p style="font-size:1.2em; color:var(--blue);">IG: ${cl(f.ig)}</p>
+        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR</button>
       `;
       document.getElementById('modal-bio').style.display = 'block';
     };
 
-    
     window.importarCSV = (e) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
@@ -152,9 +128,9 @@
         for(let i=1; i<lines.length; i++){
           const c = lines[i].split(sep).map(x => x.trim());
           if(!c[0]) continue;
-          nuevas[c[0]] = { nombre:c[1], edad:c[2], residencia:c[3], coche_modelo:c[4], motor:c[5], potencia:c[6], mods:c[7], curiosidades:c[8], palmares:c[9], ig:c[10] };
+          nuevas[c[0]] = { nombre:c[1], edad:c[2], residencia:c[3], coche_modelo:c[4], motor:c[5], potencia:c[6], mods:c[7], curiosidades:c[8], ig:c[10] };
         }
-        db.ref('fichas_pilotos').set(nuevas).then(() => alert("✅ CSV Cargado"));
+        db.ref('fichas_pilotos').set(nuevas).then(() => alert("CSV Cargado"));
       };
       reader.readAsText(e.target.files[0], 'ISO-8859-1');
     };

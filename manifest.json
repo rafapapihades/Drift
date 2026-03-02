@@ -3,7 +3,7 @@
   "name": "Votación Drift Show",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "logo_app.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

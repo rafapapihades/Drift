@@ -11,19 +11,12 @@
     :root { --blue: #007bff; --yellow: #ffcc00; --bg: #000; }
     body { background: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; }
     
-    .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 20px; }
+    .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 15px; }
     .header h1 { font-size: 1.1em; color: var(--yellow); text-transform: uppercase; margin: 0; }
-
+    
     #pista-container { display: flex; flex-direction: column; gap: 20px; }
 
-    .card-active { 
-      background: #111; 
-      border: 4px solid var(--blue); 
-      border-radius: 30px; 
-      padding: 25px; 
-      text-align: center;
-    }
-    
+    .card-active { background: #111; border: 4px solid var(--blue); border-radius: 30px; padding: 25px; text-align: center; }
     .dorsal { font-size: 6em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
     .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.2em; font-weight: bold; text-transform: uppercase; margin: 15px 0; display: inline-block; }
     .nombre-pista { font-size: 2em; font-weight: bold; text-transform: uppercase; margin: 5px 0; color: #fff; }
@@ -39,21 +32,25 @@
     .bio-card { background: #111; border: 2px solid var(--yellow); border-radius: 30px; padding: 25px; max-width: 500px; margin: 0 auto; text-align: left; }
     .btn-cerrar { background: #333; color: #fff; border: none; width: 100%; padding: 15px; border-radius: 15px; margin-top: 25px; cursor: pointer; width: 100%; font-weight: bold; }
     
-    .admin-csv { margin-top: 50px; text-align: center; opacity: 0.5; padding: 20px; border-top: 1px solid #222; }
+    /* ZONA DE CARGA DISCRETA */
+    .admin-csv { margin-top: 50px; text-align: center; opacity: 0.6; padding: 20px; border-top: 1px solid #222; }
+    #contador-fichas { font-size: 0.7em; color: #555; margin-top: 10px; display: block; text-transform: uppercase; letter-spacing: 1px; }
   </style>
 </head>
 <body>
 
-  <div class="header"><h1>🎤 PANEL SPEAKER</h1></div>
+  <div class="header">
+    <h1>🎤 PANEL SPEAKER</h1>
+  </div>
 
   <div id="pista-container">
     <div style="text-align:center; padding:50px; color:#444;">CONECTANDO...</div>
   </div>
 
   <div class="admin-csv">
-    <p style="font-size: 0.8em; color: #777;">⚙️ CONFIGURACIÓN: Carga el archivo FICHAS.csv</p>
     <input type="file" id="csv-file" style="display:none;" onchange="importarCSV(event)">
-    <button onclick="document.getElementById('csv-file').click()" style="padding:10px; border-radius:10px; cursor:pointer; background:#222; color:#fff; border:1px solid #444;">📂 SELECCIONAR CSV</button>
+    <button onclick="document.getElementById('csv-file').click()" style="padding:10px 20px; border-radius:10px; cursor:pointer; background:#1a1a1a; color:#777; border:1px solid #333; font-size: 0.8em;">📂 ACTUALIZAR CSV</button>
+    <span id="contador-fichas">Sistema: 0 fichas cargadas</span>
   </div>
 
   <div id="modal-bio"><div class="bio-card" id="bio-body"></div></div>
@@ -63,7 +60,11 @@
     const db = firebase.database();
     let cacheFichas = {};
 
-    db.ref('fichas_pilotos').on('value', s => { cacheFichas = s.val() || {}; });
+    db.ref('fichas_pilotos').on('value', s => { 
+      cacheFichas = s.val() || {}; 
+      const total = Object.keys(cacheFichas).length;
+      document.getElementById('contador-fichas').innerText = `Sistema: ${total} fichas cargadas`;
+    });
 
     db.ref('votacion_activa').on('value', snap => {
       const v = snap.val();
@@ -76,8 +77,6 @@
       }
 
       Object.keys(v.items).forEach(id => {
-        // --- BLOQUEO DEFINITIVO DE "BATALLA" ---
-        // Si el ID es la palabra "BATALLA" (en mayúsculas o minúsculas), lo ignoramos.
         if (id.toUpperCase() === "BATALLA") return;
 
         const p = v.items[id];

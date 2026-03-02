@@ -12,7 +12,7 @@
     body { background: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; }
     
     .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 20px; }
-    .header h1 { font-size: 1.2em; color: var(--yellow); text-transform: uppercase; margin: 0; }
+    .header h1 { font-size: 1.1em; color: var(--yellow); text-transform: uppercase; margin: 0; }
 
     #pista-container { display: flex; flex-direction: column; gap: 20px; }
 
@@ -22,7 +22,6 @@
       border-radius: 30px; 
       padding: 25px; 
       text-align: center;
-      box-sizing: border-box;
     }
     
     .dorsal { font-size: 6em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
@@ -52,9 +51,9 @@
   </div>
 
   <div class="admin-csv">
-    <p style="font-size: 0.8em;">Cargar Fichas (.csv)</p>
+    <p style="font-size: 0.8em; color: #777;">⚙️ CONFIGURACIÓN: Carga el archivo FICHAS.csv</p>
     <input type="file" id="csv-file" style="display:none;" onchange="importarCSV(event)">
-    <button onclick="document.getElementById('csv-file').click()" style="padding:10px; border-radius:10px; cursor:pointer;">📂 SELECCIONAR CSV</button>
+    <button onclick="document.getElementById('csv-file').click()" style="padding:10px; border-radius:10px; cursor:pointer; background:#222; color:#fff; border:1px solid #444;">📂 SELECCIONAR CSV</button>
   </div>
 
   <div id="modal-bio"><div class="bio-card" id="bio-body"></div></div>
@@ -77,21 +76,20 @@
       }
 
       Object.keys(v.items).forEach(id => {
+        // --- BLOQUEO DEFINITIVO DE "BATALLA" ---
+        // Si el ID es la palabra "BATALLA" (en mayúsculas o minúsculas), lo ignoramos.
+        if (id.toUpperCase() === "BATALLA") return;
+
         const p = v.items[id];
         const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
         const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
         
-        // --- FILTRO ANTI-BATALLA ---
-        // Si el nombre contiene la palabra Batalla, la borramos fulminantemente
-        let nombreLimpio = (p.Piloto || p.nombre || "PILOTO").replace(/batalla/gi, "").replace(/:/g, "").trim();
-        let cocheLimpio = (p.Coche || p.coche || "DRIFT").replace(/batalla/gi, "").trim();
-
         const card = document.createElement('div');
         card.className = "card-active";
         card.innerHTML = `
           <div class="dorsal">#${id}</div>
-          <div class="coche-tag">${cocheLimpio}</div>
-          <div class="nombre-pista">${nombreLimpio}</div>
+          <div class="coche-tag">${p.Coche || p.coche || "DRIFT"}</div>
+          <div class="nombre-pista">${p.Piloto || p.nombre || "PILOTO"}</div>
           <div class="votos-grid">
             <div class="v-box"> <span class="v-val" style="color:var(--yellow);">${tAp}</span> <span class="v-lab">👏 APLAUSOS</span> </div>
             <div class="v-box"> <span class="v-val" style="color:var(--blue);">${tUp}</span> <span class="v-lab">👍 LIKES</span> </div>

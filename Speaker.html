@@ -150,28 +150,53 @@
     }
 
     // Lógica para importar el CSV
-    window.importarFichas = (event) => {
+window.importarFichas = (event) => {
       const file = event.target.files[0];
       const reader = new FileReader();
+      
       reader.onload = (e) => {
-        const lines = e.target.result.split('\n');
+        const contenido = e.target.result;
+        const lines = contenido.split(/\r?\n/); // Divide por líneas (Windows/Mac)
         let nuevasFichas = {};
-        // Saltar la primera línea (cabecera)
-        for(let i=1; i<lines.length; i++) {
-          const c = lines[i].split(',');
-          if(c.length < 10) continue;
+        
+        // Detectar separador (¿coma o punto y coma?)
+        const primeraLinea = lines[0];
+        const sep = primeraLinea.includes(';') ? ';' : ',';
+        
+        console.log("Detectado separador: " + sep);
+
+        for(let i = 1; i < lines.length; i++) {
+          const c = lines[i].split(sep);
+          
+          // Si la línea está vacía o no tiene el dorsal, saltar
+          if(!c[0] || c[0].trim() === "") continue;
+
           const dorsal = c[0].trim();
+          
+          // Mapeo exacto según tu archivo CSV adjunto
           nuevasFichas[dorsal] = {
-            nombre: c[1], edad: c[2], residencia: c[3], coche_modelo: c[4],
-            motor: c[5], potencia: c[6], mods: c[7], curiosidades: c[8],
-            palmares: c[9], ig: c[10]
+            nombre:      (c[1]  || "").trim(),
+            edad:        (c[2]  || "").trim(),
+            residencia:  (c[3]  || "").trim(),
+            coche_modelo:(c[4]  || "").trim(),
+            motor:       (c[5]  || "").trim(),
+            potencia:    (c[6]  || "").trim(),
+            mods:        (c[7]  || "").trim(),
+            curiosidades:(c[8]  || "").trim(),
+            palmares:    (c[9]  || "").trim(),
+            ig:          (c[10] || "").trim()
           };
         }
-        db.ref('fichas_pilotos').set(nuevasFichas)
-          .then(() => alert("Fichas actualizadas correctamente"))
-          .catch(err => alert("Error: " + err));
+
+        if(Object.keys(nuevasFichas).length > 0) {
+          db.ref('fichas_pilotos').set(nuevasFichas)
+            .then(() => alert("✅ Éxito: " + Object.keys(nuevasFichas).length + " fichas cargadas."))
+            .catch(err => alert("❌ Error en Firebase: " + err));
+        } else {
+          alert("⚠️ No se encontraron datos válidos en el archivo.");
+        }
       };
-      reader.readAsText(file);
+      reader.readAsText(file, 'ISO-8859-1'); // 'ISO-8859-1' ayuda con las tildes de Excel
     };
   </script>
 </body>

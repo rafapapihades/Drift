@@ -15,97 +15,57 @@
     .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 20px; }
     .header h1 { font-size: 1.1em; color: var(--yellow); text-transform: uppercase; margin: 0; }
 
-    /* TARJETA PISTA - DISEÑO VERTICAL */
+    /* TARJETA PISTA - SOLO UN PILOTO */
     .card-active { 
       background: var(--card); 
-      border: 3px solid var(--blue); 
-      border-radius: 25px; 
-      padding: 20px; 
+      border: 4px solid var(--blue); 
+      border-radius: 30px; 
+      padding: 30px; 
       margin-bottom: 20px; 
-      text-align: center; /* Centramos todo */
+      text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
     
-    .dorsal { 
-      font-size: 6em; 
-      font-weight: 900; 
-      color: var(--blue); 
-      line-height: 1; 
-      font-style: italic;
-      margin: 0;
-    }
-
-    .coche-tag { 
-      background: var(--blue); 
-      color: #fff; 
-      padding: 5px 15px; 
-      border-radius: 8px; 
-      font-size: 1.2em; 
-      font-weight: bold; 
-      text-transform: uppercase;
-      margin: 10px 0; /* Espacio arriba y abajo del dorsal */
-      display: inline-block;
-    }
-
-    .nombre-pista { 
-      font-size: 2em; 
-      font-weight: bold; 
-      text-transform: uppercase; 
-      margin: 10px 0; 
-      color: #fff; 
-      line-height: 1.1;
-    }
+    .dorsal { font-size: 7em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
+    .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.4em; font-weight: bold; text-transform: uppercase; margin: 15px 0; }
+    .nombre-pista { font-size: 2.2em; font-weight: bold; text-transform: uppercase; margin: 10px 0; color: #fff; }
 
     /* VOTOS */
-    .votos-grid { 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      gap: 15px; 
-      width: 100%; 
-      margin-top: 20px; 
-    }
-    .v-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid #333; }
-    .v-val { font-size: 2.5em; font-weight: bold; display: block; }
-    .v-lab { font-size: 0.7em; color: #888; text-transform: uppercase; margin-top: 5px; display: block; }
+    .votos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin-top: 25px; }
+    .v-box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; border: 1px solid #333; }
+    .v-val { font-size: 3em; font-weight: bold; display: block; }
+    .v-lab { font-size: 0.8em; color: #888; text-transform: uppercase; margin-top: 5px; display: block; }
 
     /* BOTÓN INFO */
-    .btn-info-piloto { 
-      background: var(--yellow); 
-      color: #000; 
-      border: none; 
-      width: 100%; 
-      padding: 20px; 
-      border-radius: 15px; 
-      font-weight: 900; 
-      font-size: 1.3em; 
-      cursor: pointer; 
-      text-transform: uppercase; 
-      margin-top: 25px; 
-    }
+    .btn-info-piloto { background: var(--yellow); color: #000; border: none; width: 100%; padding: 25px; border-radius: 20px; font-weight: 900; font-size: 1.4em; cursor: pointer; text-transform: uppercase; margin-top: 30px; box-shadow: 0 5px 15px rgba(255,204,0,0.3); }
 
     /* MODAL */
     #modal-bio { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 5000; padding: 20px; overflow-y: auto; }
-    .bio-card { background: #111; border: 3px solid var(--yellow); border-radius: 30px; padding: 25px; max-width: 500px; margin: 0 auto; }
-    .bio-label { color: var(--yellow); font-size: 0.8em; text-transform: uppercase; font-weight: bold; display: block; margin-top: 20px; text-align: left; border-left: 4px solid var(--yellow); padding-left: 10px; }
-    .bio-val { font-size: 1.3em; color: #fff; margin: 8px 0; text-align: left; }
-    .btn-cerrar { background: #222; color: #fff; border: 1px solid #444; width: 100%; padding: 18px; border-radius: 15px; margin-top: 30px; cursor: pointer; text-transform: uppercase; }
+    .bio-card { background: #111; border: 3px solid var(--yellow); border-radius: 35px; padding: 30px; max-width: 500px; margin: 0 auto; }
+    .bio-label { color: var(--yellow); font-size: 0.8em; text-transform: uppercase; font-weight: bold; display: block; margin-top: 25px; text-align: left; border-left: 5px solid var(--yellow); padding-left: 12px; }
+    .bio-val { font-size: 1.5em; color: #fff; margin: 10px 0; text-align: left; }
+    .btn-cerrar { background: #222; color: #fff; border: 1px solid #444; width: 100%; padding: 20px; border-radius: 15px; margin-top: 40px; cursor: pointer; }
     
-    .admin-csv { margin-top: 50px; text-align: center; opacity: 0.2; }
+    /* ZONA CARGA CSV CON TEXTO */
+    .admin-csv { margin-top: 60px; text-align: center; border-top: 1px solid #222; padding-top: 20px; }
+    .csv-text { color: #555; font-size: 0.8em; margin-bottom: 10px; display: block; }
   </style>
 </head>
 <body>
 
-  <div class="header"><h1>🎤 PANEL SPEAKER</h1></div>
+  <div class="header"><h1>🎤 SPEAKER PANEL</h1></div>
 
   <div id="pista-container">
-    <div style="text-align:center; color:#333; padding:50px;">ESPERANDO COCHE...</div>
+    <div style="text-align:center; color:#333; padding:100px; font-size:1.2em;">ESPERANDO COCHE EN PISTA...</div>
   </div>
 
   <div class="admin-csv">
+    <span class="csv-text">Usa este botón para cargar las biografías desde Excel (.csv)</span>
     <input type="file" id="csv-file" style="display:none;" onchange="importarCSV(event)">
-    <button onclick="document.getElementById('csv-file').click()">📂 CSV</button>
+    <button onclick="document.getElementById('csv-file').click()" style="background:#111; color:#777; border:1px solid #333; padding:10px 20px; border-radius:10px; cursor:pointer;">📂 CARGAR FICHAS PILOTOS</button>
   </div>
 
   <div id="modal-bio"><div class="bio-card" id="bio-body"></div></div>
@@ -122,61 +82,61 @@
       const cont = document.getElementById('pista-container');
       
       if (!v || v.activa === false || !v.items) {
-        cont.innerHTML = '<div style="text-align:center; color:#222; padding:50px; border:2px dashed #111; border-radius:30px;">PISTA VACÍA</div>';
+        cont.innerHTML = '<div style="text-align:center; color:#222; padding:80px; border:2px dashed #111; border-radius:40px;">PISTA VACÍA</div>';
         return;
       }
 
-      let html = "";
-      Object.keys(v.items).forEach(id => {
-        const p = v.items[id];
-        const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
-        const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
+      // IMPORTANTE: Solo cogemos el PRIMER piloto de la lista para evitar modo batalla
+      const keys = Object.keys(v.items);
+      const id = keys[0]; 
+      const p = v.items[id];
+
+      const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
+      const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
         
-        html += `
-          <div class="card-active">
-            <div class="dorsal">#${id}</div>
-            <div class="coche-tag">${p.Coche || p.coche || "Drift"}</div>
-            <div class="nombre-pista">${p.Piloto || p.nombre || "Piloto"}</div>
-            
-            <div class="votos-grid">
-              <div class="v-box">
-                <span class="v-val" style="color:var(--yellow);">👏 ${tAp}</span>
-                <span class="v-lab">Aplausos</span>
-              </div>
-              <div class="v-box">
-                <span class="v-val" style="color:var(--blue);">👍 ${tUp}</span>
-                <span class="v-lab">Dedo Arriba</span>
-              </div>
+      cont.innerHTML = `
+        <div class="card-active">
+          <div class="dorsal">#${id}</div>
+          <div class="coche-tag">${p.Coche || p.coche || "Drift Car"}</div>
+          <div class="nombre-pista">${p.Piloto || p.nombre || "Piloto"}</div>
+          
+          <div class="votos-grid">
+            <div class="v-box">
+              <span class="v-val" style="color:var(--yellow);">👏 ${tAp}</span>
+              <span class="v-lab">Aplausos</span>
             </div>
-            
-            <button class="btn-info-piloto" onclick="verFicha('${id}')">🔎 VER FICHA Y MOTOR</button>
-          </div>`;
-      });
-      cont.innerHTML = html;
+            <div class="v-box">
+              <span class="v-val" style="color:var(--blue);">👍 ${tUp}</span>
+              <span class="v-lab">Dedo Arriba</span>
+            </div>
+          </div>
+          
+          <button class="btn-info-piloto" onclick="verFicha('${id}')">🔎 VER FICHA Y MOTOR</button>
+        </div>`;
     });
 
     window.verFicha = (id) => {
       const f = cacheFichas[id];
-      if (!f) return alert("Sin biografía para el #" + id);
+      if (!f) return alert("Biografía no cargada para el #" + id);
       const cl = (t) => (t && t.toString().trim() !== "" && t !== "undefined") ? t : "---";
 
       document.getElementById('bio-body').innerHTML = `
         <div style="text-align:center;">
-          <div style="font-size:5em; font-weight:900; color:var(--blue); line-height:1;">#${id}</div>
-          <h2 style="text-transform:uppercase; margin:10px 0;">${cl(f.nombre)}</h2>
+          <div style="font-size:5.5em; font-weight:900; color:var(--blue); line-height:1; font-style:italic;">#${id}</div>
+          <h2 style="text-transform:uppercase; margin:10px 0; font-size:2.2em;">${cl(f.nombre)}</h2>
         </div>
         <span class="bio-label">Piloto</span>
         <p class="bio-val">${cl(f.edad)} años | ${cl(f.residencia)}</p>
         <span class="bio-label">Vehículo</span>
         <p class="bio-val"><b>${cl(f.coche_modelo)}</b></p>
         <p class="bio-val"><span style="color:#00ff99">${cl(f.motor)}</span> | ${cl(f.potencia)} CV</p>
-        <span class="bio-label">Mods</span>
-        <p class="bio-val" style="font-size:0.9em; color:#bbb;">${cl(f.mods)}</p>
-        <span class="bio-label">Historia</span>
-        <p class="bio-val" style="color:var(--yellow); font-style:italic; font-size:1em;">"${cl(f.curiosidades)}"</p>
+        <span class="bio-label">Preparación</span>
+        <p class="bio-val" style="font-size:1em; color:#bbb;">${cl(f.mods)}</p>
+        <span class="bio-label">Curiosidades</span>
+        <p class="bio-val" style="color:var(--yellow); font-style:italic; line-height:1.2;">"${cl(f.curiosidades)}"</p>
         <span class="bio-label">Instagram</span>
-        <p class="bio-val" style="color:var(--blue); font-weight:bold;">${cl(f.ig)}</p>
-        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR</button>
+        <p class="bio-val" style="color:var(--blue); font-weight:bold; font-size:1.6em;">${cl(f.ig)}</p>
+        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR FICHA</button>
       `;
       document.getElementById('modal-bio').style.display = 'block';
     };
@@ -192,7 +152,7 @@
           if(!c[0]) continue;
           nuevas[c[0]] = { nombre:c[1], edad:c[2], residencia:c[3], coche_modelo:c[4], motor:c[5], potencia:c[6], mods:c[7], curiosidades:c[8], palmares:c[9], ig:c[10] };
         }
-        db.ref('fichas_pilotos').set(nuevas).then(() => alert("CSV Cargado"));
+        db.ref('fichas_pilotos').set(nuevas).then(() => alert("✅ Fichas sincronizadas con éxito."));
       };
       reader.readAsText(e.target.files[0], 'ISO-8859-1');
     };

@@ -3,63 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SPEAKER PRO - DRIFT TORREDEMBARRA</title>
+  <title>SPEAKER DASHBOARD - LIVE DRIFT</title>
   
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
   <style>
     :root { --blue: #007bff; --yellow: #ffcc00; --green: #00ff99; --bg: #000; }
-    body { background: var(--bg); color: #eee; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 15px; padding-bottom: 100px; }
+    body { background: var(--bg); color: #eee; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 15px; padding-bottom: 80px; }
     
     .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 20px; }
     .header h1 { font-size: 1.1em; color: var(--yellow); letter-spacing: 2px; margin: 0; text-transform: uppercase; }
 
-    /* CARD EN PISTA */
-    .card-active { background: #111; border: 3px solid var(--blue); border-radius: 20px; padding: 20px; margin-bottom: 25px; box-shadow: 0 0 25px rgba(0, 123, 255, 0.3); cursor: pointer; position: relative; }
+    /* TARJETA PISTA */
+    .card-active { background: #111; border: 3px solid var(--blue); border-radius: 20px; padding: 20px; margin-bottom: 25px; box-shadow: 0 0 25px rgba(0, 123, 255, 0.4); cursor: pointer; position: relative; }
     .dorsal { font-size: 4.5em; font-weight: 900; color: var(--blue); line-height: 0.8; font-style: italic; }
     .nombre-pista { font-size: 1.8em; font-weight: bold; text-transform: uppercase; margin: 10px 0; border-left: 5px solid var(--yellow); padding-left: 10px; }
     .coche-tag { background: var(--blue); color: #fff; padding: 4px 10px; border-radius: 5px; font-size: 0.8em; font-weight: bold; position: absolute; top: 20px; right: 20px; }
 
-    /* CONTADORES CARD */
     .votos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-    .voto-box { background: #1a1a1a; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #333; }
+    .v-box { background: #1a1a1a; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #333; }
     .v-val { font-size: 1.8em; font-weight: bold; display: block; }
-    .v-lab { font-size: 0.65em; color: #888; text-transform: uppercase; margin-top: 4px; display: block; }
+    .v-lab { font-size: 0.65em; color: #888; text-transform: uppercase; }
 
-    /* RANKING DETALLADO */
+    /* RANKING REFORMADO */
     .ranking-panel { background: #080808; border-radius: 20px; padding: 20px; margin-top: 30px; border: 1px solid #222; }
     .rank-table { width: 100%; border-collapse: collapse; }
-    .rank-table th { color: #555; font-size: 0.7em; text-transform: uppercase; padding-bottom: 10px; text-align: center; }
-    .rank-table td { padding: 15px 5px; border-bottom: 1px solid #111; vertical-align: middle; }
+    .rank-table th { color: #444; font-size: 0.7em; text-transform: uppercase; padding-bottom: 12px; }
+    .rank-table td { padding: 12px 5px; border-bottom: 1px solid #111; vertical-align: middle; }
     
-    .r-pos { color: var(--yellow); font-weight: bold; width: 30px; font-size: 1.1em; }
+    .r-pos { color: var(--yellow); font-weight: bold; width: 35px; font-size: 1.1em; text-align: center; }
     .r-info b { color: var(--blue); font-size: 1.1em; margin-right: 5px; }
-    .r-info span { text-transform: uppercase; font-size: 0.9em; font-weight: 600; }
+    .r-info span { text-transform: uppercase; font-size: 0.85em; font-weight: 600; color: #fff; }
     
-    .r-votos { text-align: center; width: 60px; }
-    .v-badge { display: block; font-weight: bold; font-size: 1.1em; }
+    .r-votos { text-align: center; width: 65px; }
+    .v-badge { font-weight: bold; font-size: 1.2em; display: block; }
     .v-badge.ap { color: var(--yellow); }
     .v-badge.up { color: var(--blue); }
 
     /* MODAL BIO */
     #modal-bio { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 1000; padding: 20px; overflow-y: auto; }
-    .bio-card { background: #111; border: 2px solid var(--yellow); border-radius: 30px; padding: 25px; max-width: 500px; margin: 0 auto; }
+    .bio-card { background: #111; border: 2px solid var(--yellow); border-radius: 30px; padding: 25px; max-width: 500px; margin: 0 auto; box-shadow: 0 0 40px rgba(0,0,0,1); }
     .btn-cerrar { background: var(--yellow); color: #000; border: none; width: 100%; padding: 20px; border-radius: 15px; font-weight: bold; margin-top: 25px; cursor: pointer; text-transform: uppercase; }
     
-    .admin-zone { margin-top: 50px; padding: 20px; border: 2px dashed #333; border-radius: 20px; text-align: center; }
+    .admin-csv { margin-top: 40px; text-align: center; opacity: 0.4; }
   </style>
 </head>
 <body>
 
-  <div class="header"><h1>🎤 SPEAKER DASHBOARD</h1></div>
+  <div class="header"><h1>🎤 PANEL SPEAKER PRO</h1></div>
 
   <div id="pista-container">
-    <div style="text-align:center; color:#444; padding:50px;">ESPERANDO SEÑAL...</div>
+    <div style="text-align:center; color:#333; padding:50px;">ESPERANDO COCHE EN PISTA...</div>
   </div>
 
   <div class="ranking-panel">
-    <div style="text-align:center; color:var(--yellow); font-weight:bold; margin-bottom:15px; text-transform:uppercase;">🏆 CLASIFICACIÓN DE APOYO</div>
+    <div style="text-align:center; color:var(--yellow); font-weight:bold; margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">🏆 CLASIFICACIÓN PÚBLICO</div>
     <table class="rank-table">
       <thead>
         <tr>
@@ -73,9 +72,9 @@
     </table>
   </div>
 
-  <div class="admin-zone">
+  <div class="admin-csv">
     <input type="file" id="csv-file" style="display:none;" onchange="subirCSV(event)">
-    <button style="background:#222; color:#666; border:1px solid #444; padding:10px; width:100%; border-radius:10px;" onclick="document.getElementById('csv-file').click()">📂 ACTUALIZAR FICHAS (CSV)</button>
+    <button style="background:none; border:1px solid #333; color:#555; padding:8px; border-radius:8px; cursor:pointer;" onclick="document.getElementById('csv-file').click()">ACTUALIZAR FICHAS (CSV)</button>
   </div>
 
   <div id="modal-bio"><div class="bio-card" id="bio-body"></div></div>
@@ -87,30 +86,32 @@
 
     db.ref('fichas_pilotos').on('value', s => { cacheFichas = s.val() || {}; });
 
-    // PISTA ACTUAL
+    // 1. LÓGICA COCHE EN PISTA
     db.ref('votacion_activa').on('value', snap => {
       const v = snap.val();
       const cont = document.getElementById('pista-container');
       if (!v || v.activa === false || !v.items) {
-        cont.innerHTML = '<div style="text-align:center; color:#333; padding:40px; border:2px dashed #111; border-radius:20px;">PISTA LIBRE</div>';
+        cont.innerHTML = '<div style="text-align:center; color:#222; padding:40px; border:2px dashed #111; border-radius:20px;">PISTA LIBRE</div>';
         return;
       }
       let html = "";
       Object.keys(v.items).forEach(id => {
         const p = v.items[id];
-        const totalAp = (p.ap || 0) + (p.h_ap || 0);
-        const totalUp = (p.up || 0) + (p.h_up || 0);
+        // SUMA DE VOTOS ACTUALES + HISTÓRICOS
+        const totalAp = (Number(p.ap) || 0) + (Number(p.h_ap) || 0);
+        const totalUp = (Number(p.up) || 0) + (Number(p.h_up) || 0);
+        
         html += `
           <div class="card-active" onclick="verFicha('${id}')">
             <span class="coche-tag">${p.Coche || p.coche || "Drift"}</span>
             <div class="dorsal">#${id}</div>
             <div class="nombre-pista">${p.Piloto || p.nombre || "Piloto"}</div>
             <div class="votos-grid">
-              <div class="voto-box">
+              <div class="v-box">
                 <span class="v-val" style="color:var(--yellow);">👏 ${totalAp}</span>
                 <span class="v-lab">Aplausos</span>
               </div>
-              <div class="voto-box">
+              <div class="v-box">
                 <span class="v-val" style="color:var(--blue);">👍 ${totalUp}</span>
                 <span class="v-lab">Dedo Arriba</span>
               </div>
@@ -120,54 +121,58 @@
       cont.innerHTML = html;
     });
 
-    // RANKING CON DESGLOSE DE ICONOS
+    // 2. LÓGICA RANKING (SOLUCIÓN AL "0")
     db.ref('inscritos_drift').on('value', snap => {
       const data = snap.val(); if (!data) return;
-      let lista = Object.entries(data).map(([id, v]) => ({
-        id: id,
-        nombre: v.Piloto || v.nombre || "Piloto",
-        ap: (v.ap || 0) + (v.h_ap || 0),
-        up: (v.up || 0) + (v.h_up || 0),
-        total: (v.ap || 0) + (v.h_ap || 0) + (v.up || 0) + (v.h_up || 0)
-      })).sort((a,b) => b.total - a.total);
+      
+      let lista = Object.entries(data).map(([id, v]) => {
+        // Aseguramos que sume correctamente todas las fuentes de votos
+        const n_ap = (Number(v.ap) || 0) + (Number(v.h_ap) || 0);
+        const n_up = (Number(v.up) || 0) + (Number(v.h_up) || 0);
+        
+        return {
+          id: id,
+          nombre: v.Piloto || v.nombre || "Piloto",
+          aplauso: n_ap,
+          arriba: n_up,
+          sumaTotal: n_ap + n_up
+        };
+      }).sort((a,b) => b.sumaTotal - a.sumaTotal);
 
-      document.getElementById('rank-body').innerHTML = lista.slice(0,10).map((p,i) => `
+      document.getElementById('rank-body').innerHTML = lista.slice(0,12).map((p,i) => `
         <tr>
           <td class="r-pos">${i+1}º</td>
           <td class="r-info"><b>#${p.id}</b> <span>${p.nombre}</span></td>
-          <td class="r-votos"><span class="v-badge ap">${p.ap}</span></td>
-          <td class="r-votos"><span class="v-badge up">${p.up}</span></td>
+          <td class="r-votos"><span class="v-badge ap">${p.aplauso}</span></td>
+          <td class="r-votos"><span class="v-badge up">${p.arriba}</span></td>
         </tr>
       `).join('');
     });
 
+    // 3. BIOGRAFÍAS Y CSV
     window.verFicha = (id) => {
       const f = cacheFichas[id];
-      if (!f) return alert("No hay biografía para el #" + id);
+      if (!f) return alert("Dorsal #" + id + " sin biografía.");
       const cl = (t) => (t && t.toString().trim() !== "" && t !== "undefined") ? t : "---";
       document.getElementById('bio-body').innerHTML = `
-        <div style="text-align:center; margin-bottom:20px;">
-          <div style="font-size:4em; font-weight:900; color:var(--blue); font-style:italic;">#${id}</div>
-          <div style="font-size:1.6em; font-weight:bold; text-transform:uppercase;">${cl(f.nombre)}</div>
+        <div style="text-align:center; margin-bottom:15px;">
+          <div style="font-size:4.5em; font-weight:900; color:var(--blue); font-style:italic; line-height:1;">#${id}</div>
+          <div style="font-size:1.6em; font-weight:bold; text-transform:uppercase; margin-top:5px;">${cl(f.nombre)}</div>
         </div>
-        <div style="border-top:1px solid #333; padding-top:15px;">
-          <p style="color:var(--yellow); font-size:0.8em; font-weight:bold; text-transform:uppercase; margin:10px 0 5px;">👤 Piloto</p>
-          <p style="margin:0; font-size:1.1em;"><b>Edad:</b> ${cl(f.edad)} años | <b>De:</b> ${cl(f.residencia)}</p>
-          
-          <p style="color:var(--yellow); font-size:0.8em; font-weight:bold; text-transform:uppercase; margin:20px 0 5px;">🏎️ Vehículo</p>
-          <p style="margin:0; font-size:1.1em;"><b>Modelo:</b> ${cl(f.coche_modelo)}</p>
-          <p style="margin:5px 0 0; font-size:1.1em;"><b>Motor:</b> ${cl(f.motor)} | <b>Potencia:</b> ${cl(f.potencia)} CV</p>
-          
-          <p style="color:var(--yellow); font-size:0.8em; font-weight:bold; text-transform:uppercase; margin:20px 0 5px;">🔧 Preparación</p>
+        <div style="border-top:1px solid #333; padding-top:10px;">
+          <p style="color:var(--yellow); font-size:0.75em; font-weight:bold; text-transform:uppercase; margin:15px 0 5px;">👤 Piloto</p>
+          <p style="margin:0; font-size:1.15em;">${cl(f.edad)} años | ${cl(f.residencia)}</p>
+          <p style="color:var(--yellow); font-size:0.75em; font-weight:bold; text-transform:uppercase; margin:15px 0 5px;">🏎️ Coche y Motor</p>
+          <p style="margin:0; font-size:1.15em;">${cl(f.coche_modelo)}</p>
+          <p style="margin:5px 0 0; color:#00ff99;"><b>${cl(f.motor)}</b> | ${cl(f.potencia)} CV</p>
+          <p style="color:var(--yellow); font-size:0.75em; font-weight:bold; text-transform:uppercase; margin:15px 0 5px;">🔧 Preparación</p>
           <p style="margin:0; font-size:0.95em; color:#bbb;">${cl(f.mods)}</p>
-          
-          <p style="color:var(--yellow); font-size:0.8em; font-weight:bold; text-transform:uppercase; margin:20px 0 5px;">💡 Curiosidad</p>
-          <p style="margin:0; font-size:1em; font-style:italic; color:var(--yellow);">"${cl(f.curiosidades)}"</p>
-          
-          <p style="color:var(--yellow); font-size:0.8em; font-weight:bold; text-transform:uppercase; margin:20px 0 5px;">📱 Instagram</p>
-          <p style="margin:0; font-size:1.3em; color:var(--blue); font-weight:bold;">${cl(f.ig)}</p>
+          <p style="color:var(--yellow); font-size:0.75em; font-weight:bold; text-transform:uppercase; margin:15px 0 5px;">💡 Curiosidad</p>
+          <p style="margin:0; font-size:1em; font-style:italic; color:var(--yellow); line-height:1.2;">"${cl(f.curiosidades)}"</p>
+          <p style="color:var(--yellow); font-size:0.75em; font-weight:bold; text-transform:uppercase; margin:15px 0 5px;">📱 Instagram</p>
+          <p style="margin:0; font-size:1.4em; color:var(--blue); font-weight:bold;">${cl(f.ig)}</p>
         </div>
-        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR FICHA</button>
+        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">VOLVER AL PANEL</button>
       `;
       document.getElementById('modal-bio').style.display = 'block';
     };
@@ -183,7 +188,7 @@
           if(!c[0]) continue;
           nuevas[c[0]] = { nombre:c[1], edad:c[2], residencia:c[3], coche_modelo:c[4], motor:c[5], potencia:c[6], mods:c[7], curiosidades:c[8], palmares:c[9], ig:c[10] };
         }
-        db.ref('fichas_pilotos').set(nuevas).then(() => alert("✅ Biografías sincronizadas."));
+        db.ref('fichas_pilotos').set(nuevas).then(() => alert("✅ Fichas sincronizadas correctamente."));
       };
       reader.readAsText(e.target.files[0], 'ISO-8859-1');
     };

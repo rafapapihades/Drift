@@ -3,267 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SISTEMA SPEAKER PRO - DRIFT SHOW</title>
+  <title>SPEAKER PRO - DRIFT TORREDEMBARRA</title>
   
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
   <style>
-    :root { --primary: #007bff; --accent: #ffcc00; --bg: #000; --card: #111; --text: #eee; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+    :root { --blue: #007bff; --yellow: #ffcc00; --green: #00ff99; --bg: #000; }
+    body { background: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 15px; padding-bottom: 100px; }
     
-    /* CABECERA */
-    .header-main { text-align: center; border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 25px; position: sticky; top: 0; background: var(--bg); z-index: 100; }
-    .header-main h1 { margin: 0; font-size: 1.2em; color: var(--accent); text-transform: uppercase; letter-spacing: 3px; }
-    .status-dot { height: 10px; width: 10px; background-color: #444; border-radius: 50%; display: inline-block; margin-right: 5px; }
-    .online { background-color: #00ff99; box-shadow: 0 0 8px #00ff99; }
+    .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 20px; }
+    .header h1 { font-size: 1.1em; color: var(--yellow); letter-spacing: 2px; margin: 0; }
 
-    /* CONTENEDOR DE PISTA */
-    #pista-wrapper { min-height: 250px; transition: all 0.5s ease; }
-    .pista-empty { text-align: center; padding: 60px 20px; border: 2px dashed #222; border-radius: 20px; color: #444; font-style: italic; font-size: 1.1em; }
-    
-    /* TARJETA DE PILOTO EN PISTA */
-    .card-pista { background: linear-gradient(160deg, #1a1a1a 0%, #050505 100%); border: 3px solid var(--primary); border-radius: 25px; padding: 25px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: pointer; animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    @keyframes slideIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    
-    .card-pista::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0,123,255,0.1) 0%, transparent 70%); pointer-events: none; }
-    
-    .dorsal-big { font-size: 6em; font-weight: 900; color: var(--primary); line-height: 0.8; font-style: italic; margin-bottom: 10px; text-shadow: 4px 4px 0px rgba(0,0,0,0.5); }
-    .badge-coche { display: inline-block; background: var(--primary); color: white; padding: 5px 15px; border-radius: 50px; font-size: 0.8em; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; }
-    .piloto-nombre { font-size: 2.2em; font-weight: bold; text-transform: uppercase; margin: 0; line-height: 1.1; border-left: 6px solid var(--accent); padding-left: 15px; }
+    /* CARD EN PISTA */
+    .card-active { background: #111; border: 3px solid var(--blue); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 0 25px rgba(0, 123, 255, 0.3); cursor: pointer; }
+    .dorsal { font-size: 4.5em; font-weight: 900; color: var(--blue); line-height: 0.8; font-style: italic; }
+    .nombre-pista { font-size: 1.8em; font-weight: bold; text-transform: uppercase; margin: 10px 0; border-left: 5px solid var(--yellow); padding-left: 10px; }
+    .coche-tag { background: var(--blue); color: #fff; padding: 4px 10px; border-radius: 5px; font-size: 0.8em; font-weight: bold; }
 
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
-    .stat-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 15px; text-align: center; border: 1px solid #222; }
-    .stat-val { font-size: 2.5em; font-weight: bold; color: var(--accent); display: block; }
-    .stat-label { font-size: 0.7em; color: #777; text-transform: uppercase; letter-spacing: 1px; }
+    /* CONTADORES DE VOTOS */
+    .votos-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    .voto-card { background: #1a1a1a; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #333; }
+    .voto-val { font-size: 1.8em; font-weight: bold; display: block; }
+    .voto-label { font-size: 0.65em; color: #888; text-transform: uppercase; margin-top: 4px; display: block; }
 
-    /* RANKING LATERAL/INFERIOR */
-    .ranking-box { margin-top: 40px; background: #080808; border-radius: 20px; padding: 20px; border: 1px solid #1a1a1a; }
-    .ranking-title { color: var(--accent); font-size: 0.9em; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; text-align: center; }
-    .rank-table { width: 100%; border-collapse: collapse; }
-    .rank-table tr { border-bottom: 1px solid #111; }
-    .rank-table td { padding: 12px 8px; font-size: 0.9em; }
-    .rank-num { color: var(--accent); font-weight: bold; width: 30px; }
-    .rank-votos { text-align: right; font-weight: bold; color: #00ff99; }
+    /* RANKING */
+    .ranking-panel { background: #080808; border-radius: 15px; padding: 15px; margin-top: 30px; border: 1px solid #222; }
+    .rank-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+    .rank-table td { padding: 10px 5px; border-bottom: 1px solid #111; }
+    .rank-pos { color: var(--yellow); font-weight: bold; width: 25px; }
+    .rank-tot { text-align: right; font-weight: bold; color: var(--green); }
 
-    /* MODAL DE BIOGRAFÍA */
-    #modal-bio { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 2000; overflow-y: auto; padding: 20px; box-sizing: border-box; }
-    .bio-content { background: #111; border: 2px solid var(--accent); border-radius: 30px; max-width: 600px; margin: 0 auto; padding: 30px; position: relative; box-shadow: 0 0 50px rgba(255,204,0,0.1); }
-    .bio-header { text-align: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #333; }
-    .bio-label { color: var(--accent); font-size: 0.8em; text-transform: uppercase; font-weight: bold; display: block; margin-top: 20px; border-left: 3px solid var(--accent); padding-left: 10px; }
-    .bio-txt { font-size: 1.25em; color: #fff; margin: 8px 0; line-height: 1.4; }
-    .bio-txt b { color: var(--primary); font-weight: 500; }
-    .btn-close { background: var(--accent); color: #000; border: none; width: 100%; padding: 20px; border-radius: 20px; font-weight: bold; font-size: 1.1em; margin-top: 35px; cursor: pointer; text-transform: uppercase; }
+    /* MODAL BIO */
+    #modal-bio { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 1000; padding: 20px; overflow-y: auto; }
+    .bio-box { background: #111; border: 2px solid var(--yellow); border-radius: 25px; padding: 25px; max-width: 500px; margin: 0 auto; }
+    .label-f { color: var(--yellow); font-size: 0.75em; text-transform: uppercase; font-weight: bold; margin-top: 15px; display: block; }
+    .txt-f { font-size: 1.2em; color: #fff; margin: 5px 0; }
+    .btn-cerrar { background: var(--yellow); color: #000; border: none; width: 100%; padding: 18px; border-radius: 15px; font-weight: bold; margin-top: 25px; cursor: pointer; }
 
-    /* ADMIN PANEL */
-    .admin-panel { margin-top: 50px; padding: 20px; border: 2px dashed #333; border-radius: 25px; background: #050505; text-align: center; }
-    .btn-file { background: #222; color: #888; border: 1px solid #444; padding: 15px 25px; border-radius: 15px; cursor: pointer; width: 100%; font-size: 0.9em; transition: 0.3s; }
-    .btn-file:hover { background: #333; color: #fff; border-color: var(--accent); }
+    .btn-csv { background: #222; color: #666; border: 1px dashed #444; width: 100%; padding: 15px; border-radius: 15px; margin-top: 40px; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <div class="header-main">
-    <div id="conn-status"><span class="status-dot"></span> SIN CONEXIÓN</div>
-    <h1>🎤 SPEAKER DASHBOARD</h1>
+  <div class="header"><h1>🎤 SPEAKER - DRIFT SHOW</h1></div>
+
+  <div id="pista-container">
+    <div style="text-align:center; color:#444; padding:50px;">ESPERANDO COCHE...</div>
   </div>
 
-  <div id="pista-wrapper">
-    <div class="pista-empty">Sincronizando con Pista...</div>
+  <div class="ranking-panel">
+    <div style="text-align:center; color:var(--yellow); font-size:0.8em; font-weight:bold; margin-bottom:10px;">🏆 TOP APOYO TOTAL</div>
+    <table class="rank-table"><tbody id="rank-body"></tbody></table>
   </div>
 
-  <div class="ranking-box">
-    <div class="ranking-title">🏆 TOP 10 APOYO PÚBLICO</div>
-    <table class="rank-table" id="rank-body"></table>
-  </div>
+  <input type="file" id="csv-in" style="display:none;" onchange="importarCSV(event)">
+  <button class="btn-csv" onclick="document.getElementById('csv-in').click()">📂 RE-CARGAR BIOGRAFÍAS (ALINEADAS OK)</button>
 
-  <div class="admin-panel">
-    <input type="file" id="csv-input" accept=".csv" style="display:none;" onchange="handleFile(event)">
-    <button class="btn-file" onclick="document.getElementById('csv-input').click()">📂 ACTUALIZAR BASE DE BIOGRAFÍAS (.CSV)</button>
-    <div id="file-info" style="margin-top:10px; font-size:0.75em; color:#555;">Carga FICHAS_TORREDEMBARRA.csv para activar biografías.</div>
-  </div>
-
-  <div id="modal-bio">
-    <div class="bio-content" id="bio-body"></div>
-  </div>
+  <div id="modal-bio"><div class="bio-box" id="bio-body"></div></div>
 
   <script>
-    // 1. INICIALIZACIÓN
-    const config = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
-    firebase.initializeApp(config);
+    firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
     const db = firebase.database();
-    
-    let cacheFichas = {};
+    let fichas = {};
 
-    // Control de Estado de Conexión
-    db.ref('.info/connected').on('value', snap => {
-      const el = document.getElementById('conn-status');
-      if (snap.val() === true) {
-        el.innerHTML = '<span class="status-dot online"></span> SISTEMA ONLINE';
-        el.style.color = '#00ff99';
-      } else {
-        el.innerHTML = '<span class="status-dot"></span> RECONECTANDO...';
-        el.style.color = '#555';
-      }
-    });
+    db.ref('fichas_pilotos').on('value', s => { fichas = s.val() || {}; });
 
-    // 2. CARGA DE BIOGRAFÍAS (Cache Local)
-    db.ref('fichas_pilotos').on('value', snap => {
-      cacheFichas = snap.val() || {};
-      console.log("Biografías sincronizadas:", Object.keys(cacheFichas).length);
-      document.getElementById('file-info').innerText = Object.keys(cacheFichas).length + " biografías activas en el sistema.";
-    });
-
-    // 3. MONITOR DE PISTA (REACCIÓN AL MASTER)
+    // Lógica de Pista con Votos Dobles
     db.ref('votacion_activa').on('value', snap => {
-      const data = snap.val();
-      const container = document.getElementById('pista-wrapper');
-      
-      if (!data || data.activa === false || !data.items) {
-        container.innerHTML = '<div class="pista-empty">PISTA LIBRE<br><small style="font-size:0.6em; opacity:0.5; text-transform:uppercase; letter-spacing:2px; display:block; margin-top:10px;">Esperando señal del Master</small></div>';
+      const v = snap.val();
+      const cont = document.getElementById('pista-container');
+      if (!v || v.activa === false || !v.items) {
+        cont.innerHTML = '<div style="text-align:center; color:#333; padding:50px; border:1px dashed #222; border-radius:20px;">PISTA LIBRE</div>';
         return;
       }
 
-      let cardsHTML = "";
-      Object.keys(data.items).forEach(dorsal => {
-        const p = data.items[dorsal];
-        const dStr = String(dorsal).trim();
-        
-        // Mapeo flexible de nombres de columnas
-        const nombrePiloto = p.Piloto || p.nombre || "Piloto #" + dStr;
-        const nombreCoche = p.Coche || p.coche || "Vehículo Drift";
+      let html = "";
+      Object.keys(v.items).forEach(d => {
+        const p = v.items[d];
+        const totalAp = (p.ap || 0) + (p.h_ap || 0);
+        const totalUp = (p.up || 0) + (p.h_up || 0);
 
-        cardsHTML += `
-          <div class="card-pista" onclick="showBio('${dStr}')">
-            <div class="badge-coche">${nombreCoche}</div>
-            <div class="dorsal-big">#${dStr}</div>
-            <h2 class="piloto-nombre">${nombrePiloto}</h2>
-            <div class="stats-grid">
-              <div class="stat-box">
-                <span class="stat-label">Aplausos Pista</span>
-                <span class="stat-val">👏 ${p.ap || 0}</span>
+        html += `
+          <div class="card-active" onclick="abrirBio('${d}')">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+              <div class="dorsal">#${d}</div>
+              <span class="coche-tag">${p.Coche || p.coche || "DRIFT"}</span>
+            </div>
+            <div class="nombre-pista">${p.Piloto || p.nombre || "Piloto"}</div>
+            
+            <div class="votos-container">
+              <div class="voto-card">
+                <span class="voto-val" style="color:var(--yellow);">👏 ${totalAp}</span>
+                <span class="voto-label">Aplausos</span>
               </div>
-              <div class="stat-box">
-                <span class="stat-label">Voto Histórico</span>
-                <span class="stat-val" style="color:#00ff99;">🔥 ${(p.ap||0)+(p.h_ap||0)}</span>
+              <div class="voto-card">
+                <span class="voto-val" style="color:var(--blue);">👍 ${totalUp}</span>
+                <span class="voto-label">Dedo Arriba</span>
               </div>
             </div>
-            <div style="text-align:center; color:var(--primary); font-weight:bold; margin-top:20px; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">🔍 Pulsa para Biografía Completa</div>
-          </div>
-        `;
+            <p style="text-align:center; color:var(--blue); font-size:0.8em; margin-top:15px; font-weight:bold;">🔍 PULSA PARA BIOGRAFÍA</p>
+          </div>`;
       });
-      container.innerHTML = cardsHTML;
+      cont.innerHTML = html;
     });
 
-    // 4. RANKING TOP 10
+    // Ranking Top 10
     db.ref('inscritos_drift').on('value', snap => {
-      const data = snap.val();
-      if (!data) return;
+      const data = snap.val(); if (!data) return;
+      let list = Object.entries(data).map(([d, v]) => ({
+        d: d,
+        n: v.Piloto || v.nombre || "Piloto",
+        v: (v.ap||0)+(v.h_ap||0)+(v.up||0)+(v.h_up||0)
+      })).sort((a,b) => b.v - a.v);
       
-      let sortable = Object.entries(data).map(([d, v]) => ({
-        dorsal: d,
-        nombre: v.Piloto || v.nombre || "Piloto",
-        votos: (v.ap||0)+(v.h_ap||0)+(v.up||0)+(v.h_up||0)
-      })).sort((a,b) => b.votos - a.votos);
-
-      document.getElementById('rank-body').innerHTML = sortable.slice(0, 10).map((p, i) => `
-        <tr>
-          <td class="rank-num">${i+1}º</td>
-          <td><b>#${p.dorsal}</b> <span style="text-transform:uppercase; margin-left:10px;">${p.nombre}</span></td>
-          <td class="rank-votos">${p.votos} <small style="font-size:0.6em; color:#444;">VTS</small></td>
-        </tr>
+      document.getElementById('rank-body').innerHTML = list.slice(0,10).map((p,i) => `
+        <tr><td class="rank-pos">${i+1}º</td><td><b>#${p.d}</b> ${p.n}</td><td class="rank-tot">${p.v} Vts</td></tr>
       `).join('');
     });
 
-    // 5. FUNCIÓN MOSTRAR BIO (Gestión de nulos y alineación Excel)
-    window.showBio = (id) => {
-      const f = cacheFichas[id];
-      if (!f) {
-        alert("No hay biografía cargada para el dorsal #" + id);
-        return;
-      }
-
-      // Limpiador profesional de campos "undefined" o vacíos
-      const filter = (val) => (val && val.toString().trim() !== "" && val !== "undefined") ? val : "---";
-
+    window.abrirBio = (id) => {
+      const f = fichas[id];
+      if (!f) { alert("Dorsal #" + id + " no encontrado."); return; }
+      const cl = (t) => (t && t.toString().trim() !== "" && t !== "undefined") ? t : "---";
+      
       document.getElementById('bio-body').innerHTML = `
-        <div class="bio-header">
-          <div style="font-size:5em; font-weight:900; color:var(--primary); font-style:italic;">#${id}</div>
-          <div style="font-size:1.8em; font-weight:bold; text-transform:uppercase; margin-top:10px;">${filter(f.nombre)}</div>
+        <div style="text-align:center; border-bottom:1px solid #333; padding-bottom:15px; margin-bottom:15px;">
+          <div style="font-size:4.5em; font-weight:900; color:var(--blue); line-height:1;">#${id}</div>
+          <div style="font-size:1.6em; font-weight:bold; text-transform:uppercase;">${cl(f.nombre)}</div>
         </div>
-
-        <span class="bio-label">Ficha Técnica Piloto</span>
-        <p class="bio-txt"><b>Edad:</b> ${filter(f.edad)} años</p>
-        <p class="bio-txt"><b>Residencia:</b> ${filter(f.residencia)}</p>
-
-        <span class="bio-label">Preparación del Vehículo</span>
-        <p class="bio-txt"><b>Modelo:</b> ${filter(f.coche_modelo)}</p>
-        <p class="bio-txt"><b>Motor:</b> ${filter(f.motor)}</p>
-        <p class="bio-txt"><b>Potencia:</b> ${filter(f.potencia)} CV</p>
-
-        <span class="bio-label">Modificaciones</span>
-        <p class="bio-txt" style="font-size:1em; color:#aaa; background:rgba(0,0,0,0.3); padding:10px; border-radius:10px; margin-top:10px;">${filter(f.mods)}</p>
-
-        <span class="bio-label">Curiosidades / Historia</span>
-        <p class="bio-txt" style="color:var(--accent); font-style:italic; font-size:1.1em;">"${filter(f.curiosidades)}"</p>
-
-        <span class="bio-label">Palmarés</span>
-        <p class="bio-txt">${filter(f.palmares)}</p>
-
-        <span class="bio-label">Instagram Oficial</span>
-        <p class="bio-txt" style="color:var(--primary); font-weight:bold; font-size:1.4em;">${filter(f.ig)}</p>
-
-        <button class="btn-close" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR FICHA</button>
+        <span class="label-f">👤 Perfil</span>
+        <p class="txt-f"><b>Edad:</b> ${cl(f.edad)} años | <b>De:</b> ${cl(f.residencia)}</p>
+        <span class="label-f">🏎️ Vehículo</span>
+        <p class="txt-f"><b>Coche:</b> ${cl(f.coche_modelo)}</p>
+        <p class="txt-f"><b>Motor:</b> ${cl(f.motor)} | <b>CV:</b> ${cl(f.potencia)}</p>
+        <span class="label-f">🔧 Preparación</span>
+        <p class="txt-f" style="font-size:0.9em; color:#bbb;">${cl(f.mods)}</p>
+        <span class="label-f">💡 Curiosidades</span>
+        <p class="txt-f" style="color:var(--yellow); font-style:italic;">"${cl(f.curiosidades)}"</p>
+        <span class="label-f">📱 Instagram</span>
+        <p class="txt-f" style="color:var(--blue); font-weight:bold;">${cl(f.ig)}</p>
+        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR</button>
       `;
       document.getElementById('modal-bio').style.display = 'block';
     };
 
-    // 6. IMPORTADOR DE CSV CON SOPORTE PARA ALINEACIÓN DE EXCEL
-    window.handleFile = (e) => {
+    window.importarCSV = (e) => {
       const file = e.target.files[0];
-      if (!file) return;
-
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target.result;
-        const lines = text.split(/\r?\n/);
-        let dataToUpload = {};
-        
-        // Detección automática de separador (Excel suele usar ; en España)
-        const delimiter = lines[0].includes(';') ? ';' : ',';
-        console.log("Procesando CSV con delimitador:", delimiter);
-
-        for (let i = 1; i < lines.length; i++) {
-          if (!lines[i].trim()) continue;
-          
-          // Dividir por delimitador teniendo en cuenta posibles espacios de alineación
-          const cols = lines[i].split(delimiter).map(cell => cell.trim());
-          
-          if (!cols[0]) continue;
-          const d = cols[0]; // El dorsal es la clave principal
-
-          dataToUpload[d] = {
-            nombre:       cols[1] || "",
-            edad:         cols[2] || "",
-            residencia:   cols[3] || "",
-            coche_modelo: cols[4] || "",
-            motor:        cols[5] || "",
-            potencia:     cols[6] || "",
-            mods:         cols[7] || "",
-            curiosidades: cols[8] || "",
-            palmares:     cols[9] || "",
-            ig:           cols[10]|| ""
-          };
+      reader.onload = (ev) => {
+        const lines = ev.target.result.split(/\r?\n/);
+        let nuevas = {};
+        const sep = lines[0].includes(';') ? ';' : ',';
+        for(let i=1; i<lines.length; i++){
+          const c = lines[i].split(sep).map(x => x.trim());
+          if(!c[0]) continue;
+          nuevas[c[0]] = { nombre:c[1], edad:c[2], residencia:c[3], coche_modelo:c[4], motor:c[5], potencia:c[6], mods:c[7], curiosidades:c[8], palmares:c[9], ig:c[10] };
         }
-
-        db.ref('fichas_pilotos').set(dataToUpload).then(() => {
-          alert("✅ BASE DE DATOS ACTUALIZADA\n" + Object.keys(dataToUpload).length + " biografías cargadas correctamente.");
-        }).catch(err => {
-          alert("❌ ERROR AL SUBIR: " + err.message);
-        });
+        db.ref('fichas_pilotos').set(nuevas).then(() => alert("✅ Fichas sincronizadas."));
       };
-      
-      // ISO-8859-1 es CLAVE para que Excel no rompa las tildes y eñes
       reader.readAsText(file, 'ISO-8859-1');
     };
   </script>

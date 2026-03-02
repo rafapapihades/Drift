@@ -2,194 +2,268 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SPEAKER PRO - DRIFT SHOW</title>
-  <style>
-    body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 15px; padding-bottom: 100px; }
-    .title { color: #ffcc00; text-align: center; text-transform: uppercase; font-size: 1.4em; border-bottom: 3px solid #ffcc00; padding-bottom: 10px; margin-bottom: 25px; letter-spacing: 2px; }
-    
-    /* CARD COCHE EN PISTA */
-    .card-active { background: linear-gradient(145deg, #1a1a1a, #0a0a0a); border: 3px solid #007bff; border-radius: 20px; padding: 25px; margin-bottom: 25px; box-shadow: 0 0 30px rgba(0, 123, 255, 0.4); cursor: pointer; transition: transform 0.2s; }
-    .card-active:active { transform: scale(0.98); }
-    
-    .header-card { display: flex; justify-content: space-between; align-items: flex-start; }
-    .dorsal { font-size: 5em; font-weight: 900; color: #007bff; line-height: 0.8; }
-    .coche-tag { background: #007bff; color: white; padding: 6px 15px; border-radius: 8px; font-size: 0.9em; font-weight: bold; text-transform: uppercase; }
-    .nombre-pista { font-size: 2.2em; font-weight: bold; margin: 15px 0 10px 0; text-transform: uppercase; color: #fff; border-left: 5px solid #ffcc00; padding-left: 12px; }
-
-    .votos-box { display: flex; justify-content: space-around; background: rgba(255,255,255,0.05); margin-top: 20px; padding: 20px; border-radius: 15px; border: 1px solid #333; }
-    .voto-val { font-size: 2.5em; font-weight: bold; color: #ffcc00; display: block; line-height: 1; }
-    .voto-label { font-size: 0.75em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-
-    /* RANKING */
-    .ranking-panel { background: #111; border: 1px solid #333; border-radius: 20px; padding: 20px; margin-top: 30px; }
-    .ranking-table { width: 100%; border-collapse: collapse; }
-    .ranking-table td { padding: 15px 10px; border-bottom: 1px solid #222; }
-    .pos-num { color: #ffcc00; font-weight: bold; font-size: 1.2em; width: 40px; }
-
-    /* MODAL BIOGRAFÍA COMPLETA */
-    #modal-ficha { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 1000; padding: 20px; overflow-y: auto; }
-    .ficha-content { background: #111; border: 2px solid #ffcc00; border-radius: 25px; padding: 35px; max-width: 600px; margin: 0 auto; box-shadow: 0 0 60px rgba(255,204,0,0.2); }
-    .ficha-header { text-align: center; border-bottom: 2px solid #333; margin-bottom: 25px; padding-bottom: 20px; }
-    .label-f { color: #ffcc00; font-size: 0.85em; text-transform: uppercase; font-weight: bold; margin-top: 20px; display: block; border-left: 4px solid #ffcc00; padding-left: 10px; }
-    .txt-f { font-size: 1.3em; color: #eee; margin: 8px 0; line-height: 1.4; }
-    .btn-cerrar { background: #ffcc00; color: #000; border: none; width: 100%; padding: 20px; border-radius: 15px; font-weight: bold; margin-top: 35px; cursor: pointer; font-size: 1.2em; text-transform: uppercase; }
-    
-    .admin-zone { margin-top: 50px; padding: 25px; border: 2px dashed #444; border-radius: 20px; text-align: center; background: #0a0a0a; }
-    .btn-csv { background: #333; color: #fff; border: 1px solid #555; padding: 15px; border-radius: 12px; cursor: pointer; width: 100%; font-size: 1em; }
-  </style>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SISTEMA SPEAKER PRO - DRIFT SHOW</title>
+  
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+  <style>
+    :root { --primary: #007bff; --accent: #ffcc00; --bg: #000; --card: #111; --text: #eee; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+    
+    /* CABECERA */
+    .header-main { text-align: center; border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 25px; position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .header-main h1 { margin: 0; font-size: 1.2em; color: var(--accent); text-transform: uppercase; letter-spacing: 3px; }
+    .status-dot { height: 10px; width: 10px; background-color: #444; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .online { background-color: #00ff99; box-shadow: 0 0 8px #00ff99; }
+
+    /* CONTENEDOR DE PISTA */
+    #pista-wrapper { min-height: 250px; transition: all 0.5s ease; }
+    .pista-empty { text-align: center; padding: 60px 20px; border: 2px dashed #222; border-radius: 20px; color: #444; font-style: italic; font-size: 1.1em; }
+    
+    /* TARJETA DE PILOTO EN PISTA */
+    .card-pista { background: linear-gradient(160deg, #1a1a1a 0%, #050505 100%); border: 3px solid var(--primary); border-radius: 25px; padding: 25px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: pointer; animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes slideIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    .card-pista::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0,123,255,0.1) 0%, transparent 70%); pointer-events: none; }
+    
+    .dorsal-big { font-size: 6em; font-weight: 900; color: var(--primary); line-height: 0.8; font-style: italic; margin-bottom: 10px; text-shadow: 4px 4px 0px rgba(0,0,0,0.5); }
+    .badge-coche { display: inline-block; background: var(--primary); color: white; padding: 5px 15px; border-radius: 50px; font-size: 0.8em; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; }
+    .piloto-nombre { font-size: 2.2em; font-weight: bold; text-transform: uppercase; margin: 0; line-height: 1.1; border-left: 6px solid var(--accent); padding-left: 15px; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
+    .stat-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 15px; text-align: center; border: 1px solid #222; }
+    .stat-val { font-size: 2.5em; font-weight: bold; color: var(--accent); display: block; }
+    .stat-label { font-size: 0.7em; color: #777; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* RANKING LATERAL/INFERIOR */
+    .ranking-box { margin-top: 40px; background: #080808; border-radius: 20px; padding: 20px; border: 1px solid #1a1a1a; }
+    .ranking-title { color: var(--accent); font-size: 0.9em; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; text-align: center; }
+    .rank-table { width: 100%; border-collapse: collapse; }
+    .rank-table tr { border-bottom: 1px solid #111; }
+    .rank-table td { padding: 12px 8px; font-size: 0.9em; }
+    .rank-num { color: var(--accent); font-weight: bold; width: 30px; }
+    .rank-votos { text-align: right; font-weight: bold; color: #00ff99; }
+
+    /* MODAL DE BIOGRAFÍA */
+    #modal-bio { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 2000; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+    .bio-content { background: #111; border: 2px solid var(--accent); border-radius: 30px; max-width: 600px; margin: 0 auto; padding: 30px; position: relative; box-shadow: 0 0 50px rgba(255,204,0,0.1); }
+    .bio-header { text-align: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #333; }
+    .bio-label { color: var(--accent); font-size: 0.8em; text-transform: uppercase; font-weight: bold; display: block; margin-top: 20px; border-left: 3px solid var(--accent); padding-left: 10px; }
+    .bio-txt { font-size: 1.25em; color: #fff; margin: 8px 0; line-height: 1.4; }
+    .bio-txt b { color: var(--primary); font-weight: 500; }
+    .btn-close { background: var(--accent); color: #000; border: none; width: 100%; padding: 20px; border-radius: 20px; font-weight: bold; font-size: 1.1em; margin-top: 35px; cursor: pointer; text-transform: uppercase; }
+
+    /* ADMIN PANEL */
+    .admin-panel { margin-top: 50px; padding: 20px; border: 2px dashed #333; border-radius: 25px; background: #050505; text-align: center; }
+    .btn-file { background: #222; color: #888; border: 1px solid #444; padding: 15px 25px; border-radius: 15px; cursor: pointer; width: 100%; font-size: 0.9em; transition: 0.3s; }
+    .btn-file:hover { background: #333; color: #fff; border-color: var(--accent); }
+  </style>
 </head>
 <body>
 
-  <div class="title">🎤 SPEAKER DASHBOARD - TORREDEMBARRA</div>
-
-  <div id="pista-container">
-    <div style="text-align:center; color:#444; margin-top:80px; font-style:italic;">ESPERANDO COCHE EN PISTA...</div>
+  <div class="header-main">
+    <div id="conn-status"><span class="status-dot"></span> SIN CONEXIÓN</div>
+    <h1>🎤 SPEAKER DASHBOARD</h1>
   </div>
 
-  <div class="ranking-panel">
-    <div style="text-align:center; color:#ffcc00; font-weight:bold; margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">🏆 TOP APOYO PÚBLICO</div>
-    <table class="ranking-table">
-      <tbody id="ranking-body"></tbody>
-    </table>
+  <div id="pista-wrapper">
+    <div class="pista-empty">Sincronizando con Pista...</div>
   </div>
 
-  <div class="admin-zone">
-    <input type="file" id="csv-file" accept=".csv" style="display:none;" onchange="importarFichas(event)">
-    <button class="btn-csv" onclick="document.getElementById('csv-file').click()">📂 ACTUALIZAR BIOGRAFÍAS (.CSV)</button>
-    <div id="status-carga" style="font-size:0.8em; margin-top:12px; color:#666;"></div>
+  <div class="ranking-box">
+    <div class="ranking-title">🏆 TOP 10 APOYO PÚBLICO</div>
+    <table class="rank-table" id="rank-body"></table>
   </div>
 
-  <div id="modal-ficha">
-    <div class="ficha-content" id="ficha-body"></div>
+  <div class="admin-panel">
+    <input type="file" id="csv-input" accept=".csv" style="display:none;" onchange="handleFile(event)">
+    <button class="btn-file" onclick="document.getElementById('csv-input').click()">📂 ACTUALIZAR BASE DE BIOGRAFÍAS (.CSV)</button>
+    <div id="file-info" style="margin-top:10px; font-size:0.75em; color:#555;">Carga FICHAS_TORREDEMBARRA.csv para activar biografías.</div>
+  </div>
+
+  <div id="modal-bio">
+    <div class="bio-content" id="bio-body"></div>
   </div>
 
   <script>
-    const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
-    firebase.initializeApp(firebaseConfig);
+    // 1. INICIALIZACIÓN
+    const config = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+    firebase.initializeApp(config);
     const db = firebase.database();
+    
+    let cacheFichas = {};
 
-    let localFichas = {};
-
-    // Sincronizar Fichas
-    db.ref('fichas_pilotos').on('value', snap => {
-      localFichas = snap.val() || {};
-      document.getElementById('status-carga').innerText = Object.keys(localFichas).length + " biografías cargadas.";
+    // Control de Estado de Conexión
+    db.ref('.info/connected').on('value', snap => {
+      const el = document.getElementById('conn-status');
+      if (snap.val() === true) {
+        el.innerHTML = '<span class="status-dot online"></span> SISTEMA ONLINE';
+        el.style.color = '#00ff99';
+      } else {
+        el.innerHTML = '<span class="status-dot"></span> RECONECTANDO...';
+        el.style.color = '#555';
+      }
     });
 
-    // Escuchar Master (Pista)
+    // 2. CARGA DE BIOGRAFÍAS (Cache Local)
+    db.ref('fichas_pilotos').on('value', snap => {
+      cacheFichas = snap.val() || {};
+      console.log("Biografías sincronizadas:", Object.keys(cacheFichas).length);
+      document.getElementById('file-info').innerText = Object.keys(cacheFichas).length + " biografías activas en el sistema.";
+    });
+
+    // 3. MONITOR DE PISTA (REACCIÓN AL MASTER)
     db.ref('votacion_activa').on('value', snap => {
-      const v = snap.val();
-      const cont = document.getElementById('pista-container');
-      if (!v || v.activa === false || !v.items) {
-        cont.innerHTML = `<div style="text-align:center; color:#333; margin-top:80px; border:2px dashed #111; padding:40px; border-radius:25px;">PISTA LIBRE</div>`;
+      const data = snap.val();
+      const container = document.getElementById('pista-wrapper');
+      
+      if (!data || data.activa === false || !data.items) {
+        container.innerHTML = '<div class="pista-empty">PISTA LIBRE<br><small style="font-size:0.6em; opacity:0.5; text-transform:uppercase; letter-spacing:2px; display:block; margin-top:10px;">Esperando señal del Master</small></div>';
         return;
       }
-      let html = "";
-      Object.keys(v.items).forEach(dorsal => {
-        const item = v.items[dorsal];
+
+      let cardsHTML = "";
+      Object.keys(data.items).forEach(dorsal => {
+        const p = data.items[dorsal];
         const dStr = String(dorsal).trim();
-        html += `
-          <div class="card-active" onclick="abrirFicha('${dStr}')">
-            <div class="header-card">
-              <div class="dorsal">#${dStr}</div>
-              <span class="coche-tag">${item.Coche || item.coche || "DRIFT"}</span>
-            </div>
-            <div class="nombre-pista">${item.Piloto || item.nombre || "Piloto"}</div>
-            <div class="votos-box">
-              <div style="text-align:center">
-                <span class="voto-label">Pista</span>
-                <span class="voto-val">👏 ${item.ap || 0}</span>
+        
+        // Mapeo flexible de nombres de columnas
+        const nombrePiloto = p.Piloto || p.nombre || "Piloto #" + dStr;
+        const nombreCoche = p.Coche || p.coche || "Vehículo Drift";
+
+        cardsHTML += `
+          <div class="card-pista" onclick="showBio('${dStr}')">
+            <div class="badge-coche">${nombreCoche}</div>
+            <div class="dorsal-big">#${dStr}</div>
+            <h2 class="piloto-nombre">${nombrePiloto}</h2>
+            <div class="stats-grid">
+              <div class="stat-box">
+                <span class="stat-label">Aplausos Pista</span>
+                <span class="stat-val">👏 ${p.ap || 0}</span>
               </div>
-              <div style="text-align:center">
-                <span class="voto-label">Total</span>
-                <span class="voto-val" style="color:#00ff99;">🔥 ${(item.ap||0)+(item.h_ap||0)}</span>
+              <div class="stat-box">
+                <span class="stat-label">Voto Histórico</span>
+                <span class="stat-val" style="color:#00ff99;">🔥 ${(p.ap||0)+(p.h_ap||0)}</span>
               </div>
             </div>
-            <p style="text-align:center; color:#007bff; font-weight:bold; margin-top:20px; font-size:0.9em; letter-spacing:1px;">🔍 TOCAR PARA VER BIOGRAFÍA</p>
-          </div>`;
+            <div style="text-align:center; color:var(--primary); font-weight:bold; margin-top:20px; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">🔍 Pulsa para Biografía Completa</div>
+          </div>
+        `;
       });
-      cont.innerHTML = html;
+      container.innerHTML = cardsHTML;
     });
 
-    // Ranking en vivo
+    // 4. RANKING TOP 10
     db.ref('inscritos_drift').on('value', snap => {
       const data = snap.val();
       if (!data) return;
-      let lista = Object.entries(data).map(([d, val]) => ({
-        d: d,
-        n: val.Piloto || val.nombre || "Piloto",
-        v: (val.ap||0)+(val.h_ap||0)+(val.up||0)+(val.h_up||0)
-      })).sort((a,b) => b.v - a.v);
-      document.getElementById('ranking-body').innerHTML = lista.slice(0,10).map((p,i) => `
-        <tr><td class="pos-num">${i+1}º</td><td><b style="color:#007bff;">#${p.d}</b> ${p.n}</td><td style="text-align:right"><b>${p.v}</b></td></tr>
+      
+      let sortable = Object.entries(data).map(([d, v]) => ({
+        dorsal: d,
+        nombre: v.Piloto || v.nombre || "Piloto",
+        votos: (v.ap||0)+(v.h_ap||0)+(v.up||0)+(v.h_up||0)
+      })).sort((a,b) => b.votos - a.votos);
+
+      document.getElementById('rank-body').innerHTML = sortable.slice(0, 10).map((p, i) => `
+        <tr>
+          <td class="rank-num">${i+1}º</td>
+          <td><b>#${p.dorsal}</b> <span style="text-transform:uppercase; margin-left:10px;">${p.nombre}</span></td>
+          <td class="rank-votos">${p.votos} <small style="font-size:0.6em; color:#444;">VTS</small></td>
+        </tr>
       `).join('');
     });
 
-    // MOSTRAR FICHA (CORRECCIÓN DE COLUMNAS)
-    window.abrirFicha = (id) => {
-      const f = localFichas[id];
-      if (!f) { alert("Dorsal #" + id + " no encontrado. Carga el CSV de Fichas."); return; }
-      
-      const clean = (t) => (t && t.toString().trim() !== "" && t !== "undefined") ? t : "---";
+    // 5. FUNCIÓN MOSTRAR BIO (Gestión de nulos y alineación Excel)
+    window.showBio = (id) => {
+      const f = cacheFichas[id];
+      if (!f) {
+        alert("No hay biografía cargada para el dorsal #" + id);
+        return;
+      }
 
-      document.getElementById('ficha-body').innerHTML = `
-        <div class="ficha-header">
-          <div style="font-size:4.5em; font-weight:900; color:#007bff; line-height:1;">#${id}</div>
-          <div style="font-size:1.8em; font-weight:bold; text-transform:uppercase; color:#fff; margin-top:10px;">${clean(f.nombre)}</div>
+      // Limpiador profesional de campos "undefined" o vacíos
+      const filter = (val) => (val && val.toString().trim() !== "" && val !== "undefined") ? val : "---";
+
+      document.getElementById('bio-body').innerHTML = `
+        <div class="bio-header">
+          <div style="font-size:5em; font-weight:900; color:var(--primary); font-style:italic;">#${id}</div>
+          <div style="font-size:1.8em; font-weight:bold; text-transform:uppercase; margin-top:10px;">${filter(f.nombre)}</div>
         </div>
-        <span class="label-f">👤 Perfil Piloto</span>
-        <p class="txt-f"><b>Edad:</b> ${clean(f.edad)} años</p>
-        <p class="txt-f"><b>Ciudad:</b> ${clean(f.residencia)}</p>
-        <span class="label-f">🏎️ Vehículo</span>
-        <p class="txt-f"><b>Modelo:</b> ${clean(f.coche_modelo)}</p>
-        <p class="txt-f"><b>Motor:</b> ${clean(f.motor)} | <b>Potencia:</b> ${clean(f.potencia)} CV</p>
-        <span class="label-f">🔧 Modificaciones</span>
-        <p class="txt-f" style="font-size:1.1em; color:#bbb;">${clean(f.mods)}</p>
-        <span class="label-f">💡 Curiosidades</span>
-        <p class="txt-f" style="color:#ffcc00; font-style:italic;">"${clean(f.curiosidades)}"</p>
-        <span class="label-f">🏆 Palmarés</span>
-        <p class="txt-f">${clean(f.palmares)}</p>
-        <span class="label-f">📱 Instagram</span>
-        <p class="txt-f" style="color:#007bff; font-weight:bold; font-size:1.4em;">${clean(f.ig)}</p>
-        <button class="btn-cerrar" onclick="document.getElementById('modal-ficha').style.display='none'">CERRAR BIOGRAFÍA</button>
+
+        <span class="bio-label">Ficha Técnica Piloto</span>
+        <p class="bio-txt"><b>Edad:</b> ${filter(f.edad)} años</p>
+        <p class="bio-txt"><b>Residencia:</b> ${filter(f.residencia)}</p>
+
+        <span class="bio-label">Preparación del Vehículo</span>
+        <p class="bio-txt"><b>Modelo:</b> ${filter(f.coche_modelo)}</p>
+        <p class="bio-txt"><b>Motor:</b> ${filter(f.motor)}</p>
+        <p class="bio-txt"><b>Potencia:</b> ${filter(f.potencia)} CV</p>
+
+        <span class="bio-label">Modificaciones</span>
+        <p class="bio-txt" style="font-size:1em; color:#aaa; background:rgba(0,0,0,0.3); padding:10px; border-radius:10px; margin-top:10px;">${filter(f.mods)}</p>
+
+        <span class="bio-label">Curiosidades / Historia</span>
+        <p class="bio-txt" style="color:var(--accent); font-style:italic; font-size:1.1em;">"${filter(f.curiosidades)}"</p>
+
+        <span class="bio-label">Palmarés</span>
+        <p class="bio-txt">${filter(f.palmares)}</p>
+
+        <span class="bio-label">Instagram Oficial</span>
+        <p class="bio-txt" style="color:var(--primary); font-weight:bold; font-size:1.4em;">${filter(f.ig)}</p>
+
+        <button class="btn-close" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR FICHA</button>
       `;
-      document.getElementById('modal-ficha').style.display = 'block';
+      document.getElementById('modal-bio').style.display = 'block';
     };
 
-    // IMPORTADOR CSV (EXTREMADAMENTE PRECISO)
-    window.importarFichas = (e) => {
+    // 6. IMPORTADOR DE CSV CON SOPORTE PARA ALINEACIÓN DE EXCEL
+    window.handleFile = (e) => {
       const file = e.target.files[0];
+      if (!file) return;
+
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        const lines = ev.target.result.split(/\r?\n/);
-        let nuevas = {};
-        const sep = lines[0].includes(';') ? ';' : ',';
+      reader.onload = (event) => {
+        const text = event.target.result;
+        const lines = text.split(/\r?\n/);
+        let dataToUpload = {};
         
-        for(let i=1; i<lines.length; i++){
-          const c = lines[i].split(sep);
-          if(!c[0] || c[0].trim() === "") continue;
+        // Detección automática de separador (Excel suele usar ; en España)
+        const delimiter = lines[0].includes(';') ? ';' : ',';
+        console.log("Procesando CSV con delimitador:", delimiter);
+
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
           
-          const d = c[0].trim();
-          // Mapeo 1 a 1 siguiendo tu CSV de Torredembarra
-          nuevas[d] = {
-            nombre:       (c[1]  || "").trim(),
-            edad:         (c[2]  || "").trim(),
-            residencia:   (c[3]  || "").trim(),
-            coche_modelo: (c[4]  || "").trim(),
-            motor:        (c[5]  || "").trim(),
-            potencia:     (c[6]  || "").trim(),
-            mods:         (c[7]  || "").trim(),
-            curiosidades: (c[8]  || "").trim(),
-            palmares:     (c[9]  || "").trim(),
-            ig:           (c[10] || "").trim()
+          // Dividir por delimitador teniendo en cuenta posibles espacios de alineación
+          const cols = lines[i].split(delimiter).map(cell => cell.trim());
+          
+          if (!cols[0]) continue;
+          const d = cols[0]; // El dorsal es la clave principal
+
+          dataToUpload[d] = {
+            nombre:       cols[1] || "",
+            edad:         cols[2] || "",
+            residencia:   cols[3] || "",
+            coche_modelo: cols[4] || "",
+            motor:        cols[5] || "",
+            potencia:     cols[6] || "",
+            mods:         cols[7] || "",
+            curiosidades: cols[8] || "",
+            palmares:     cols[9] || "",
+            ig:           cols[10]|| ""
           };
         }
-        db.ref('fichas_pilotos').set(nuevas).then(() => alert("✅ Biografías actualizadas."));
+
+        db.ref('fichas_pilotos').set(dataToUpload).then(() => {
+          alert("✅ BASE DE DATOS ACTUALIZADA\n" + Object.keys(dataToUpload).length + " biografías cargadas correctamente.");
+        }).catch(err => {
+          alert("❌ ERROR AL SUBIR: " + err.message);
+        });
       };
+      
+      // ISO-8859-1 es CLAVE para que Excel no rompa las tildes y eñes
       reader.readAsText(file, 'ISO-8859-1');
     };
   </script>

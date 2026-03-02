@@ -69,21 +69,25 @@
         document.getElementById('status-carga').innerText = n + " fichas técnicas cargadas.";
     });
 
-    // Escuchar votación en tiempo real (lo mismo que el Máster)
+// Escuchar votación en tiempo real
     db.ref('votacion_activa').on('value', snap => {
       const v = snap.val();
       const cont = document.getElementById('pista-container');
-      if (!v || !v.activa) {
+      
+      if (!v || !v.activa || !v.items) {
         cont.innerHTML = `<div style="text-align:center; color:#666; margin-top:50px;">PISTA LIBRE</div>`;
         return;
       }
 
       let html = "";
       Object.entries(v.items).forEach(([dorsal, data]) => {
+        // Forzamos a que el dorsal sea un string para buscar en las fichas
+        const dorsalStr = String(dorsal).trim(); 
+        
         html += `
-          <div class="card-speaker active" onclick="abrirFicha('${dorsal}')">
+          <div class="card-speaker active" onclick="abrirFicha('${dorsalStr}')">
             <div style="display:flex; justify-content:space-between;">
-              <div class="dorsal">#${dorsal}</div>
+              <div class="dorsal">#${dorsalStr}</div>
               <div style="text-align:right"><span class="coche-tag">${data.coche || 'DRIFT CAR'}</span></div>
             </div>
             <div class="nombre">${data.nombre}</div>
@@ -105,6 +109,7 @@
     });
 
     window.abrirFicha = (dorsal) => {
+      const dorsal = String(c[0]).trim(); // Convertir a texto y limpiar espacios
       const f = fichasData[dorsal];
       const modal = document.getElementById('modal-ficha');
       const body = document.getElementById('ficha-body');

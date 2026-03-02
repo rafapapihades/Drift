@@ -8,7 +8,8 @@
     body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 15px; padding-bottom: 80px; }
     .title { color: #ffcc00; text-align: center; text-transform: uppercase; font-size: 1.5em; margin-bottom: 20px; border-bottom: 2px solid #ffcc00; padding-bottom: 10px; }
     
-    .card-speaker { background: #111; border: 2px solid #333; border-radius: 15px; padding: 20px; margin-bottom: 15px; cursor: pointer; position: relative; }
+    /* TARJETA COCHE EN PISTA */
+    .card-speaker { background: #111; border: 2px solid #333; border-radius: 15px; padding: 20px; margin-bottom: 15px; cursor: pointer; position: relative; transition: 0.3s; }
     .card-speaker.active { border-color: #007bff; box-shadow: 0 0 20px rgba(0, 123, 255, 0.3); }
     
     .dorsal { font-size: 3.5em; font-weight: bold; color: #007bff; line-height: 1; }
@@ -19,7 +20,15 @@
     .voto-val { font-size: 2em; font-weight: bold; color: #ffcc00; display: block; }
     .voto-label { font-size: 0.8em; color: #888; text-transform: uppercase; }
 
-    /* Modal Ficha */
+    /* RANKING EN VIVO */
+    .ranking-panel { background: #111; border: 1px solid #333; border-radius: 15px; padding: 15px; margin-top: 20px; }
+    .ranking-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+    .ranking-table th { text-align: left; color: #ffcc00; border-bottom: 1px solid #333; padding: 8px; text-transform: uppercase; font-size: 0.7em; }
+    .ranking-table td { padding: 10px 8px; border-bottom: 1px solid #222; }
+    .pos { color: #ffcc00; font-weight: bold; width: 30px; }
+    .puntos-total { color: #00ff99; font-weight: bold; text-align: right; }
+
+    /* MODAL FICHA TÉCNICA */
     #modal-ficha { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 1000; padding: 20px; overflow-y: auto; }
     .ficha-content { background: #111; border: 2px solid #ffcc00; border-radius: 20px; padding: 25px; max-width: 600px; margin: 0 auto; }
     .ficha-header { text-align: center; border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
@@ -27,6 +36,7 @@
     .ficha-label { color: #ffcc00; font-size: 0.9em; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
     .ficha-txt { font-size: 1.2em; line-height: 1.4; color: #eee; }
 
+    /* PANEL ADMINISTRACIÓN */
     .admin-panel { background: #111; border: 1px dashed #444; padding: 15px; margin-top: 30px; border-radius: 10px; }
     .btn-upload { background: #333; color: #fff; border: 1px solid #555; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; }
     .btn-cerrar { background: #ffcc00; color: #000; border: none; width: 100%; padding: 18px; border-radius: 12px; font-weight: bold; font-size: 1.2em; cursor: pointer; margin-top: 20px; }
@@ -37,61 +47,79 @@
 </head>
 <body>
 
-  <div class="title">🎤 CONTROL SPEAKER</div>
+  <div class="title">🎤 PANEL DE CONTROL SPEAKER</div>
 
   <div id="pista-container">
     <div style="text-align:center; color:#666; margin-top:50px;">ESPERANDO COCHE EN PISTA...</div>
   </div>
 
+  <div class="ranking-panel">
+    <div style="text-align: center; color: #ffcc00; font-weight: bold; text-transform: uppercase; font-size: 0.9em;">
+      🏆 Ranking General (Puntos Totales)
+    </div>
+    <table class="ranking-table">
+      <thead>
+        <tr>
+          <th>Pos</th>
+          <th>Piloto</th>
+          <th style="text-align:right">Total</th>
+        </tr>
+      </thead>
+      <tbody id="ranking-body">
+        </tbody>
+    </table>
+  </div>
+
   <div class="admin-panel">
-    <div style="font-size: 0.8em; color: #888; margin-bottom: 10px; text-align: center;">ADMIN: CARGAR DATOS DE PILOTOS (.CSV)</div>
+    <div style="font-size: 0.8em; color: #888; margin-bottom: 10px; text-align: center;">ADMIN: CARGAR BIOGRAFÍAS (.CSV)</div>
     <input type="file" id="csv-file" accept=".csv" style="display:none;" onchange="importarFichas(event)">
-    <button class="btn-upload" onclick="document.getElementById('csv-file').click()">📂 SELECCIONAR ARCHIVO DE FICHAS</button>
-    <div id="status-carga" style="font-size:0.7em; text-align:center; margin-top:5px;"></div>
+    <button class="btn-upload" onclick="document.getElementById('csv-file').click()">📂 SUBIR ARCHIVO FICHAS_TORREDEMBARRA</button>
+    <div id="status-carga" style="font-size:0.7em; text-align:center; margin-top:5px; color:#aaa;"></div>
   </div>
 
   <div id="modal-ficha">
-    <div class="ficha-content" id="ficha-body"></div>
+    <div class="ficha-content" id="ficha-body">
+      </div>
   </div>
 
   <script>
+    // Configura aquí tu URL de Firebase
     firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
     const db = firebase.database();
 
     let fichasData = {};
 
-    // 1. Sincronizar fichas técnicas
+    // 1. SINCRONIZAR FICHAS TÉCNICAS (Biografías)
     db.ref('fichas_pilotos').on('value', s => { 
         fichasData = s.val() || {}; 
         const n = Object.keys(fichasData).length;
-        document.getElementById('status-carga').innerText = n + " fichas técnicas cargadas.";
+        document.getElementById('status-carga').innerText = n + " biografías cargadas en el sistema.";
     });
 
-    // 2. Escuchar votación en tiempo real
+    // 2. ESCUCHAR COCHE EN PISTA (Votación activa)
     db.ref('votacion_activa').on('value', snap => {
       const v = snap.val();
       const cont = document.getElementById('pista-container');
       
       if (!v || !v.activa || !v.items) {
-        cont.innerHTML = `<div style="text-align:center; color:#666; margin-top:50px;">PISTA LIBRE</div>`;
+        cont.innerHTML = `<div style="text-align:center; color:#666; margin-top:50px; border:1px dashed #333; padding:20px; border-radius:15px;">PISTA LIBRE / SIN VOTACIÓN</div>`;
         return;
       }
 
       let html = "";
       Object.entries(v.items).forEach(([dorsal, data]) => {
-        const dorsalStr = String(dorsal).trim(); 
-        
+        const dStr = String(dorsal).trim(); 
         html += `
-          <div class="card-speaker active" onclick="abrirFicha('${dorsalStr}')">
-            <div style="display:flex; justify-content:space-between;">
-              <div class="dorsal">#${dorsalStr}</div>
+          <div class="card-speaker active" onclick="abrirFicha('${dStr}')">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+              <div class="dorsal">#${dStr}</div>
               <div style="text-align:right"><span class="coche-tag">${data.coche || 'DRIFT CAR'}</span></div>
             </div>
             <div class="nombre">${data.nombre}</div>
             
             <div class="votos-box">
               <div style="text-align:center">
-                <span class="voto-label">Aplausos Vivos</span>
+                <span class="voto-label">Aplausos Ahora</span>
                 <span class="voto-val">👏 ${data.ap || 0}</span>
               </div>
               <div style="text-align:center">
@@ -99,62 +127,81 @@
                 <span class="voto-val" style="color:#00ff99;">🔥 ${(data.ap||0)+(data.h_ap||0)}</span>
               </div>
             </div>
-            <p style="text-align:center; color:#007bff; font-weight:bold; margin-top:15px;">🔍 PULSAR PARA VER BIOGRAFÍA</p>
+            <p style="text-align:center; color:#007bff; font-weight:bold; margin-top:15px; font-size:0.9em;">🔍 TOCAR PARA VER BIOGRAFÍA Y MODS</p>
           </div>`;
       });
       cont.innerHTML = html;
     });
 
-    // 3. Función para abrir la ficha (Corregida)
+    // 3. ACTUALIZAR RANKING EN VIVO
+    db.ref('inscritos_drift').on('value', snap => {
+      const inscritos = snap.val();
+      const tbody = document.getElementById('ranking-body');
+      if (!inscritos) return;
+
+      let lista = Object.entries(inscritos).map(([dorsal, data]) => {
+        const total = (data.ap || 0) + (data.h_ap || 0) + (data.up || 0) + (data.h_up || 0);
+        return { dorsal: dorsal, nombre: data.nombre || "Piloto", puntos: total };
+      });
+
+      lista.sort((a, b) => b.puntos - a.puntos);
+
+      tbody.innerHTML = lista.slice(0, 15).map((p, index) => `
+        <tr>
+          <td class="pos">${index + 1}º</td>
+          <td><span style="color:#007bff; font-weight:bold;">#${p.dorsal}</span> ${p.nombre}</td>
+          <td class="puntos-total">${p.puntos} pts</td>
+        </tr>
+      `).join('');
+    });
+
+    // 4. FUNCIÓN PARA VER FICHA DETALLADA
     window.abrirFicha = (dorsalId) => {
       const f = fichasData[dorsalId];
-      const modal = document.getElementById('modal-ficha');
-      const body = document.getElementById('ficha-body');
-      
       if(!f) { 
-        alert("No hay biografía para el #" + dorsalId); 
+        alert("No se ha subido biografía para el dorsal #" + dorsalId + ". Súbelas usando el botón gris de abajo."); 
         return; 
       }
 
-      body.innerHTML = `
+      document.getElementById('ficha-body').innerHTML = `
         <div class="ficha-header">
-          <div style="font-size:3em; font-weight:bold; color:#ffcc00;">#${dorsalId}</div>
+          <div style="font-size:3.5em; font-weight:bold; color:#ffcc00;">#${dorsalId}</div>
           <div style="font-size:1.8em; font-weight:bold;">${f.nombre}</div>
         </div>
 
         <div class="ficha-section">
-          <div class="ficha-label">👨‍o Piloto</div>
-          <div class="ficha-txt">${f.edad} años | ${f.residencia}</div>
+          <div class="ficha-label">👤 Piloto</div>
+          <div class="ficha-txt">${f.edad} años | Residente en ${f.residencia}</div>
         </div>
 
         <div class="ficha-section">
-          <div class="ficha-label">🚗 Máquina</div>
+          <div class="ficha-label">🏎️ Vehículo</div>
           <div class="ficha-txt"><strong>${f.coche_modelo}</strong></div>
           <div class="ficha-txt">${f.motor} | ${f.potencia} CV</div>
-          <div class="ficha-txt" style="font-size:0.9em; color:#888;">Mods: ${f.mods}</div>
+          <div class="ficha-txt" style="font-size:0.9em; color:#888; margin-top:5px;">Preparación: ${f.mods}</div>
         </div>
 
         <div class="ficha-section">
-          <div class="ficha-label">💡 Curiosidad para contar</div>
+          <div class="ficha-label">💡 Curiosidades / Historia</div>
           <div class="ficha-txt" style="color:#ffcc00; font-style:italic;">"${f.curiosidades}"</div>
         </div>
 
         <div class="ficha-section">
-          <div class="ficha-label">🏆 Palmarés</div>
+          <div class="ficha-label">🏆 Trayectoria</div>
           <div class="ficha-txt">${f.palmares}</div>
         </div>
 
-        <div class="ficha-section">
-          <div class="ficha-label">📱 Instagram</div>
-          <div class="ficha-txt" style="color:#007bff;">${f.ig}</div>
+        <div class="ficha-section" style="border:none;">
+          <div class="ficha-label">📱 Redes</div>
+          <div class="ficha-txt" style="color:#007bff; font-weight:bold;">${f.ig}</div>
         </div>
 
         <button class="btn-cerrar" onclick="document.getElementById('modal-ficha').style.display='none'">VOLVER AL PANEL</button>
       `;
-      modal.style.display = 'block';
+      document.getElementById('modal-ficha').style.display = 'block';
     }
 
-    // 4. Lógica para importar el CSV (Blindada)
+    // 5. IMPORTAR CSV DE FICHAS (Soporta , y ;)
     window.importarFichas = (event) => {
       const file = event.target.files[0];
       const reader = new FileReader();
@@ -162,6 +209,8 @@
       reader.onload = (e) => {
         const lines = e.target.result.split(/\r?\n/);
         let nuevasFichas = {};
+        if(lines.length < 2) return;
+
         const sep = lines[0].includes(';') ? ';' : ',';
 
         for(let i = 1; i < lines.length; i++) {
@@ -170,30 +219,25 @@
 
           const dorsal = String(c[0]).trim();
           nuevasFichas[dorsal] = {
-            nombre: (c[1] || "").trim(),
-            edad: (c[2] || "").trim(),
-            residencia: (c[3] || "").trim(),
-            coche_modelo: (c[4] || "").trim(),
-            motor: (c[5] || "").trim(),
-            potencia: (c[6] || "").trim(),
-            mods: (c[7] || "").trim(),
-            curiosidades: (c[8] || "").trim(),
-            palmares: (c[9] || "").trim(),
-            ig: (c[10] || "").trim()
+            nombre: (c[1] || "Sin nombre").trim(),
+            edad: (c[2] || "-").trim(),
+            residencia: (c[3] || "-").trim(),
+            coche_modelo: (c[4] || "-").trim(),
+            motor: (c[5] || "-").trim(),
+            potencia: (c[6] || "-").trim(),
+            mods: (c[7] || "-").trim(),
+            curiosidades: (c[8] || "-").trim(),
+            palmares: (c[9] || "-").trim(),
+            ig: (c[10] || "-").trim()
           };
         }
 
-        if(Object.keys(nuevasFichas).length > 0) {
-          db.ref('fichas_pilotos').set(nuevasFichas)
-            .then(() => alert("✅ Éxito: " + Object.keys(nuevasFichas).length + " fichas cargadas."))
-            .catch(err => alert("❌ Error: " + err));
-        }
+        db.ref('fichas_pilotos').set(nuevasFichas)
+          .then(() => alert("✅ Éxito: Se han cargado " + Object.keys(nuevasFichas).length + " biografías."))
+          .catch(err => alert("❌ Error al subir a Firebase: " + err));
       };
       reader.readAsText(file, 'ISO-8859-1');
     };
-  </script>
-</body>
-</html>
   </script>
 </body>
 </html>

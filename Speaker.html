@@ -15,22 +15,25 @@
     .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 20px; }
     .header h1 { font-size: 1.1em; color: var(--yellow); text-transform: uppercase; margin: 0; }
 
-    /* TARJETA PISTA - SOLO UN PILOTO */
+    /* CONTENEDOR DE TARJETAS */
+    #pista-container { display: flex; flex-direction: column; gap: 25px; }
+
+    /* TARJETA PISTA - DISEÑO VERTICAL LIMPIO */
     .card-active { 
       background: var(--card); 
       border: 4px solid var(--blue); 
       border-radius: 30px; 
       padding: 30px; 
-      margin-bottom: 20px; 
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      position: relative;
     }
     
     .dorsal { font-size: 7em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
-    .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.4em; font-weight: bold; text-transform: uppercase; margin: 15px 0; }
+    .coche-tag { background: var(--blue); color: #fff; padding: 8px 25px; border-radius: 10px; font-size: 1.4em; font-weight: bold; text-transform: uppercase; margin: 15px 0; }
     .nombre-pista { font-size: 2.2em; font-weight: bold; text-transform: uppercase; margin: 10px 0; color: #fff; }
 
     /* VOTOS */
@@ -40,7 +43,7 @@
     .v-lab { font-size: 0.8em; color: #888; text-transform: uppercase; margin-top: 5px; display: block; }
 
     /* BOTÓN INFO */
-    .btn-info-piloto { background: var(--yellow); color: #000; border: none; width: 100%; padding: 25px; border-radius: 20px; font-weight: 900; font-size: 1.4em; cursor: pointer; text-transform: uppercase; margin-top: 30px; box-shadow: 0 5px 15px rgba(255,204,0,0.3); }
+    .btn-info-piloto { background: var(--yellow); color: #000; border: none; width: 100%; padding: 25px; border-radius: 20px; font-weight: 900; font-size: 1.4em; cursor: pointer; text-transform: uppercase; margin-top: 30px; }
 
     /* MODAL */
     #modal-bio { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 5000; padding: 20px; overflow-y: auto; }
@@ -49,23 +52,23 @@
     .bio-val { font-size: 1.5em; color: #fff; margin: 10px 0; text-align: left; }
     .btn-cerrar { background: #222; color: #fff; border: 1px solid #444; width: 100%; padding: 20px; border-radius: 15px; margin-top: 40px; cursor: pointer; }
     
-    /* ZONA CARGA CSV CON TEXTO */
-    .admin-csv { margin-top: 60px; text-align: center; border-top: 1px solid #222; padding-top: 20px; }
-    .csv-text { color: #555; font-size: 0.8em; margin-bottom: 10px; display: block; }
+    /* CARGA CSV */
+    .admin-csv { margin-top: 60px; text-align: center; border-top: 1px solid #222; padding: 30px 10px; }
+    .csv-text { color: #666; font-size: 0.9em; margin-bottom: 15px; display: block; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <div class="header"><h1>🎤 SPEAKER PANEL</h1></div>
+  <div class="header"><h1>🎤 PANEL SPEAKER</h1></div>
 
   <div id="pista-container">
-    <div style="text-align:center; color:#333; padding:100px; font-size:1.2em;">ESPERANDO COCHE EN PISTA...</div>
+    <div style="text-align:center; color:#333; padding:100px;">ESPERANDO SEÑAL...</div>
   </div>
 
   <div class="admin-csv">
-    <span class="csv-text">Usa este botón para cargar las biografías desde Excel (.csv)</span>
+    <span class="csv-text">⚙️ CARGA DE DATOS: Selecciona el archivo FICHAS.csv para actualizar biografías</span>
     <input type="file" id="csv-file" style="display:none;" onchange="importarCSV(event)">
-    <button onclick="document.getElementById('csv-file').click()" style="background:#111; color:#777; border:1px solid #333; padding:10px 20px; border-radius:10px; cursor:pointer;">📂 CARGAR FICHAS PILOTOS</button>
+    <button onclick="document.getElementById('csv-file').click()" style="background:#1a1a1a; color:var(--yellow); border:1px solid var(--yellow); padding:15px 30px; border-radius:15px; cursor:pointer; font-weight:bold;">📂 IMPORTAR EXCEL (.CSV)</button>
   </div>
 
   <div id="modal-bio"><div class="bio-card" id="bio-body"></div></div>
@@ -86,44 +89,45 @@
         return;
       }
 
-      // IMPORTANTE: Solo cogemos el PRIMER piloto de la lista para evitar modo batalla
-      const keys = Object.keys(v.items);
-      const id = keys[0]; 
-      const p = v.items[id];
-
-      const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
-      const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
+      let html = "";
+      // Recorremos TODOS los pilotos en pista
+      Object.keys(v.items).forEach(id => {
+        const p = v.items[id];
+        const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
+        const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
         
-      cont.innerHTML = `
-        <div class="card-active">
-          <div class="dorsal">#${id}</div>
-          <div class="coche-tag">${p.Coche || p.coche || "Drift Car"}</div>
-          <div class="nombre-pista">${p.Piloto || p.nombre || "Piloto"}</div>
-          
-          <div class="votos-grid">
-            <div class="v-box">
-              <span class="v-val" style="color:var(--yellow);">👏 ${tAp}</span>
-              <span class="v-lab">Aplausos</span>
+        html += `
+          <div class="card-active">
+            <div class="dorsal">#${id}</div>
+            <div class="coche-tag">${p.Coche || p.coche || "Drift"}</div>
+            <div class="nombre-pista">${p.Piloto || p.nombre || "Piloto"}</div>
+            
+            <div class="votos-grid">
+              <div class="v-box">
+                <span class="v-val" style="color:var(--yellow);">👏 ${tAp}</span>
+                <span class="v-lab">Aplausos</span>
+              </div>
+              <div class="v-box">
+                <span class="v-val" style="color:var(--blue);">👍 ${tUp}</span>
+                <span class="v-lab">Dedo Arriba</span>
+              </div>
             </div>
-            <div class="v-box">
-              <span class="v-val" style="color:var(--blue);">👍 ${tUp}</span>
-              <span class="v-lab">Dedo Arriba</span>
-            </div>
-          </div>
-          
-          <button class="btn-info-piloto" onclick="verFicha('${id}')">🔎 VER FICHA Y MOTOR</button>
-        </div>`;
+            
+            <button class="btn-info-piloto" onclick="verFicha('${id}')">🔎 VER FICHA / MOTOR</button>
+          </div>`;
+      });
+      cont.innerHTML = html;
     });
 
     window.verFicha = (id) => {
       const f = cacheFichas[id];
-      if (!f) return alert("Biografía no cargada para el #" + id);
+      if (!f) return alert("Carga el CSV para ver la info de #" + id);
       const cl = (t) => (t && t.toString().trim() !== "" && t !== "undefined") ? t : "---";
 
       document.getElementById('bio-body').innerHTML = `
         <div style="text-align:center;">
           <div style="font-size:5.5em; font-weight:900; color:var(--blue); line-height:1; font-style:italic;">#${id}</div>
-          <h2 style="text-transform:uppercase; margin:10px 0; font-size:2.2em;">${cl(f.nombre)}</h2>
+          <h2 style="text-transform:uppercase; margin:10px 0;">${cl(f.nombre)}</h2>
         </div>
         <span class="bio-label">Piloto</span>
         <p class="bio-val">${cl(f.edad)} años | ${cl(f.residencia)}</p>
@@ -132,11 +136,11 @@
         <p class="bio-val"><span style="color:#00ff99">${cl(f.motor)}</span> | ${cl(f.potencia)} CV</p>
         <span class="bio-label">Preparación</span>
         <p class="bio-val" style="font-size:1em; color:#bbb;">${cl(f.mods)}</p>
-        <span class="bio-label">Curiosidades</span>
-        <p class="bio-val" style="color:var(--yellow); font-style:italic; line-height:1.2;">"${cl(f.curiosidades)}"</p>
+        <span class="bio-label">Historia</span>
+        <p class="bio-val" style="color:var(--yellow); font-style:italic;">"${cl(f.curiosidades)}"</p>
         <span class="bio-label">Instagram</span>
         <p class="bio-val" style="color:var(--blue); font-weight:bold; font-size:1.6em;">${cl(f.ig)}</p>
-        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR FICHA</button>
+        <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">VOLVER A PISTA</button>
       `;
       document.getElementById('modal-bio').style.display = 'block';
     };
@@ -152,7 +156,7 @@
           if(!c[0]) continue;
           nuevas[c[0]] = { nombre:c[1], edad:c[2], residencia:c[3], coche_modelo:c[4], motor:c[5], potencia:c[6], mods:c[7], curiosidades:c[8], palmares:c[9], ig:c[10] };
         }
-        db.ref('fichas_pilotos').set(nuevas).then(() => alert("✅ Fichas sincronizadas con éxito."));
+        db.ref('fichas_pilotos').set(nuevas).then(() => alert("✅ CSV Cargado"));
       };
       reader.readAsText(e.target.files[0], 'ISO-8859-1');
     };

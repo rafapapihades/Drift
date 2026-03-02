@@ -27,10 +27,8 @@
     .ficha-label { color: #ffcc00; font-size: 0.9em; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
     .ficha-txt { font-size: 1.2em; line-height: 1.4; color: #eee; }
 
-    /* Panel Carga (Solo para el Speaker) */
     .admin-panel { background: #111; border: 1px dashed #444; padding: 15px; margin-top: 30px; border-radius: 10px; }
     .btn-upload { background: #333; color: #fff; border: 1px solid #555; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; }
-    
     .btn-cerrar { background: #ffcc00; color: #000; border: none; width: 100%; padding: 18px; border-radius: 12px; font-weight: bold; font-size: 1.2em; cursor: pointer; margin-top: 20px; }
   </style>
 
@@ -62,14 +60,14 @@
 
     let fichasData = {};
 
-    // Sincronizar fichas técnicas
+    // 1. Sincronizar fichas técnicas
     db.ref('fichas_pilotos').on('value', s => { 
         fichasData = s.val() || {}; 
         const n = Object.keys(fichasData).length;
         document.getElementById('status-carga').innerText = n + " fichas técnicas cargadas.";
     });
 
-// Escuchar votación en tiempo real
+    // 2. Escuchar votación en tiempo real
     db.ref('votacion_activa').on('value', snap => {
       const v = snap.val();
       const cont = document.getElementById('pista-container');
@@ -81,7 +79,6 @@
 
       let html = "";
       Object.entries(v.items).forEach(([dorsal, data]) => {
-        // Forzamos a que el dorsal sea un string para buscar en las fichas
         const dorsalStr = String(dorsal).trim(); 
         
         html += `
@@ -108,17 +105,20 @@
       cont.innerHTML = html;
     });
 
-    window.abrirFicha = (dorsal) => {
-      const dorsal = String(c[0]).trim(); // Convertir a texto y limpiar espacios
-      const f = fichasData[dorsal];
+    // 3. Función para abrir la ficha (Corregida)
+    window.abrirFicha = (dorsalId) => {
+      const f = fichasData[dorsalId];
       const modal = document.getElementById('modal-ficha');
       const body = document.getElementById('ficha-body');
       
-      if(!f) { alert("No hay biografía para el #" + dorsal); return; }
+      if(!f) { 
+        alert("No hay biografía para el #" + dorsalId); 
+        return; 
+      }
 
       body.innerHTML = `
         <div class="ficha-header">
-          <div style="font-size:3em; font-weight:bold; color:#ffcc00;">#${dorsal}</div>
+          <div style="font-size:3em; font-weight:bold; color:#ffcc00;">#${dorsalId}</div>
           <div style="font-size:1.8em; font-weight:bold;">${f.nombre}</div>
         </div>
 
@@ -154,55 +154,46 @@
       modal.style.display = 'block';
     }
 
-    // Lógica para importar el CSV
-window.importarFichas = (event) => {
+    // 4. Lógica para importar el CSV (Blindada)
+    window.importarFichas = (event) => {
       const file = event.target.files[0];
       const reader = new FileReader();
       
       reader.onload = (e) => {
-        const contenido = e.target.result;
-        const lines = contenido.split(/\r?\n/); // Divide por líneas (Windows/Mac)
+        const lines = e.target.result.split(/\r?\n/);
         let nuevasFichas = {};
-        
-        // Detectar separador (¿coma o punto y coma?)
-        const primeraLinea = lines[0];
-        const sep = primeraLinea.includes(';') ? ';' : ',';
-        
-        console.log("Detectado separador: " + sep);
+        const sep = lines[0].includes(';') ? ';' : ',';
 
         for(let i = 1; i < lines.length; i++) {
           const c = lines[i].split(sep);
-          
-          // Si la línea está vacía o no tiene el dorsal, saltar
           if(!c[0] || c[0].trim() === "") continue;
 
-          const dorsal = c[0].trim();
-          
-          // Mapeo exacto según tu archivo CSV adjunto
+          const dorsal = String(c[0]).trim();
           nuevasFichas[dorsal] = {
-            nombre:      (c[1]  || "").trim(),
-            edad:        (c[2]  || "").trim(),
-            residencia:  (c[3]  || "").trim(),
-            coche_modelo:(c[4]  || "").trim(),
-            motor:       (c[5]  || "").trim(),
-            potencia:    (c[6]  || "").trim(),
-            mods:        (c[7]  || "").trim(),
-            curiosidades:(c[8]  || "").trim(),
-            palmares:    (c[9]  || "").trim(),
-            ig:          (c[10] || "").trim()
+            nombre: (c[1] || "").trim(),
+            edad: (c[2] || "").trim(),
+            residencia: (c[3] || "").trim(),
+            coche_modelo: (c[4] || "").trim(),
+            motor: (c[5] || "").trim(),
+            potencia: (c[6] || "").trim(),
+            mods: (c[7] || "").trim(),
+            curiosidades: (c[8] || "").trim(),
+            palmares: (c[9] || "").trim(),
+            ig: (c[10] || "").trim()
           };
         }
 
         if(Object.keys(nuevasFichas).length > 0) {
           db.ref('fichas_pilotos').set(nuevasFichas)
             .then(() => alert("✅ Éxito: " + Object.keys(nuevasFichas).length + " fichas cargadas."))
-            .catch(err => alert("❌ Error en Firebase: " + err));
-        } else {
-          alert("⚠️ No se encontraron datos válidos en el archivo.");
+            .catch(err => alert("❌ Error: " + err));
         }
       };
-      reader.readAsText(file, 'ISO-8859-1'); // 'ISO-8859-1' ayuda con las tildes de Excel
+      reader.readAsText(file, 'ISO-8859-1');
     };
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>

@@ -1,7 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-      body {
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SPEAKER PRO</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+  <style>
+    :root { --blue: #007bff; --yellow: #ffcc00; --bg: #000; }
+    body {
       background-image: url('logo_peq.png');
       background-repeat: repeat;
       background-size: 200px;
@@ -12,15 +20,6 @@
       display: flex; align-items: center; justify-content: center;
       min-height: 100vh;
     }
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SPEAKER PRO</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-
-  <style>
-    :root { --blue: #007bff; --yellow: #ffcc00; --bg: #000; }
-    body { background: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; }
     
     .header { text-align: center; border-bottom: 2px solid var(--yellow); padding-bottom: 10px; margin-bottom: 15px; }
     .header h1 { font-size: 1.1em; color: var(--yellow); text-transform: uppercase; margin: 0; }

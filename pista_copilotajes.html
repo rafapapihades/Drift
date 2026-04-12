@@ -127,33 +127,38 @@
 window.confirmarSubida = (id) => {
     if (navigator.vibrate) navigator.vibrate(60);
     
-    // 1. Obtener datos del copiloto y piloto asignado
-    db.ref('copilotajes/' + id).once('value').then(snap => {
+    // Usamos 'database' que es como está definido en tu archivo original
+    database.ref('copilotajes/' + id).once('value').then(snap => {
         const datos = snap.val();
-        const dorsalPiloto = datos.piloto; // El dorsal del coche (ej: "07", "14"...)
+        if(!datos) return;
 
-        // 2. Notificar al Speaker
-        // Enviamos el dorsal real para que el Speaker busque la "Bio" en su CSV
-        db.ref('votacion_activa').set({
+        const dorsalPiloto = datos.piloto; // El ID del piloto (ej: "07")
+
+        // ENVIAR AL SPEAKER
+        database.ref('votacion_activa').set({
             activa: true,
             dorsal: dorsalPiloto, 
             items: {
                 [dorsalPiloto]: {
-                    // Ponemos el nombre del copiloto para que el Speaker lo cante
                     nombre: "COPI: " + datos.copiloto, 
-                    coche: "VUELTA TAXI DRIFT",
-                    ap: 0, up: 0, dw: 0 // Reseteamos votos para esta vuelta
+                    coche: "TAXI DRIFT",
+                    ap: 0, up: 0, dw: 0
                 }
             }
+        }).then(() => {
+            console.log("Datos enviados al Speaker");
+        }).catch(err => {
+            console.error("Error al enviar al Speaker:", err);
         });
 
-        // 3. Mover a la lista de "En Pista" (completados)
-        db.ref('copilotajes_completados/' + id).set({
+        // MOVER A COMPLETADOS (EN PISTA)
+        database.ref('copilotajes_completados/' + id).set({
             ...datos,
             finalizado: false,
             timestamp_pista: Date.now()
         });
-        db.ref('copilotajes/' + id).remove();
+        
+        database.ref('copilotajes/' + id).remove();
     });
 };
 
@@ -161,14 +166,14 @@ window.confirmarSalidaRecinto = (id) => {
     if(!confirm("¿El copiloto ya ha salido del recinto?")) return;
     if (navigator.vibrate) navigator.vibrate(60);
 
-    // Limpiar pantalla del Speaker al terminar
-    db.ref('votacion_activa').set({
+    // Limpiar Speaker
+    database.ref('votacion_activa').set({
         activa: false,
         dorsal: null,
         items: null
     });
 
-    db.ref('copilotajes_completados/' + id).update({
+    database.ref('copilotajes_completados/' + id).update({
         finalizado: true,
         timestamp_salida: Date.now()
     });

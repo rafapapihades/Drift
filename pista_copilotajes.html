@@ -129,23 +129,31 @@
             if(snap.exists()){
                 const datos = snap.val();
                 
-                // --- NUEVA LÓGICA PARA EL SPEAKER ---
-                // Extraemos el dorsal del string del piloto (ej: de "[#07] Piloto" saca "07")
+                // --- LÓGICA PARA EL SPEAKER ---
+                // 1. Extraemos el DORSAL (ej: "07")
                 const dorsalMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
                 const dorsalPiloto = dorsalMatch ? dorsalMatch[1] : "0";
+
+                // 2. Extraemos el NOMBRE DEL PILOTO (limpiando el string)
+                // Esto quita el [#07] y deja solo el nombre del piloto
+                const nombrePilotoLimpio = datos.piloto
+                    .replace(/\[#\d+\]/, "")
+                    .replace(/^\d+[\s,.-]*/, "")
+                    .split('|')[0].trim();
 
                 await set(ref(db, 'votacion_activa'), {
                     activa: true,
                     dorsal: dorsalPiloto,
                     items: {
                         [dorsalPiloto]: {
-                            nombre: "COPI: " + datos.copiloto,
+                            // Ahora el título principal será el Piloto y el Copiloto
+                            nombre: `${nombrePilotoLimpio} & ${datos.copiloto}`,
                             coche: "TAXI DRIFT",
                             ap: 0, up: 0, dw: 0
                         }
                     }
                 });
-                // -------------------------------------
+                // ------------------------------
 
                 const newRef = push(ref(db, 'copilotajes/completados'));
                 await set(newRef, { ...datos, horaPista: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), finalizado: false });
@@ -155,13 +163,12 @@
 
         window.confirmarSalidaRecinto = (id) => {
             showConfirm("¿ACOMPAÑADO A LA SALIDA?", async () => {
-                // --- LIMPIAR SPEAKER AL TERMINAR ---
+                // Limpiamos el Speaker
                 await set(ref(db, 'votacion_activa'), {
                     activa: false,
                     dorsal: null,
                     items: null
                 });
-                // -------------------------------------
 
                 await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
             });

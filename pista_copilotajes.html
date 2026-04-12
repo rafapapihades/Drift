@@ -124,21 +124,55 @@
                 </div>`;
         }
 
-        window.confirmarSubida = async (id) => {
-            const snap = await get(ref(db, `copilotajes/espera/${id}`));
-            if(snap.exists()){
-                const data = snap.val();
-                const newRef = push(ref(db, 'copilotajes/completados'));
-                await set(newRef, { ...data, horaPista: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), finalizado: false });
-                await remove(ref(db, `copilotajes/espera/${id}`));
-            }
-        };
+window.confirmarSubida = (id) => {
+    if (navigator.vibrate) navigator.vibrate(60);
+    
+    // 1. Obtener datos del copiloto y piloto asignado
+    db.ref('copilotajes/' + id).once('value').then(snap => {
+        const datos = snap.val();
+        const dorsalPiloto = datos.piloto; // El dorsal del coche (ej: "07", "14"...)
 
-        window.confirmarSalidaRecinto = (id) => {
-            showConfirm("¿ACOMPAÑADO A LA SALIDA?", async () => {
-                await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
-            });
-        };
+        // 2. Notificar al Speaker
+        // Enviamos el dorsal real para que el Speaker busque la "Bio" en su CSV
+        db.ref('votacion_activa').set({
+            activa: true,
+            dorsal: dorsalPiloto, 
+            items: {
+                [dorsalPiloto]: {
+                    // Ponemos el nombre del copiloto para que el Speaker lo cante
+                    nombre: "COPI: " + datos.copiloto, 
+                    coche: "VUELTA TAXI DRIFT",
+                    ap: 0, up: 0, dw: 0 // Reseteamos votos para esta vuelta
+                }
+            }
+        });
+
+        // 3. Mover a la lista de "En Pista" (completados)
+        db.ref('copilotajes_completados/' + id).set({
+            ...datos,
+            finalizado: false,
+            timestamp_pista: Date.now()
+        });
+        db.ref('copilotajes/' + id).remove();
+    });
+};
+
+window.confirmarSalidaRecinto = (id) => {
+    if(!confirm("¿El copiloto ya ha salido del recinto?")) return;
+    if (navigator.vibrate) navigator.vibrate(60);
+
+    // Limpiar pantalla del Speaker al terminar
+    db.ref('votacion_activa').set({
+        activa: false,
+        dorsal: null,
+        items: null
+    });
+
+    db.ref('copilotajes_completados/' + id).update({
+        finalizado: true,
+        timestamp_salida: Date.now()
+    });
+};
 
         window.abrirModalCambio = (id) => {
             idSeleccionado = id;

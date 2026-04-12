@@ -3,44 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SPEAKER PRO</title>
+  <title>SPEAKER PRO - DRIFT SHOW</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
   <style>
-    :root { --blue: #007bff; --yellow: #ffcc00; --bg: #000; }
+    :root { --blue: #007bff; --yellow: #ffcc00; --bg: #000; --red: #ff0000; }
     
     body {
-      /* Fondo corregido con capa oscura para legibilidad */
       background-color: var(--bg);
       background-image: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('logo.png');
       background-repeat: repeat;
       background-size: 150px; 
       background-attachment: fixed;
-      
       color: #fff;
       font-family: 'Arial Black', Gadget, sans-serif;
       padding: 15px; 
       margin: 0;
     }
     
-    /* CABECERA CON IMAGEN */
     .header { 
       text-align: center; 
-      border-bottom: 3px solid var(--yellow); /* Borde un poco más grueso */
-      padding-bottom: 15px; /* Más espacio abajo */
-      margin-bottom: 30px; /* Más espacio con las tarjetas */
-      background: rgba(0,0,0,0.7); /* Fondo oscuro para destacar */
-      border-radius: 0 0 20px 20px; /* Bordes redondeados abajo */
-      box-shadow: 0 5px 15px rgba(0,0,0,0.5); /* Sombra suave */
+      border-bottom: 3px solid var(--yellow);
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+      background: rgba(0,0,0,0.7);
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
     }
     
     .header-img {
-      max-width: 280px; /* Ancho máximo de la imagen */
-      height: auto; /* Mantiene la proporción */
+      max-width: 280px;
+      height: auto;
       display: block;
-      margin: 0 auto; /* Centrado horizontal */
-      filter: drop-shadow(0 0 5px rgba(255, 204, 0, 0.5)); /* Brillo amarillo suave opcional */
+      margin: 0 auto;
+      filter: drop-shadow(0 0 5px rgba(255, 204, 0, 0.5));
+    }
+
+    /* BANNER ESTADO DE PISTA */
+    #banner-pista-live {
+        width: 100%; max-width: 600px; margin: 0 auto 20px auto;
+        padding: 15px; text-align: center; font-size: 1.2em; 
+        font-weight: bold; border-radius: 15px; 
+        display: none; text-transform: uppercase; border: 2px solid #fff;
+        box-sizing: border-box;
+    }
+
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
     }
     
     #pista-container { 
@@ -58,11 +70,13 @@
       padding: 25px; 
       text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      position: relative;
+      overflow: hidden;
     }
     
     .dorsal { font-size: 6em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
     .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.2em; font-weight: bold; text-transform: uppercase; margin: 15px 0; display: inline-block; }
-    .nombre-pista { font-size: 2em; font-weight: bold; text-transform: uppercase; margin: 5px 0; color: #fff; }
+    .nombre-pista { font-size: 2em; font-weight: bold; text-transform: uppercase; margin: 5px 0; color: #fff; line-height: 1.1; }
 
     .votos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
     .v-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 20px; border: 1px solid #333; }
@@ -72,8 +86,8 @@
     .btn-info { background: var(--yellow); color: #000; border: none; width: 100%; padding: 22px; border-radius: 20px; font-weight: 900; font-size: 1.2em; cursor: pointer; text-transform: uppercase; margin-top: 25px; }
 
     #modal-bio { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 9999; padding: 20px; overflow-y: auto; }
-    .bio-card { background: #111; border: 2px solid var(--yellow); border-radius: 30px; padding: 25px; max-width: 500px; margin: 0 auto; text-align: left; }
-    .btn-cerrar { background: #333; color: #fff; border: none; width: 100%; padding: 15px; border-radius: 15px; margin-top: 25px; cursor: pointer; width: 100%; font-weight: bold; }
+    .bio-card { background: #111; border: 2px solid var(--yellow); border-radius: 30px; padding: 25px; max-width: 500px; margin: 50px auto; text-align: left; }
+    .btn-cerrar { background: #333; color: #fff; border: none; width: 100%; padding: 15px; border-radius: 15px; margin-top: 25px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
     
     .admin-csv { margin-top: 60px; text-align: center; opacity: 0.9; padding: 25px; border-top: 1px solid #333; background: rgba(0,0,0,0.7); border-radius: 20px 20px 0 0; }
     #contador-fichas { font-size: 0.75em; color: var(--yellow); margin-top: 10px; display: block; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
@@ -84,6 +98,8 @@
   <div class="header">
     <img src="logo.png" alt="Speaker Pro" class="header-img">
   </div>
+
+  <div id="banner-pista-live">CARGANDO ESTADO...</div>
 
   <div id="pista-container">
     <div style="text-align:center; padding:50px; color:#555; font-size:1.2em;">CONECTANDO CON PISTA...</div>
@@ -98,17 +114,34 @@
   <div id="modal-bio"><div class="bio-card" id="bio-body"></div></div>
 
   <script>
-    // Tu lógica de Firebase se mantiene intacta
     firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
     const db = firebase.database();
     let cacheFichas = {};
 
+    // 1. ESCUCHAR ESTADO DE PISTA (BANNER)
+    const banner = document.getElementById('banner-pista-live');
+    db.ref('estado_pista').on('value', s => {
+        const est = s.val();
+        if(est && est.mensaje) {
+            banner.style.display = 'block';
+            banner.innerText = est.mensaje;
+            banner.style.backgroundColor = est.color || '#333';
+            if(est.id === 'btn-acc' || est.id === 'btn-obs') {
+                banner.style.animation = "blink 1s infinite";
+            } else {
+                banner.style.animation = "none";
+            }
+        }
+    });
+
+    // 2. ESCUCHAR FICHAS TÉCNICAS
     db.ref('fichas_pilotos').on('value', s => { 
       cacheFichas = s.val() || {}; 
       const total = Object.keys(cacheFichas).length;
       document.getElementById('contador-fichas').innerText = `Sistema: ${total} fichas cargadas`;
     });
 
+    // 3. ESCUCHAR PILOTOS EN PISTA (MULTITARJETA)
     db.ref('votacion_activa').on('value', snap => {
       const v = snap.val();
       const cont = document.getElementById('pista-container');
@@ -119,6 +152,7 @@
         return;
       }
 
+      // Creamos tarjetas para cada coche en pista
       Object.keys(v.items).forEach(id => {
         if (id.toUpperCase() === "BATALLA") return;
 
@@ -130,8 +164,8 @@
         card.className = "card-active";
         card.innerHTML = `
           <div class="dorsal">#${id}</div>
-          <div class="coche-tag">${p.Coche || p.coche || "DRIFT"}</div>
-          <div class="nombre-pista">${p.Piloto || p.nombre || "PILOTO"}</div>
+          <div class="coche-tag">${p.coche || "TAXI DRIFT"}</div>
+          <div class="nombre-pista">${p.nombre || "PILOTO"}</div>
           <div class="votos-grid">
             <div class="v-box"> <span class="v-val" style="color:var(--yellow);">${tAp}</span> <span class="v-lab">👏 APLAUSOS</span> </div>
             <div class="v-box"> <span class="v-val" style="color:var(--blue);">${tUp}</span> <span class="v-lab">👍 LIKES</span> </div>
@@ -142,10 +176,12 @@
       });
     });
 
+    // 4. MOSTRAR INFO TÉCNICA
     window.verFicha = (id) => {
       const f = cacheFichas[id];
-      if (!f) return alert("Sube el CSV para ver info de #" + id);
+      if (!f) return alert("No hay ficha técnica para el dorsal #" + id + ". Sube el CSV.");
       const cl = (t) => (t && t.toString().trim() !== "" && t !== "undefined") ? t : "---";
+      
       document.getElementById('bio-body').innerHTML = `
         <h2 style="color:var(--blue); font-size:3em; margin:0; font-style:italic;">#${id}</h2>
         <h3 style="text-transform:uppercase; margin-bottom:20px;">${cl(f.nombre)}</h3>
@@ -159,6 +195,7 @@
       document.getElementById('modal-bio').style.display = 'block';
     };
 
+    // 5. IMPORTAR CSV
     window.importarCSV = (e) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
@@ -168,9 +205,13 @@
         for(let i=1; i<lines.length; i++){
           const c = lines[i].split(sep).map(x => x.trim());
           if(!c[0]) continue;
-          nuevas[c[0]] = { nombre:c[1], edad:c[2], residencia:c[3], coche_modelo:c[4], motor:c[5], potencia:c[6], mods:c[7], curiosidades:c[8], ig:c[10] };
+          // Estructura basada en tu CSV: Dorsal, Nombre, Edad, Residencia, Modelo, Motor, Potencia, Mods, Curiosidades, IG
+          nuevas[c[0]] = { 
+              nombre: c[1], motor: c[5], potencia: c[6], 
+              mods: c[7], curiosidades: c[8], ig: c[10] 
+          };
         }
-        db.ref('fichas_pilotos').set(nuevas).then(() => alert("CSV Cargado"));
+        db.ref('fichas_pilotos').set(nuevas).then(() => alert("Fichas actualizadas correctamente"));
       };
       reader.readAsText(e.target.files[0], 'ISO-8859-1');
     };

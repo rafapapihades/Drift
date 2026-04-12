@@ -127,15 +127,42 @@
         window.confirmarSubida = async (id) => {
             const snap = await get(ref(db, `copilotajes/espera/${id}`));
             if(snap.exists()){
-                const data = snap.val();
+                const datos = snap.val();
+                
+                // --- NUEVA LÓGICA PARA EL SPEAKER ---
+                // Extraemos el dorsal del string del piloto (ej: de "[#07] Piloto" saca "07")
+                const dorsalMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
+                const dorsalPiloto = dorsalMatch ? dorsalMatch[1] : "0";
+
+                await set(ref(db, 'votacion_activa'), {
+                    activa: true,
+                    dorsal: dorsalPiloto,
+                    items: {
+                        [dorsalPiloto]: {
+                            nombre: "COPI: " + datos.copiloto,
+                            coche: "TAXI DRIFT",
+                            ap: 0, up: 0, dw: 0
+                        }
+                    }
+                });
+                // -------------------------------------
+
                 const newRef = push(ref(db, 'copilotajes/completados'));
-                await set(newRef, { ...data, horaPista: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), finalizado: false });
+                await set(newRef, { ...datos, horaPista: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), finalizado: false });
                 await remove(ref(db, `copilotajes/espera/${id}`));
             }
         };
 
         window.confirmarSalidaRecinto = (id) => {
             showConfirm("¿ACOMPAÑADO A LA SALIDA?", async () => {
+                // --- LIMPIAR SPEAKER AL TERMINAR ---
+                await set(ref(db, 'votacion_activa'), {
+                    activa: false,
+                    dorsal: null,
+                    items: null
+                });
+                // -------------------------------------
+
                 await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
             });
         };

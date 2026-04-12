@@ -127,15 +127,15 @@
 window.confirmarSubida = (id) => {
     if (navigator.vibrate) navigator.vibrate(60);
     
-    // IMPORTANTE: Usamos 'database' porque así está en tu script
+    // 1. Obtenemos los datos del copiloto
     database.ref('copilotajes/' + id).once('value').then(snap => {
         const datos = snap.val();
         if(!datos) return;
 
-        // Intentamos sacar el dorsal (si el campo 'piloto' es "07", dorsal será "07")
-        const dorsalPiloto = datos.piloto; 
+        const dorsalPiloto = datos.piloto; // El ID del piloto (ej: "07")
 
-        // 1. Enviamos al Speaker (nodo votacion_activa)
+        // 2. ENVIAR AL SPEAKER (Esto es lo nuevo)
+        // Usamos la misma ruta que usa el MASTER_SHOW
         database.ref('votacion_activa').set({
             activa: true,
             dorsal: dorsalPiloto, 
@@ -148,7 +148,7 @@ window.confirmarSubida = (id) => {
             }
         });
 
-        // 2. Movimiento normal de la lista
+        // 3. MOVER A COMPLETADOS (Tu código original)
         database.ref('copilotajes_completados/' + id).set({
             ...datos,
             finalizado: false,
@@ -156,21 +156,21 @@ window.confirmarSubida = (id) => {
         });
         
         database.ref('copilotajes/' + id).remove();
-    }).catch(error => {
-        alert("Error en Firebase: " + error.message);
     });
 };
+        
 window.confirmarSalidaRecinto = (id) => {
     if(!confirm("¿El copiloto ya ha salido del recinto?")) return;
     if (navigator.vibrate) navigator.vibrate(60);
 
-    // Al terminar, limpiamos el Speaker
+    // 1. LIMPIAR SPEAKER AL SALIR
     database.ref('votacion_activa').set({
         activa: false,
         dorsal: null,
         items: null
     });
 
+    // 2. TU CÓDIGO ORIGINAL
     database.ref('copilotajes_completados/' + id).update({
         finalizado: true,
         timestamp_salida: Date.now()

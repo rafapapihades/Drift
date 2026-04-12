@@ -129,32 +129,28 @@
             if(snap.exists()){
                 const datos = snap.val();
                 
-                // --- LÓGICA PARA EL SPEAKER ---
-                // 1. Extraemos el DORSAL (ej: "07")
+                // 1. Extraemos DORSAL y NOMBRE del piloto
                 const dorsalMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
                 const dorsalPiloto = dorsalMatch ? dorsalMatch[1] : "0";
 
-                // 2. Extraemos el NOMBRE DEL PILOTO (limpiando el string)
-                // Esto quita el [#07] y deja solo el nombre del piloto
                 const nombrePilotoLimpio = datos.piloto
                     .replace(/\[#\d+\]/, "")
                     .replace(/^\d+[\s,.-]*/, "")
                     .split('|')[0].trim();
 
-                await set(ref(db, 'votacion_activa'), {
-                    activa: true,
-                    dorsal: dorsalPiloto,
-                    items: {
-                        [dorsalPiloto]: {
-                            // Ahora el título principal será el Piloto y el Copiloto
-                            nombre: `${nombrePilotoLimpio} & ${datos.copiloto}`,
-                            coche: "TAXI DRIFT",
-                            ap: 0, up: 0, dw: 0
-                        }
-                    }
-                });
-                // ------------------------------
+                // 2. ACTUALIZAR SPEAKER (Añadir sin borrar los que ya están)
+                const updatesSpeaker = {};
+                updatesSpeaker['votacion_activa/activa'] = true;
+                // Usamos el dorsal como llave para que cada uno tenga su propia tarjeta
+                updatesSpeaker[`votacion_activa/items/${dorsalPiloto}`] = {
+                    nombre: `${nombrePilotoLimpio} & ${datos.copiloto}`,
+                    coche: "TAXI DRIFT",
+                    ap: 0, up: 0, dw: 0
+                };
+                
+                await update(ref(db), updatesSpeaker);
 
+                // 3. MOVER A COMPLETADOS (Tu lógica original)
                 const newRef = push(ref(db, 'copilotajes/completados'));
                 await set(newRef, { ...datos, horaPista: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), finalizado: false });
                 await remove(ref(db, `copilotajes/espera/${id}`));
@@ -169,6 +165,28 @@
                     dorsal: null,
                     items: null
                 });
+
+                await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
+            });
+        };window.confirmarSalidaRecinto = (id) => {
+            showConfirm("¿ACOMPAÑADO A LA SALIDA?", async () => {
+                const snap = await get(ref(db, `copilotajes/completados/${id}`));
+                if (snap.exists()) {
+                    const datos = snap.val();
+                    const dorsalMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
+                    const dorsalPiloto = dorsalMatch ? dorsalMatch[1] : null;
+
+                    if (dorsalPiloto) {
+                        // Borramos SOLO la tarjeta de este piloto en el Speaker
+                        await remove(ref(db, `votacion_activa/items/${dorsalPiloto}`));
+                        
+                        // Si no quedan más pilotos, podemos poner activa: false (opcional)
+                        const snapRestantes = await get(ref(db, 'votacion_activa/items'));
+                        if (!snapRestantes.exists()) {
+                            await update(ref(db, 'votacion_activa'), { activa: false });
+                        }
+                    }
+                }
 
                 await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
             });

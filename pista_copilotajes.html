@@ -24,6 +24,7 @@
 
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
 
+        /* Banner de Estado */
         #banner-pista-live {
             width: 100%; padding: 15px; text-align: center; font-size: 1.2em; 
             font-weight: bold; border-radius: 10px; margin-bottom: 15px; 
@@ -78,7 +79,7 @@
     <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR DORSAL O NOMBRE..." oninput="filtrar()">
 
     <div class="card">
-        <div class="section-title">📋 ESPERA EN RECINTO (LISTOS)</div>
+        <div class="section-title">📋 COLA DE ACCESO (EN RECINTO)</div>
         <table><tbody id="lista-espera"></tbody></table>
     </div>
 
@@ -108,10 +109,9 @@
 
         let idSeleccionado = null;
         let confirmAction = null;
-        let estadisticasViajes = {};
-        let ultimoTicketPiloto = {};
         let listaPilotosActivos = [];
 
+        // Lógica del Banner
         const bannerPista = document.getElementById('banner-pista-live');
         onValue(ref(db, 'estado_pista'), (snapshot) => {
             const estado = snapshot.val();
@@ -146,10 +146,13 @@
                 </div>`;
         }
 
+        // FUNCIONALIDAD: MANDAR A PISTA
         window.confirmarSubida = async (id) => {
             const snap = await get(ref(db, `copilotajes/espera/${id}`));
             if(snap.exists()){
                 const datos = snap.val();
+                
+                // Actualizar Speaker
                 const dorsalMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
                 const dorsalPiloto = dorsalMatch ? dorsalMatch[1] : "0";
                 const nombrePilotoLimpio = datos.piloto.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
@@ -163,8 +166,13 @@
                 };
                 await update(ref(db), updatesSpeaker);
 
+                // Mover a completados (Pista)
                 const newRef = push(ref(db, 'copilotajes/completados'));
-                await set(newRef, { ...datos, horaPista: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), finalizado: false });
+                await set(newRef, { 
+                    ...datos, 
+                    horaPista: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), 
+                    finalizado: false 
+                });
                 await remove(ref(db, `copilotajes/espera/${id}`));
             }
         };
@@ -174,10 +182,10 @@
                 const snap = await get(ref(db, `copilotajes/completados/${id}`));
                 if (snap.exists()) {
                     const datos = snap.val();
-                    const dorsalMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
-                    const dorsalPiloto = dorsalMatch ? dorsalMatch[1] : null;
-                    if (dorsalPiloto) {
-                        await remove(ref(db, `votacion_activa/items/${dorsalPiloto}`));
+                    const dMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
+                    const dPiloto = dMatch ? dMatch[1] : null;
+                    if (dPiloto) {
+                        await remove(ref(db, `votacion_activa/items/${dPiloto}`));
                         const snapRestantes = await get(ref(db, 'votacion_activa/items'));
                         if (!snapRestantes.exists()) await update(ref(db, 'votacion_activa'), { activa: false });
                     }
@@ -186,9 +194,10 @@
             });
         };
 
+        // LÓGICA DE REASIGNACIÓN
         window.abrirModalCambio = (id) => {
             idSeleccionado = id;
-            if (listaPilotosActivos.length === 0) return alert("No hay pilotos activos.");
+            if (listaPilotosActivos.length === 0) return alert("No hay pilotos disponibles.");
             document.getElementById('modal-cambio').style.display = 'flex';
         };
 
@@ -200,52 +209,51 @@
             cerrarModal();
         };
 
+        // ESCUCHA PRINCIPAL DE DATOS
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
-            const sel = document.getElementById('nuevo-piloto-select');
             
-            const todosLosPilotos = data.config_pilotos ? Object.values(data.config_pilotos) : [];
+            // Actualizar lista de pilotos activos para el modal
+            const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
-            listaPilotosActivos = todosLosPilotos.filter(p => !bajas.includes(p));
+            listaPilotosActivos = config.filter(p => !bajas.includes(p));
 
-            sel.innerHTML = "";
-            listaPilotosActivos.forEach(p => {
-                let opt = document.createElement('option');
-                opt.value = p;
-                const dMatch = p.match(/\[#(\d+)\]/) || p.match(/^(\d+)/);
-                const nLimpio = p.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
-                opt.innerText = `DORSAL ${dMatch ? dMatch[1] : '?' } - ${nLimpio}`;
-                sel.appendChild(opt);
-            });
+            const sel = document.getElementById('nuevo-piloto-select');
+            sel.innerHTML = listaPilotosActivos.map(p => {
+                const d = p.match(/\[#(\d+)\]/) || p.match(/^(\d+)/);
+                const n = p.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
+                return `<option value="${p}">DORSAL ${d ? d[1] : '?'} - ${n}</option>`;
+            }).join('');
 
-            // 1. RENDERIZAR LISTA DE ESPERA (En Recinto)
-            const tEspera = document.getElementById('lista-espera'); tEspera.innerHTML = "";
-            if(data.espera) {
-                // Ordenamos por número de ticket
-                const esperaItems = Object.entries(data.espera).sort((a,b) => a[1].nPapel - b[1].nPapel);
-                esperaItems.forEach(([id, item]) => {
-                    if(item.enRecinto) {
+            // RENDER COLA DE ACCESO (Sección nueva solicitada)
+            const tEspera = document.getElementById('lista-espera');
+            tEspera.innerHTML = "";
+            if (data.espera) {
+                Object.entries(data.espera)
+                    .filter(([id, item]) => item.enRecinto) // <--- ESTA ES LA CLAVE
+                    .sort((a,b) => a[1].nPapel - b[1].nPapel)
+                    .forEach(([id, item]) => {
                         tEspera.innerHTML += `<tr><td>
                             <span class="n-doc">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b>
                             ${generarMatriculaHTML(item.piloto)}
-                            <button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 CAMBIAR PILOTO</button>
+                            <button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 REASIGNAR PILOTO</button>
                         </td><td style="width:100px"><button class="btn-pista" onclick="confirmarSubida('${id}')">EN PISTA</button></td></tr>`;
-                    }
-                });
+                    });
             }
 
-            // 2. RENDERIZAR PISTA ACTIVA
-            const tPista = document.getElementById('lista-pista-activa'); tPista.innerHTML = "";
-            if(data.completados) {
-                const pistaItems = Object.entries(data.completados).sort((a,b) => b[1].nPapel - a[1].nPapel);
-                pistaItems.forEach(([id, item]) => {
-                    if(item.finalizado === false) {
+            // RENDER EN PISTA
+            const tPista = document.getElementById('lista-pista-activa');
+            tPista.innerHTML = "";
+            if (data.completados) {
+                Object.entries(data.completados)
+                    .filter(([id, item]) => item.finalizado === false)
+                    .sort((a,b) => b[1].nPapel - a[1].nPapel)
+                    .forEach(([id, item]) => {
                         tPista.innerHTML += `<tr><td>
                             <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b>
                             <div style="transform: scale(0.8); origin: left center; opacity:0.8;">${generarMatriculaHTML(item.piloto)}</div>
-                        </td><td style="width:140px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button></td></tr>`;
-                    }
-                });
+                        </td><td style="width:140px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">ACOMPAÑADO A SALIDA</button></td></tr>`;
+                    });
             }
         });
 

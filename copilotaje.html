@@ -379,24 +379,50 @@
         };
 
         document.getElementById('btn-reset').onclick = async () => {
-            const snap = await get(ref(db, 'copilotajes'));
-            if (!snap.exists()) return;
-            const data = snap.val();
-            // Columna de PAGO añadida a la exportación
-            let csv = "Nº TICKET,COPILOTO,PILOTO,PAGO,HORA\n";
-            const listado = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})].sort((a,b) => a.nPapel - b.nPapel);
-            listado.forEach(v => csv += `${v.nPapel},${v.copiloto},${v.piloto},${v.metodoPago || 'EFECTIVO'},${v.horaRegistro}\n`);
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `Resumen_Logistica.csv`;
-            a.click();
-            
-            setTimeout(() => { 
-                if(confirm("¿BORRAR TODA LA NUBE?")) remove(ref(db, 'copilotajes')); 
-            }, 500);
-        };
+    const snap = await get(ref(db, 'copilotajes'));
+    if (!snap.exists()) return alert("No hay datos para exportar");
+    
+    const data = snap.val();
+    // 1. Cabecera extendida con los nuevos tiempos
+    let csv = "Nº TICKET,COPILOTO,PILOTO,REGISTRO,ENTRADA PISTA,SALIDA PISTA,DURACION\n";
+    
+    // Unificar todos los datos (espera y completados)
+    const listado = [
+        ...Object.values(data.espera || {}), 
+        ...Object.values(data.completados || {})
+    ].sort((a,b) => a.nPapel - b.nPapel);
+
+    listado.forEach(v => {
+        // Extraemos los datos o ponemos vacío si no existen
+        const reg = v.horaRegistro || "";
+        const ent = v.horaEntradaTexto || "";
+        const sal = v.horaSalidaTexto || "";
+        const dur = v.duracionTotal || "";
+        
+        csv += `${v.nPapel},"${v.copiloto}","${v.piloto}",${reg},${ent},${sal},${dur}\n`;
+    });
+
+    // 2. Crear el archivo
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    // 3. Forzar descarga segura
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Resumen_Evento_${new Date().toLocaleDateString()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 4. EL CAMBIO CLAVE: Esperar un poco antes de preguntar por el borrado
+    setTimeout(async () => {
+        if(confirm("✅ ARCHIVO GENERADO.\n\n¿Quieres BORRAR todos los datos de la nube ahora?\n(Solo hazlo si ya se ha descargado el archivo)")) {
+            await remove(ref(db, 'copilotajes'));
+            location.reload(); // Recargar para limpiar las tablas visualmente
+        }
+    }, 1500);
+};
 
         onValue(ref(db, 'copilotajes/nombre_evento'), s => document.getElementById('nombre-evento').value = s.val() || "");
         document.getElementById('nombre-evento').onchange = (e) => set(ref(db, 'copilotajes/nombre_evento'), e.target.value);

@@ -176,7 +176,7 @@
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
                     const row = `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}<button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 REASIGNAR</button></td><td style="width:110px">`;
-                    if(!item.enRecinto) tCola.innerHTML += row + `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">LLEGÓ</button></td></tr>`;
+                    if(!item.enRecinto) tCola.innerHTML += row + `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
                     else tRecinto.innerHTML += row + `<button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button></td></tr>`;
                 });
             }

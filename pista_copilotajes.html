@@ -24,7 +24,6 @@
 
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
 
-        /* Banner de Estado */
         #banner-pista-live {
             width: 100%; padding: 15px; text-align: center; font-size: 1.2em; 
             font-weight: bold; border-radius: 10px; margin-bottom: 15px; 
@@ -32,11 +31,7 @@
             box-sizing: border-box;
         }
 
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
@@ -83,7 +78,7 @@
     <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR DORSAL O NOMBRE..." oninput="filtrar()">
 
     <div class="card">
-        <div class="section-title">📋 COLA DE ACCESO</div>
+        <div class="section-title">📋 ESPERA EN RECINTO (LISTOS)</div>
         <table><tbody id="lista-espera"></tbody></table>
     </div>
 
@@ -117,7 +112,6 @@
         let ultimoTicketPiloto = {};
         let listaPilotosActivos = [];
 
-        // --- LÓGICA BANNER DE PISTA ---
         const bannerPista = document.getElementById('banner-pista-live');
         onValue(ref(db, 'estado_pista'), (snapshot) => {
             const estado = snapshot.val();
@@ -125,11 +119,7 @@
                 bannerPista.style.display = 'block';
                 bannerPista.innerText = estado.mensaje;
                 bannerPista.style.backgroundColor = estado.color || '#333';
-                if (estado.id === 'btn-acc' || estado.id === 'btn-obs') {
-                    bannerPista.style.animation = "blink 1s infinite";
-                } else {
-                    bannerPista.style.animation = "none";
-                }
+                bannerPista.style.animation = (estado.id === 'btn-acc' || estado.id === 'btn-obs') ? "blink 1s infinite" : "none";
             }
         });
 
@@ -160,13 +150,10 @@
             const snap = await get(ref(db, `copilotajes/espera/${id}`));
             if(snap.exists()){
                 const datos = snap.val();
-                
-                // 1. Datos del piloto para Speaker
                 const dorsalMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
                 const dorsalPiloto = dorsalMatch ? dorsalMatch[1] : "0";
                 const nombrePilotoLimpio = datos.piloto.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
 
-                // 2. ACTUALIZAR SPEAKER (Modo Multitarjeta)
                 const updatesSpeaker = {};
                 updatesSpeaker['votacion_activa/activa'] = true;
                 updatesSpeaker[`votacion_activa/items/${dorsalPiloto}`] = {
@@ -176,7 +163,6 @@
                 };
                 await update(ref(db), updatesSpeaker);
 
-                // 3. Mover a completados
                 const newRef = push(ref(db, 'copilotajes/completados'));
                 await set(newRef, { ...datos, horaPista: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), finalizado: false });
                 await remove(ref(db, `copilotajes/espera/${id}`));
@@ -190,16 +176,10 @@
                     const datos = snap.val();
                     const dorsalMatch = datos.piloto.match(/\[#(\d+)\]/) || datos.piloto.match(/^(\d+)/);
                     const dorsalPiloto = dorsalMatch ? dorsalMatch[1] : null;
-
                     if (dorsalPiloto) {
-                        // Quitar solo la tarjeta de este piloto en Speaker
                         await remove(ref(db, `votacion_activa/items/${dorsalPiloto}`));
-                        
-                        // Si no quedan tarjetas, desactivar votación
                         const snapRestantes = await get(ref(db, 'votacion_activa/items'));
-                        if (!snapRestantes.exists()) {
-                            await update(ref(db, 'votacion_activa'), { activa: false });
-                        }
+                        if (!snapRestantes.exists()) await update(ref(db, 'votacion_activa'), { activa: false });
                     }
                 }
                 await update(ref(db, `copilotajes/completados/${id}`), { finalizado: true });
@@ -208,21 +188,7 @@
 
         window.abrirModalCambio = (id) => {
             idSeleccionado = id;
-            if (listaPilotosActivos.length === 0) return alert("No hay pilotos activos disponibles.");
-            let sugerido = listaPilotosActivos[0];
-            let minViajes = estadisticasViajes[sugerido] || 0;
-            let ticketReferencia = ultimoTicketPiloto[sugerido] || 0;
-
-            listaPilotosActivos.forEach(p => {
-                const v = estadisticasViajes[p] || 0;
-                const t = ultimoTicketPiloto[p] || 0;
-                if (v < minViajes) {
-                    minViajes = v; ticketReferencia = t; sugerido = p;
-                } else if (v === minViajes && t < ticketReferencia) {
-                    ticketReferencia = t; sugerido = p;
-                }
-            });
-            document.getElementById('nuevo-piloto-select').value = sugerido;
+            if (listaPilotosActivos.length === 0) return alert("No hay pilotos activos.");
             document.getElementById('modal-cambio').style.display = 'flex';
         };
 
@@ -252,39 +218,32 @@
                 sel.appendChild(opt);
             });
 
-            estadisticasViajes = {};
-            ultimoTicketPiloto = {};
-            const todosLosRegistros = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
-            todosLosRegistros.forEach(v => { 
-                estadisticasViajes[v.piloto] = (estadisticasViajes[v.piloto] || 0) + 1; 
-                if(!ultimoTicketPiloto[v.piloto] || v.nPapel > ultimoTicketPiloto[v.piloto]) {
-                    ultimoTicketPiloto[v.piloto] = v.nPapel;
-                }
-            });
-
+            // 1. RENDERIZAR LISTA DE ESPERA (En Recinto)
             const tEspera = document.getElementById('lista-espera'); tEspera.innerHTML = "";
             if(data.espera) {
-                Object.keys(data.espera).forEach(id => {
-                    const item = data.espera[id];
+                // Ordenamos por número de ticket
+                const esperaItems = Object.entries(data.espera).sort((a,b) => a[1].nPapel - b[1].nPapel);
+                esperaItems.forEach(([id, item]) => {
                     if(item.enRecinto) {
                         tEspera.innerHTML += `<tr><td>
                             <span class="n-doc">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b>
                             ${generarMatriculaHTML(item.piloto)}
-                            <button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 CAMBIAR COCHE (SIGUIENTE)</button>
+                            <button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 CAMBIAR PILOTO</button>
                         </td><td style="width:100px"><button class="btn-pista" onclick="confirmarSubida('${id}')">EN PISTA</button></td></tr>`;
                     }
                 });
             }
 
+            // 2. RENDERIZAR PISTA ACTIVA
             const tPista = document.getElementById('lista-pista-activa'); tPista.innerHTML = "";
             if(data.completados) {
-                Object.keys(data.completados).forEach(id => {
-                    const item = data.completados[id];
+                const pistaItems = Object.entries(data.completados).sort((a,b) => b[1].nPapel - a[1].nPapel);
+                pistaItems.forEach(([id, item]) => {
                     if(item.finalizado === false) {
                         tPista.innerHTML += `<tr><td>
                             <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3, '0')}</span> <b>${item.copiloto}</b>
                             <div style="transform: scale(0.8); origin: left center; opacity:0.8;">${generarMatriculaHTML(item.piloto)}</div>
-                        </td><td style="width:140px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">ACOMPAÑADO A SALIDA</button></td></tr>`;
+                        </td><td style="width:140px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button></td></tr>`;
                     }
                 });
             }

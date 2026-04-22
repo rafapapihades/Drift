@@ -40,6 +40,15 @@
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
         
+        /* ESTILO SELECTOR PAGO */
+        .pago-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .pago-option { 
+            flex: 1; padding: 15px; text-align: center; border-radius: 10px; 
+            border: 2px solid #444; cursor: pointer; transition: 0.3s;
+            background: #000; font-size: 0.9em; opacity: 0.5; font-family: sans-serif; font-weight: bold;
+        }
+        .pago-option.selected { border-color: var(--accent); color: var(--accent); opacity: 1; background: rgba(255, 204, 0, 0.1); }
+
         .asistente-aviso {
             padding: 12px; border-radius: 10px; margin-bottom: 15px; display: none; font-size: 0.9em; 
             border: 2px solid var(--green); background: #052c05; color: #afffaf; font-family: sans-serif; line-height: 1.4;
@@ -69,7 +78,6 @@
         .label-dentro { color: var(--green); }
         .label-fuera { color: #666; }
 
-        /* Modal de gestión de pilotos */
         #modal-bajas { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; box-sizing:border-box; overflow-y:auto; }
         .modal-card { background:#1a1a1a; padding:20px; border-radius:15px; border:1px solid var(--accent); max-width:500px; margin: 0 auto; }
     </style>
@@ -86,6 +94,11 @@
         <input type="text" id="c-nombre" class="input-huge" placeholder="NOMBRE DEL PARTICIPANTE" autocomplete="off">
         
         <select id="c-piloto" class="input-huge"></select>
+
+        <div class="pago-container">
+            <div id="pago-efectivo" class="pago-option selected" onclick="seleccionarPago('EFECTIVO')">💵 EFECTIVO</div>
+            <div id="pago-tarjeta" class="pago-option" onclick="seleccionarPago('TARJETA')">💳 TARJETA</div>
+        </div>
         
         <div class="doc-box">
             <small>Nº DOCUMENTO CORRELATIVO</small>
@@ -127,12 +140,20 @@
 
         let pilotosArray = [];
         let registroRecuperado = null;
+        let metodoPago = "EFECTIVO";
 
         const nombreInput = document.getElementById('c-nombre');
         const avisoBox = document.getElementById('aviso-repetido');
         const firmaChk = document.getElementById('c-firma');
         const btnAdd = document.getElementById('btn-add');
         const selPiloto = document.getElementById('c-piloto');
+
+        // Función global para seleccionar pago
+        window.seleccionarPago = (tipo) => {
+            metodoPago = tipo;
+            document.getElementById('pago-efectivo').classList.toggle('selected', tipo === 'EFECTIVO');
+            document.getElementById('pago-tarjeta').classList.toggle('selected', tipo === 'TARJETA');
+        };
 
         const fnValidar = () => { 
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
@@ -154,10 +175,11 @@
             ];
             const encontrado = todos.find(r => r.copiloto.toLowerCase() === nombreBusqueda);
             if (encontrado) {
-                avisoBox.innerHTML = `✅ <b>¡YA REGISTRADO!</b><br>Tiene el <b>Ticket #${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>Sus datos se han cargado automáticamente.`;
+                avisoBox.innerHTML = `✅ <b>¡YA REGISTRADO!</b><br>Ticket <b>#${encontrado.nPapel.toString().padStart(3, '0')}</b> [${encontrado.metodoPago || 'EFECTIVO'}].<br>Datos recuperados.`;
                 avisoBox.style.display = 'block';
                 firmaChk.checked = true;
                 registroRecuperado = encontrado;
+                if(encontrado.metodoPago) seleccionarPago(encontrado.metodoPago);
             } else {
                 avisoBox.style.display = 'none';
                 registroRecuperado = null;
@@ -171,14 +193,12 @@
             const data = snap.val() || {};
             document.getElementById('v-proximo-numero').innerText = ((data.ultimo_numero || 0) + 1).toString().padStart(3, '0');
             
-            // FILTRADO DE PILOTOS ACTIVOS
             const todosLosPilotosConfig = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
             
             pilotosArray = todosLosPilotosConfig.filter(p => !bajas.includes(p));
             document.getElementById('count-tag').innerText = pilotosArray.length;
 
-            // ACTUALIZAR SELECT
             const valorActual = selPiloto.value;
             selPiloto.innerHTML = '';
             pilotosArray.forEach(p => {
@@ -187,7 +207,7 @@
                 selPiloto.appendChild(opt);
             });
 
-            // LÓGICA DE ASIGNACIÓN AUTOMÁTICA (Mantiene rotación)
+            // Rotación automática
             const todosViajes = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
             const conteo = {};
             const ultimoTicket = {};
@@ -216,7 +236,7 @@
                 if(document.activeElement.id !== 'c-piloto') selPiloto.value = sugerido;
             }
 
-            // TABLAS
+            // Tablas de visualización
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
@@ -228,6 +248,7 @@
                         <td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td>
                         <td>
                             <strong style="font-family:sans-serif">${item.copiloto}</strong>
+                            <span style="font-size:0.7em; opacity:0.6">[${item.metodoPago || 'EF'}]</span>
                             <span class="time-tag">⏱ ${item.horaRegistro}</span><br>
                             <span style="font-size:0.85em; color:#bbb;">${pNombre}</span> 
                             <span class="car-tag">| ${pCoche || ''}</span>
@@ -254,7 +275,7 @@
                     row.innerHTML = `
                         <td><span class="n-papel-cola" style="background:#444; color:#aaa;">${item.nPapel.toString().padStart(3, '0')}</span></td>
                         <td>
-                            <strong>${item.copiloto}</strong><br>
+                            <strong>${item.copiloto}</strong> <small style="opacity:0.5">(${item.metodoPago || 'EF'})</small><br>
                             <small style="color:#666">${pNombre}</small> <small style="color:var(--accent)">[${pCoche || ''}]</small>
                         </td>
                         <td style="color:var(--green); font-size:0.8em; text-align:right; font-weight:bold;">🏁 ${item.horaPista || ''}</td>
@@ -278,6 +299,7 @@
                 await push(ref(db, 'copilotajes/espera'), {
                     ...registroRecuperado,
                     piloto: pilotoSeleccionado,
+                    metodoPago: metodoPago,
                     enRecinto: false, 
                     horaRegistro: horaActual
                 });
@@ -288,6 +310,7 @@
                     nPapel: num,
                     copiloto: nombreNuevo,
                     piloto: pilotoSeleccionado,
+                    metodoPago: metodoPago,
                     enRecinto: false,
                     horaRegistro: horaActual
                 });
@@ -297,10 +320,11 @@
             firmaChk.checked = false;
             avisoBox.style.display = 'none';
             registroRecuperado = null;
+            seleccionarPago('EFECTIVO'); // Volver a efectivo por defecto
             fnValidar();
         };
 
-        // GESTIÓN DE PILOTOS (MODAL CHECKS)
+        // Gestión de estado pilotos
         document.getElementById('btn-gestionar-pilotos').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
@@ -349,7 +373,7 @@
                     }
                 });
                 set(ref(db, 'copilotajes/config_pilotos'), obj);
-                set(ref(db, 'copilotajes/pilotos_baja'), []); // Resetear bajas al cargar nuevo CSV
+                set(ref(db, 'copilotajes/pilotos_baja'), []);
             };
             r.readAsText(e.target.files[0]);
         };
@@ -358,14 +382,17 @@
             const snap = await get(ref(db, 'copilotajes'));
             if (!snap.exists()) return;
             const data = snap.val();
-            let csv = "Nº TICKET,COPILOTO,PILOTO,HORA\n";
+            // Columna de PAGO añadida a la exportación
+            let csv = "Nº TICKET,COPILOTO,PILOTO,PAGO,HORA\n";
             const listado = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})].sort((a,b) => a.nPapel - b.nPapel);
-            listado.forEach(v => csv += `${v.nPapel},${v.copiloto},${v.piloto},${v.horaRegistro}\n`);
+            listado.forEach(v => csv += `${v.nPapel},${v.copiloto},${v.piloto},${v.metodoPago || 'EFECTIVO'},${v.horaRegistro}\n`);
+            
             const blob = new Blob([csv], { type: 'text/csv' });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = `Resumen_Evento.csv`;
+            a.download = `Resumen_Logistica.csv`;
             a.click();
+            
             setTimeout(() => { 
                 if(confirm("¿BORRAR TODA LA NUBE?")) remove(ref(db, 'copilotajes')); 
             }, 500);

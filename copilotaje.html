@@ -8,11 +8,8 @@
         :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; }
         
         body { 
-            background-image: url('Fibra3.png'); 
-            background-repeat: repeat; 
-            color: #fff; 
-            font-family: 'Arial Black', Gadget, sans-serif; 
-            padding: 10px; margin: 0; 
+            background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg);
+            color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; 
         }
         
         .header-top { 
@@ -21,9 +18,7 @@
             border: 2px solid #333; margin-bottom: 15px; gap: 12px; 
         }
 
-        .header-logo { 
-            display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain;
-        }
+        .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
         
         .event-name-input { 
             background: transparent; border: none; border-bottom: 2px solid #444; 
@@ -40,7 +35,6 @@
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
         
-        /* ESTILO SELECTOR PAGO */
         .pago-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .pago-option { 
             flex: 1; padding: 15px; text-align: center; border-radius: 10px; 
@@ -78,8 +72,8 @@
         .label-dentro { color: var(--green); }
         .label-fuera { color: #666; }
 
-        #modal-bajas { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; box-sizing:border-box; overflow-y:auto; }
-        .modal-card { background:#1a1a1a; padding:20px; border-radius:15px; border:1px solid var(--accent); max-width:500px; margin: 0 auto; }
+        #modal-bajas { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; box-sizing:border-box; overflow-y:auto; display:flex; align-items:center;}
+        .modal-card { background:#1a1a1a; padding:20px; border-radius:15px; border:1px solid var(--accent); max-width:500px; margin: 0 auto; width:100%;}
     </style>
 </head>
 <body>
@@ -148,7 +142,6 @@
         const btnAdd = document.getElementById('btn-add');
         const selPiloto = document.getElementById('c-piloto');
 
-        // Función global para seleccionar pago
         window.seleccionarPago = (tipo) => {
             metodoPago = tipo;
             document.getElementById('pago-efectivo').classList.toggle('selected', tipo === 'EFECTIVO');
@@ -159,6 +152,7 @@
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
         };
 
+        // Detector de nombres repetidos
         nombreInput.addEventListener('input', async () => {
             const nombreBusqueda = nombreInput.value.trim().toLowerCase();
             if (nombreBusqueda.length < 3) {
@@ -175,7 +169,7 @@
             ];
             const encontrado = todos.find(r => r.copiloto.toLowerCase() === nombreBusqueda);
             if (encontrado) {
-                avisoBox.innerHTML = `✅ <b>¡YA REGISTRADO!</b><br>Ticket <b>#${encontrado.nPapel.toString().padStart(3, '0')}</b> [${encontrado.metodoPago || 'EFECTIVO'}].<br>Datos recuperados.`;
+                avisoBox.innerHTML = `✅ <b>¡YA REGISTRADO!</b><br>Ticket <b>#${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>Datos recuperados.`;
                 avisoBox.style.display = 'block';
                 firmaChk.checked = true;
                 registroRecuperado = encontrado;
@@ -189,6 +183,7 @@
 
         firmaChk.onchange = fnValidar;
 
+        // Listener Principal: Sincroniza pilotos y tablas
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             document.getElementById('v-proximo-numero').innerText = ((data.ultimo_numero || 0) + 1).toString().padStart(3, '0');
@@ -199,7 +194,6 @@
             pilotosArray = todosLosPilotosConfig.filter(p => !bajas.includes(p));
             document.getElementById('count-tag').innerText = pilotosArray.length;
 
-            const valorActual = selPiloto.value;
             selPiloto.innerHTML = '';
             pilotosArray.forEach(p => {
                 let opt = document.createElement('option');
@@ -207,51 +201,17 @@
                 selPiloto.appendChild(opt);
             });
 
-            // Rotación automática
-            const todosViajes = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})];
-            const conteo = {};
-            const ultimoTicket = {};
-
-            todosViajes.forEach(v => { 
-                conteo[v.piloto] = (conteo[v.piloto] || 0) + 1; 
-                if(!ultimoTicket[v.piloto] || v.nPapel > ultimoTicket[v.piloto]) {
-                    ultimoTicket[v.piloto] = v.nPapel;
-                }
-            });
-
-            if(pilotosArray.length > 0) {
-                let sugerido = pilotosArray[0];
-                let minViajes = conteo[sugerido] || 0;
-                let ticketUltimo = ultimoTicket[sugerido] || 0;
-
-                pilotosArray.forEach(p => {
-                    const v = conteo[p] || 0;
-                    const t = ultimoTicket[p] || 0;
-                    if (v < minViajes) {
-                        minViajes = v; ticketUltimo = t; sugerido = p;
-                    } else if (v === minViajes && t < ticketUltimo) {
-                        ticketUltimo = t; sugerido = p;
-                    }
-                });
-                if(document.activeElement.id !== 'c-piloto') selPiloto.value = sugerido;
-            }
-
-            // Tablas de visualización
+            // Tablas Visuales
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
-                Object.keys(data.espera).forEach(id => {
-                    const item = data.espera[id];
-                    const [pNombre, pCoche] = item.piloto.split(' | ');
+                Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
                     const row = tEspera.insertRow();
                     row.innerHTML = `
                         <td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td>
                         <td>
-                            <strong style="font-family:sans-serif">${item.copiloto}</strong>
-                            <span style="font-size:0.7em; opacity:0.6">[${item.metodoPago || 'EF'}]</span>
-                            <span class="time-tag">⏱ ${item.horaRegistro}</span><br>
-                            <span style="font-size:0.85em; color:#bbb;">${pNombre}</span> 
-                            <span class="car-tag">| ${pCoche || ''}</span>
+                            <strong>${item.copiloto}</strong> <span class="time-tag">⏱ ${item.horaRegistro}</span><br>
+                            <span style="font-size:0.8em; color:#bbb;">${item.piloto}</span>
                         </td>
                         <td style="text-align:right">
                             <div class="ready-container">
@@ -260,9 +220,7 @@
                             </div>
                         </td>
                     `;
-                    row.querySelector('input').onchange = (e) => {
-                        update(ref(db, `copilotajes/espera/${id}`), { enRecinto: e.target.checked });
-                    };
+                    row.querySelector('input').onchange = (e) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: e.target.checked });
                 });
             }
 
@@ -270,26 +228,21 @@
             tComp.innerHTML = "";
             if(data.completados) {
                 Object.values(data.completados).sort((a,b) => b.nPapel - a.nPapel).slice(0, 5).forEach(item => {
-                    const [pNombre, pCoche] = item.piloto.split(' | ');
                     const row = tComp.insertRow();
                     row.innerHTML = `
                         <td><span class="n-papel-cola" style="background:#444; color:#aaa;">${item.nPapel.toString().padStart(3, '0')}</span></td>
-                        <td>
-                            <strong>${item.copiloto}</strong> <small style="opacity:0.5">(${item.metodoPago || 'EF'})</small><br>
-                            <small style="color:#666">${pNombre}</small> <small style="color:var(--accent)">[${pCoche || ''}]</small>
-                        </td>
-                        <td style="color:var(--green); font-size:0.8em; text-align:right; font-weight:bold;">🏁 ${item.horaPista || ''}</td>
+                        <td><strong>${item.copiloto}</strong><br><small>${item.piloto}</small></td>
+                        <td style="color:var(--green); font-size:0.7em; text-align:right;">${item.finalizado ? '🏁 '+ (item.duracionTotal || '') : '● EN PISTA'}</td>
                     `;
                 });
             }
         });
 
+        // Registrar Nuevo o Recuperar
         btnAdd.onclick = async () => {
-            const nombreNuevo = nombreInput.value.trim();
-            const pilotoSeleccionado = selPiloto.value;
             const horaActual = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
-            
             if (registroRecuperado) {
+                // Si estaba en completados, lo quitamos de allí para re-meterlo en espera
                 const snapC = await get(ref(db, 'copilotajes/completados'));
                 if(snapC.exists()){
                     Object.entries(snapC.val()).forEach(([id, reg]) => {
@@ -298,69 +251,73 @@
                 }
                 await push(ref(db, 'copilotajes/espera'), {
                     ...registroRecuperado,
-                    piloto: pilotoSeleccionado,
+                    piloto: selPiloto.value,
                     metodoPago: metodoPago,
                     enRecinto: false, 
-                    horaRegistro: horaActual
+                    horaRegistro: horaActual,
+                    finalizado: false // Resetear estado de pista
                 });
             } else {
                 const snapNum = await get(ref(db, 'copilotajes/ultimo_numero'));
                 const num = (snapNum.val() || 0) + 1;
                 await push(ref(db, 'copilotajes/espera'), {
                     nPapel: num,
-                    copiloto: nombreNuevo,
-                    piloto: pilotoSeleccionado,
+                    copiloto: nombreInput.value.trim(),
+                    piloto: selPiloto.value,
                     metodoPago: metodoPago,
                     enRecinto: false,
                     horaRegistro: horaActual
                 });
                 await set(ref(db, 'copilotajes/ultimo_numero'), num);
             }
-            nombreInput.value = "";
-            firmaChk.checked = false;
-            avisoBox.style.display = 'none';
-            registroRecuperado = null;
-            seleccionarPago('EFECTIVO'); // Volver a efectivo por defecto
-            fnValidar();
+            nombreInput.value = ""; firmaChk.checked = false; seleccionarPago('EFECTIVO'); fnValidar();
         };
 
-        // Gestión de estado pilotos
+        // Gestión Pilotos
         document.getElementById('btn-gestionar-pilotos').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
-
-            let modalHtml = `<div id="modal-bajas"><div class="modal-card">
-                <h2 style="color:var(--accent); margin-top:0;">ESTADO PILOTOS</h2>
-                <div style="max-height:60vh; overflow-y:auto; margin-bottom:20px;">`;
-            
-            config.forEach((p, i) => {
+            let modalHtml = `<div id="modal-bajas"><div class="modal-card"><h2 style="color:var(--accent)">ESTADO PILOTOS</h2><div style="max-height:60vh; overflow-y:auto">`;
+            config.forEach(p => {
                 const activo = !bajas.includes(p);
-                modalHtml += `
-                <label style="display:flex; align-items:center; background:#000; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #333;">
-                    <input type="checkbox" class="chk-piloto-estado" data-nombre="${p}" ${activo?'checked':''} style="transform:scale(1.8); margin-right:20px;">
-                    <span style="font-family:sans-serif; font-size:0.9em;">${p}</span>
-                </label>`;
+                modalHtml += `<label style="display:flex; align-items:center; background:#000; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #333;"><input type="checkbox" class="chk-piloto-estado" data-nombre="${p}" ${activo?'checked':''} style="transform:scale(1.8); margin-right:20px;"><span>${p}</span></label>`;
             });
-
-            modalHtml += `</div>
-                <button id="btn-cerrar-modal" class="btn-add-massive" style="height:60px;">GUARDAR Y SALIR</button>
-            </div></div>`;
-
+            modalHtml += `</div><button id="btn-cerrar-modal" class="btn-add-massive" style="height:60px; margin-top:10px">GUARDAR Y SALIR</button></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
-
             document.getElementById('btn-cerrar-modal').onclick = async () => {
-                const checks = document.querySelectorAll('.chk-piloto-estado');
                 const nuevasBajas = [];
-                checks.forEach(c => {
-                    if(!c.checked) nuevasBajas.push(c.dataset.nombre);
-                });
+                document.querySelectorAll('.chk-piloto-estado').forEach(c => { if(!c.checked) nuevasBajas.push(c.dataset.nombre); });
                 await set(ref(db, 'copilotajes/pilotos_baja'), nuevasBajas);
                 document.getElementById('modal-bajas').remove();
             };
         };
 
+        // Exportar CSV completo
+        document.getElementById('btn-reset').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            if (!snap.exists()) return alert("No hay datos");
+            const data = snap.val();
+            let csv = "N TICKET,COPILOTO,PILOTO,PAGO,REGISTRO,ENTRADA PISTA,SALIDA PISTA,DURACION\n";
+            const listado = [...Object.values(data.espera || {}), ...Object.values(data.completados || {})].sort((a,b) => a.nPapel - b.nPapel);
+            listado.forEach(v => {
+                csv += `${v.nPapel},"${v.copiloto}","${v.piloto}","${v.metodoPago || 'EF'}",${v.horaRegistro || ''},${v.horaEntradaTexto || ''},${v.horaSalidaTexto || ''},${v.duracionTotal || ''}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Resumen_TaxiDrift_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+            setTimeout(async () => {
+                if(confirm("¿BORRAR TODO Y REINICIAR DÍA?")) {
+                    await remove(ref(db, 'copilotajes'));
+                    location.reload();
+                }
+            }, 1500);
+        };
+
+        // CSV Pilotos
         document.getElementById('csv-pilotos').onchange = (e) => {
             const r = new FileReader();
             r.onload = (ev) => {
@@ -368,61 +325,13 @@
                 const obj = {};
                 lines.forEach((l, i) => { 
                     const c = l.split(l.includes(';') ? ';' : ',');
-                    if(c.length >= 3) {
-                        obj[i] = `[#${c[0].trim()}] ${c[1].trim()} | ${c[2].trim()}`;
-                    }
+                    if(c.length >= 3) obj[i] = `[#${c[0].trim()}] ${c[1].trim()} | ${c[2].trim()}`;
                 });
                 set(ref(db, 'copilotajes/config_pilotos'), obj);
                 set(ref(db, 'copilotajes/pilotos_baja'), []);
             };
             r.readAsText(e.target.files[0]);
         };
-
-        document.getElementById('btn-reset').onclick = async () => {
-    const snap = await get(ref(db, 'copilotajes'));
-    if (!snap.exists()) return alert("No hay datos para exportar");
-    
-    const data = snap.val();
-    // 1. Cabecera extendida con los nuevos tiempos
-    let csv = "Nº TICKET,COPILOTO,PILOTO,REGISTRO,ENTRADA PISTA,SALIDA PISTA,DURACION\n";
-    
-    // Unificar todos los datos (espera y completados)
-    const listado = [
-        ...Object.values(data.espera || {}), 
-        ...Object.values(data.completados || {})
-    ].sort((a,b) => a.nPapel - b.nPapel);
-
-    listado.forEach(v => {
-        // Extraemos los datos o ponemos vacío si no existen
-        const reg = v.horaRegistro || "";
-        const ent = v.horaEntradaTexto || "";
-        const sal = v.horaSalidaTexto || "";
-        const dur = v.duracionTotal || "";
-        
-        csv += `${v.nPapel},"${v.copiloto}","${v.piloto}",${reg},${ent},${sal},${dur}\n`;
-    });
-
-    // 2. Crear el archivo
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    
-    // 3. Forzar descarga segura
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Resumen_Evento_${new Date().toLocaleDateString()}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // 4. EL CAMBIO CLAVE: Esperar un poco antes de preguntar por el borrado
-    setTimeout(async () => {
-        if(confirm("✅ ARCHIVO GENERADO.\n\n¿Quieres BORRAR todos los datos de la nube ahora?\n(Solo hazlo si ya se ha descargado el archivo)")) {
-            await remove(ref(db, 'copilotajes'));
-            location.reload(); // Recargar para limpiar las tablas visualmente
-        }
-    }, 1500);
-};
 
         onValue(ref(db, 'copilotajes/nombre_evento'), s => document.getElementById('nombre-evento').value = s.val() || "");
         document.getElementById('nombre-evento').onchange = (e) => set(ref(db, 'copilotajes/nombre_evento'), e.target.value);

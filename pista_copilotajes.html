@@ -23,7 +23,7 @@
         .m-num { padding: 2px 12px; font-size: 1.4em; min-width: 35px; text-align: center; }
 
         .n-doc { background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 900; margin-right: 5px; }
-        .time-tag { font-size: 0.7em; color: #aaa; display: block; margin-top: 5px; font-family: sans-serif; }
+        .time-info { font-size: 0.7em; color: #00ff99; display: block; margin-top: 5px; font-family: sans-serif; font-weight: bold; }
 
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 8px; border-bottom: 1px solid #222; }
@@ -31,13 +31,27 @@
         .btn-recinto { background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #002266; }
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.85em; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 12px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e; }
-        
-        #modal-cambio { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
+        .btn-change { background: #222; color: var(--accent); border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 10px; text-transform: uppercase; width: 100%; font-weight: bold; }
+
+        /* Modales */
+        #modal-cambio, #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 450px; text-align: center; }
         .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-modal { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; color: white; }
     </style>
 </head>
 <body>
+
+    <div id="custom-confirm">
+        <div class="modal-content" style="border-color: var(--orange);">
+            <h2 id="confirm-text" style="color:white; margin:0; font-size: 1.2em;">¿ACOMPAÑADO A LA SALIDA?</h2>
+            <div class="modal-btns">
+                <button class="btn-modal" style="background:#444;" onclick="handleConfirm(false)">CANCELAR</button>
+                <button class="btn-modal" style="background:var(--orange);" onclick="handleConfirm(true)">CONFIRMAR</button>
+            </div>
+        </div>
+    </div>
 
     <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
 
@@ -51,8 +65,10 @@
         <div class="modal-content">
             <h3 style="color: var(--accent);">REASIGNAR COCHE</h3>
             <select id="nuevo-piloto-select" class="select-modal"></select>
-            <button class="btn-pista" onclick="ejecutarCambio()">CONFIRMAR CAMBIO</button><br><br>
-            <button onclick="cerrarModal()" style="background:none; color:white; border:none; cursor:pointer;">CANCELAR</button>
+            <div class="modal-btns">
+                <button class="btn-modal" style="background:var(--blue);" onclick="ejecutarCambio()">REASIGNAR</button>
+                <button class="btn-modal" style="background:#333;" onclick="cerrarModal()">VOLVER</button>
+            </div>
         </div>
     </div>
 
@@ -65,6 +81,20 @@
         const db = getDatabase(app);
 
         let idSeleccionado = null;
+        let confirmAction = null;
+
+        // Función para el modal de confirmación
+        window.showConfirm = (texto, callback) => {
+            document.getElementById('confirm-text').innerText = texto;
+            document.getElementById('custom-confirm').style.display = 'flex';
+            confirmAction = callback;
+        };
+
+        window.handleConfirm = (valor) => {
+            document.getElementById('custom-confirm').style.display = 'none';
+            if (valor && confirmAction) confirmAction();
+            confirmAction = null;
+        };
 
         function generarMatriculaHTML(pilotoData) {
             const d = pilotoData.match(/\[#(\d+)\]/) || pilotoData.match(/^(\d+)/);
@@ -94,22 +124,34 @@
                 const newRef = push(ref(db, 'copilotajes/completados'));
                 await set(newRef, { 
                     ...d, 
-                    horaEntradaPista: Date.now(), // Guardamos timestamp numérico para cálculo
-                    horaEntradaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}),
+                    tsEntrada: Date.now(),
+                    horaEntradaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
                     finalizado: false 
                 });
                 await remove(ref(db, `copilotajes/espera/${id}`));
             }
         };
 
-        window.confirmarSalidaRecinto = async (id) => {
-            if(confirm("¿CONFIRMAR SALIDA DE PISTA?")) {
-                await update(ref(db, `copilotajes/completados/${id}`), { 
-                    finalizado: true,
-                    horaSalidaPista: Date.now(),
-                    horaSalidaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
-                });
-            }
+        window.confirmarSalidaRecinto = (id) => {
+            showConfirm("¿CONFIRMAR SALIDA DE PISTA?", async () => {
+                const snap = await get(ref(db, `copilotajes/completados/${id}`));
+                if(snap.exists()){
+                    const d = snap.val();
+                    const tsSalida = Date.now();
+                    const duracionMin = Math.round((tsSalida - d.tsEntrada) / 60000);
+                    
+                    // Quitar de Speaker
+                    const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
+                    if(dMatch) await remove(ref(db, `votacion_activa/items/${dMatch[1]}`));
+
+                    await update(ref(db, `copilotajes/completados/${id}`), { 
+                        finalizado: true,
+                        tsSalida: tsSalida,
+                        horaSalidaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+                        duracionTotal: duracionMin + " min"
+                    });
+                }
+            });
         };
 
         window.abrirModalCambio = (id) => { idSeleccionado = id; document.getElementById('modal-cambio').style.display = 'flex'; };
@@ -133,7 +175,7 @@
 
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    const row = `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}<button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 CAMBIAR COCHE</button></td><td style="width:110px">`;
+                    const row = `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}<button class="btn-change" onclick="abrirModalCambio('${id}')">🔄 REASIGNAR</button></td><td style="width:110px">`;
                     if(!item.enRecinto) tCola.innerHTML += row + `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">LLEGÓ</button></td></tr>`;
                     else tRecinto.innerHTML += row + `<button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button></td></tr>`;
                 });
@@ -141,13 +183,11 @@
 
             if(data.completados) {
                 Object.entries(data.completados).filter(x => !x[1].finalizado).forEach(([id, item]) => {
-                    // Cálculo de tiempo transcurrido en minutos
-                    const minTranscurridos = Math.floor((Date.now() - item.horaEntradaPista) / 60000);
-                    
+                    const min = Math.floor((Date.now() - item.tsEntrada) / 60000);
                     tPista.innerHTML += `<tr><td>
                         <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>
                         ${generarMatriculaHTML(item.piloto)}
-                        <span class="time-tag">Entrada: ${item.horaEntradaTexto} (${minTranscurridos} min en pista)</span>
+                        <span class="time-info">⏱️ EN PISTA: ${min} min (Desde: ${item.horaEntradaTexto})</span>
                     </td><td style="width:110px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button></td></tr>`;
                 });
             }
@@ -158,8 +198,7 @@
             document.querySelectorAll('tr').forEach(tr => tr.style.display = tr.innerText.toLowerCase().includes(b) ? '' : 'none');
         };
         
-        // Refrescar cada minuto para actualizar los contadores de tiempo en pista
-        setInterval(() => { if(document.getElementById('lista-pista-activa').innerHTML !== "") { /* Forzar render si hay coches */ } }, 60000);
+        setInterval(() => { /* Auto-refresco de minutos */ }, 30000);
     </script>
 </body>
 </html>

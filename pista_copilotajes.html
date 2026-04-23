@@ -27,7 +27,6 @@
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; width: 100%; }
         .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
 
-        /* NÚMERO DE TURNO GIGANTE */
         .n-doc { 
             background: var(--accent); color: #000; padding: 8px 12px; 
             border-radius: 8px; font-family: monospace; font-weight: 900; 
@@ -41,24 +40,23 @@
         
         .time-info { font-size: 0.75em; color: #00ff99; display: block; margin-top: 8px; font-family: sans-serif; font-weight: bold; background: rgba(0,255,153,0.1); padding: 5px; border-radius: 5px; }
 
+        /* Selector de piloto en fila */
+        .select-piloto-pista {
+            width: 100%; background: #000; color: var(--accent); border: 1px solid #444;
+            padding: 8px; border-radius: 8px; font-size: 0.75em; margin-bottom: 5px;
+            font-family: sans-serif; font-weight: bold; outline: none;
+        }
+
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 8px; border-bottom: 1px solid #222; }
 
-        /* Botones */
         .btn-recinto { background: var(--blue); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
-        
-        /* Botón Devolver */
-        .btn-devolver { 
-            background: #333; color: #aaa; border: 1px solid #444; padding: 8px; 
-            border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; 
-            text-transform: uppercase; width: 100%; font-weight: bold;
-        }
+        .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; text-transform: uppercase; width: 100%; font-weight: bold; }
 
         #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
 
-        /* Confirmación */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
         .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
@@ -100,6 +98,7 @@
         const db = getDatabase(app);
 
         let confirmAction = null;
+        let listaPilotosGlobal = [];
 
         // --- SISTEMA DE CONFIRMACIÓN ---
         window.showConfirm = (texto, callback) => {
@@ -147,19 +146,23 @@
             const snap = await get(ref(db, `copilotajes/espera/${id}`));
             if(snap.exists()){
                 const d = snap.val();
-                const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
+                
+                // LEER PILOTO DEL SELECTOR
+                const pilotoFinal = document.getElementById(`sel-piloto-${id}`).value;
+                const dMatch = pilotoFinal.match(/\[#(\d+)\]/) || pilotoFinal.match(/^(\d+)/);
                 const dorsal = dMatch ? dMatch[1] : "0";
                 
                 // Votación
                 await update(ref(db, 'votacion_activa'), { activa: true, dorsal: dorsal });
                 await set(ref(db, `votacion_activa/items/${dorsal}`), {
-                    nombre: `${d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim()} & ${d.copiloto}`,
+                    nombre: `${pilotoFinal.split('|')[0].replace(/\[.*?\]/g,'').trim()} & ${d.copiloto}`,
                     coche: "TAXI DRIFT", ap:0, up:0, dw:0
                 });
 
                 const newRef = push(ref(db, 'copilotajes/completados'));
                 await set(newRef, { 
                     ...d, 
+                    piloto: pilotoFinal, // Actualizamos con el piloto del selector
                     tsEntrada: Date.now(),
                     horaEntradaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
                     finalizado: false 
@@ -192,6 +195,12 @@
 
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
+
+            // CARGAR PILOTOS ACTIVOS PARA LOS SELECTORES
+            const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
+            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
+            listaPilotosGlobal = config.filter(p => !bajas.includes(p));
+
             const tCola = document.getElementById('lista-cola-acceso');
             const tRecinto = document.getElementById('lista-espera-recinto');
             const tPista = document.getElementById('lista-pista-activa');
@@ -199,11 +208,16 @@
 
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    const rowHtml = `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}</td><td style="width:115px">`;
+                    const baseRow = `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}</td><td style="width:130px">`;
+                    
                     if(!item.enRecinto) {
-                        tCola.innerHTML += rowHtml + `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
+                        tCola.innerHTML += baseRow + `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
                     } else {
-                        tRecinto.innerHTML += rowHtml + `
+                        // AQUÍ AÑADIMOS EL SELECTOR DE PILOTO
+                        const options = listaPilotosGlobal.map(p => `<option value="${p}" ${p === item.piloto ? 'selected' : ''}>${p}</option>`).join('');
+                        
+                        tRecinto.innerHTML += baseRow + `
+                            <select id="sel-piloto-${id}" class="select-piloto-pista">${options}</select>
                             <button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>
                             <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ SACAR A COLA</button>
                         </td></tr>`;
@@ -217,7 +231,7 @@
                         <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>
                         ${generarMatriculaHTML(item.piloto)}
                         <span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span> <small>(${item.horaEntradaTexto})</small></span>
-                    </td><td style="width:115px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button></td></tr>`;
+                    </td><td style="width:130px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button></td></tr>`;
                 });
             }
         });

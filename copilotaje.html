@@ -222,7 +222,19 @@
 
         btnAdd.onclick = async () => {
             const numFinal = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
-            const datos = { nPapel: numFinal, copiloto: nombreInput.value.trim(), piloto: selPiloto.value, metodoPago: metodoPago, enRecinto: false, finalizado: false };
+            const datos = { 
+                nPapel: numFinal, 
+                copiloto: nombreInput.value.trim(), 
+                piloto: selPiloto.value, 
+                metodoPago: metodoPago, 
+                enRecinto: false, 
+                finalizado: false,
+                // Conservar datos de preinscripción si existen
+                dni: registroRecuperado?.dni || "",
+                redes: registroRecuperado?.redes || "",
+                telefono: registroRecuperado?.telefono || "",
+                horaFirma: new Date().toLocaleTimeString('es-ES')
+            };
             await push(ref(db, 'copilotajes/espera'), datos);
             if (registroRecuperado) await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
             else await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
@@ -230,43 +242,46 @@
             avisoBox.style.display = 'none'; fnValidar();
         };
 
-        // --- FUNCIÓN CRÍTICA: EXPORTAR Y REINICIAR ---
+        // --- EXPORTACIÓN COMPLETA PARA TABLA DINÁMICA ---
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val();
-            if(!data || (!data.espera && !data.completados)) {
-                alert("No hay datos para exportar.");
-                return;
-            }
+            if(!data) { alert("No hay datos."); return; }
 
-            // Crear contenido CSV
-            let csv = "N_TICKET;COPILOTO;PILOTO;PAGO;ESTADO;DURACION_PISTA\n";
+            // Cabecera con todos los campos
+            let csv = "TICKET;NOMBRE_COMPLETO;DNI;TELEFONO;REDES_SOCIALES;PILOTO_ASIGNADO;METODO_PAGO;ESTADO;H_ENTRADA_PISTA;H_SALIDA_PISTA;DURACION_TOTAL\n";
             
-            // Añadir los que están en espera/recinto
-            if(data.espera) {
-                Object.values(data.espera).forEach(i => {
-                    csv += `${i.nPapel};${i.copiloto};${i.piloto};${i.metodoPago};PENDIENTE;---\n`;
-                });
-            }
-            // Añadir los completados
-            if(data.completados) {
-                Object.values(data.completados).forEach(i => {
-                    csv += `${i.nPapel};${i.copiloto};${i.piloto};${i.metodoPago};FINALIZADO;${i.duracionTotal || '---'}\n`;
-                });
-            }
+            const limpiar = (txt) => txt ? txt.toString().replace(/;/g, ',').trim() : "";
 
-            // Descargar archivo
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const procesarLista = (lista, estadoLabel) => {
+                if(!lista) return;
+                Object.values(lista).forEach(i => {
+                    csv += `${limpiar(i.nPapel)};`;
+                    csv += `${limpiar(i.copiloto)};`;
+                    csv += `${limpiar(i.dni)};`;
+                    csv += `${limpiar(i.telefono)};`;
+                    csv += `${limpiar(i.redes)};`;
+                    csv += `${limpiar(i.piloto)};`;
+                    csv += `${limpiar(i.metodoPago)};`;
+                    csv += `${estadoLabel};`;
+                    csv += `${limpiar(i.horaEntradaTexto)};`;
+                    csv += `${limpiar(i.horaSalidaTexto)};`;
+                    csv += `${limpiar(i.duracionTotal)}\n`;
+                });
+            };
+
+            procesarLista(data.espera, "EN_ESPERA");
+            procesarLista(data.completados, "FINALIZADO");
+
+            // Descarga
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `Resumen_TaxiDrift_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
-            document.body.appendChild(link);
+            link.download = `BASE_DATOS_TAXI_DRIFT_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv`;
             link.click();
-            document.body.removeChild(link);
 
-            // Confirmar borrado después de la descarga
             setTimeout(async () => {
-                if(confirm("ARCHIVO DESCARGADO.\n\n¿Quieres BORRAR toda la base de datos para empezar un nuevo día?")) {
+                if(confirm("BASE DE DATOS EXPORTADA.\n\n¿Quieres BORRAR TODO para empezar de cero?")) {
                     await remove(ref(db, 'copilotajes'));
                     location.reload();
                 }

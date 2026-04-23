@@ -82,7 +82,7 @@
         <div id="aviso-repetido" class="asistente-aviso"></div>
         
         <div class="search-container">
-            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="NOMBRE, DNI o Nº TURNO" autocomplete="off">
+            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o Nº" autocomplete="off">
             <button class="btn-search" onclick="buscarParticipante()">🔍</button>
         </div>
         
@@ -147,7 +147,6 @@
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
         };
 
-        // Función para buscar por nombre, DNI o turno
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
             if (!busqueda) return;
@@ -155,6 +154,36 @@
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             
+            // 1. BUSCAR EN SISTEMA ACTIVO (¿Ya está registrado?)
+            let activoId = null;
+            let activoData = null;
+            let estado = "";
+
+            // Buscar en espera
+            Object.entries(data.espera || {}).forEach(([id, r]) => {
+                if(r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda) {
+                    activoId = id; activoData = r; 
+                    estado = r.enRecinto ? "ESPERA EN RECINTO (Punto 2)" : "COLA DE ACCESO (Punto 1)";
+                }
+            });
+            // Buscar en completados (pista)
+            if(!activoData) {
+                Object.entries(data.completados || {}).forEach(([id, r]) => {
+                    if(r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda) {
+                        activoId = id; activoData = r; 
+                        estado = r.finalizado ? "VIAJE FINALIZADO" : "EN PISTA / RETORNO (Punto 3)";
+                    }
+                });
+            }
+
+            if(activoData) {
+                avisoBox.innerHTML = `⚠️ <b>YA ESTÁ EN EL SISTEMA</b><br>Participante: <b>${activoData.copiloto}</b> (Ticket #${activoData.nPapel})<br>Estado: <span style="color:var(--green)">${estado}</span>`;
+                avisoBox.style.display = 'block';
+                avisoBox.style.borderColor = 'var(--red)';
+                return; // Bloqueamos para no duplicar
+            }
+
+            // 2. BUSCAR EN PRE-INSCRITOS
             const pre = Object.values(data.pre_inscritos || {}).find(r => 
                 r.copiloto.toLowerCase().includes(busqueda) || 
                 r.dni?.toLowerCase() === busqueda ||
@@ -164,50 +193,56 @@
             if (pre) {
                 avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b><br>Participante: <b>${pre.copiloto}</b> (Turno #${pre.nPapel})`;
                 avisoBox.style.display = 'block';
+                avisoBox.style.borderColor = 'var(--accent)';
                 
-                // Autorrelleno de datos guardados
                 nombreInput.value = pre.copiloto;
                 proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
-                selPiloto.value = pre.piloto;
-                seleccionarPago(pre.metodoPago || 'EFECTIVO');
                 
+                // --- AJUSTE PILOTO SELECCIONADO ---
+                if(pre.piloto && pre.piloto !== "CUALQUIERA") {
+                    selPiloto.value = pre.piloto;
+                } else {
+                    selPiloto.selectedIndex = 0;
+                }
+
+                seleccionarPago(pre.metodoPago || 'EFECTIVO');
                 registroRecuperado = pre;
             } else {
-                alert("No se encontró ninguna pre-inscripción.");
+                alert("No se encontró nada con ese criterio.");
                 registroRecuperado = null;
-                // Si no hay preinscrito, mostramos el número que sigue en la cola
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
+                avisoBox.style.display = 'none';
             }
             fnValidar();
         };
 
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
-            
-            // Actualizamos la variable global con el último número manual registrado + 1
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
             
-            // Solo actualizamos el texto de pantalla si NO estamos gestionando un pre-inscrito seleccionado
             if(!registroRecuperado) {
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             }
             
-            // Pilotos
             const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
             const pilotosOK = config.filter(p => !bajas.includes(p));
-            document.getElementById('count-tag').innerText = pilotosOK.length;
             
-            const prevVal = selPiloto.value;
+            document.getElementById('count-tag').innerText = pilotosOK.length;
+            const currentVal = selPiloto.value;
             selPiloto.innerHTML = pilotosOK.map(p => `<option value="${p}">${p}</option>`).join('');
-            if(prevVal) selPiloto.value = prevVal;
+            
+            // Si venimos de un pre-inscrito y ya se cargó su piloto, lo respetamos
+            if(registroRecuperado && registroRecuperado.piloto) {
+                selPiloto.value = registroRecuperado.piloto;
+            } else if(currentVal) {
+                selPiloto.value = currentVal;
+            }
 
-            // Tabla de espera
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    if(item.finalizado) return;
                     const row = tEspera.insertRow();
                     row.innerHTML = `
                         <td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td>
@@ -240,22 +275,17 @@
                 await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
             }
 
-            // LIMPIEZA Y RESETEO TOTAL DESPUÉS DE REGISTRAR
             nombreInput.value = "";
             firmaChk.checked = false;
-            registroRecuperado = null; // Liberamos la referencia para que vuelva a contar normal
+            registroRecuperado = null;
             avisoBox.style.display = 'none';
-            
-            // Forzamos que el texto del número vuelva a ser el siguiente libre
             proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
-            
             fnValidar();
         };
 
         nombreInput.oninput = fnValidar;
         firmaChk.onchange = fnValidar;
 
-        // Gestión Pilotos
         document.getElementById('btn-gestionar-pilotos').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
@@ -270,9 +300,9 @@
         };
 
         window.guardarBajas = async () => {
-            const nuevasBajas = [];
-            document.querySelectorAll('.p-chk').forEach(c => { if(!c.checked) nuevasBajas.push(c.dataset.n); });
-            await set(ref(db, 'copilotajes/pilotos_baja'), nuevasBajas);
+            const bajas = [];
+            document.querySelectorAll('.p-chk').forEach(c => { if(!c.checked) bajas.push(c.dataset.n); });
+            await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
             document.getElementById('modal-bajas').remove();
         };
 

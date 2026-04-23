@@ -33,9 +33,11 @@
 
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
         
-        /* Campos adicionales para no preinscritos */
-        .extra-fields { display: none; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px dashed #444; margin-bottom: 15px; }
-        .input-small { width: 100%; height: 45px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 0 10px; margin-bottom: 10px; box-sizing: border-box; font-family: sans-serif; }
+        /* SECCIÓN DINÁMICA DE DATOS MANUALES */
+        .extra-fields { display: none; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--accent); margin-bottom: 15px; }
+        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .input-manual { width: 100%; height: 45px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 0 10px; box-sizing: border-box; font-family: sans-serif; font-size: 0.9em; }
+        .label-mini { font-size: 0.65em; color: #888; text-transform: uppercase; margin-bottom: 4px; display: block; }
 
         .pago-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .pago-option { 
@@ -57,10 +59,8 @@
         .chk-massive { width: 100%; height: 65px; background: #1a1a1a; border-radius: 10px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 15px; cursor: pointer; margin-bottom: 20px; }
         .chk-massive input { transform: scale(2); }
 
-        /* Botón Confirmar con estado deshabilitado visual */
-        .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; transition: 0.2s; }
-        .btn-add-massive:disabled { background: #222; color: #555; box-shadow: none; opacity: 0.4; cursor: not-allowed; transform: none; }
-        .btn-add-massive:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 3px 0 #155d27; }
+        .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
+        .btn-add-massive:disabled { background: #222; color: #555; box-shadow: none; opacity: 0.4; cursor: not-allowed; }
 
         .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
         table { width: 100%; border-collapse: collapse; }
@@ -73,8 +73,6 @@
 
         .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; }
         .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
-        
-        .time-tag { color: var(--green); font-family: monospace; font-weight: bold; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -86,16 +84,34 @@
 
     <div class="main-card">
         <div id="aviso-repetido" class="asistente-aviso"></div>
+        
         <div class="search-container">
             <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o Nº" autocomplete="off">
             <button class="btn-search" onclick="buscarParticipante()">🔍</button>
         </div>
 
         <div id="seccion-manual" class="extra-fields">
-            <div style="font-size: 0.7em; color: var(--accent); margin-bottom: 10px;">DATOS MANUALES (CLIENTE NO PREINSCRITO)</div>
-            <input type="text" id="c-dni" class="input-small" placeholder="DNI / NIE">
-            <input type="text" id="c-tel" class="input-small" placeholder="TELÉFONO">
-            <input type="text" id="c-redes" class="input-small" placeholder="INSTAGRAM / TIKTOK">
+            <div style="font-size: 0.7em; color: var(--accent); margin-bottom: 10px; font-weight: bold;">📝 DATOS OBLIGATORIOS (CLIENTE NUEVO)</div>
+            
+            <div class="input-group">
+                <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual" placeholder="12345678X"></div>
+                <div><span class="label-mini">Fecha Nacimiento</span><input type="date" id="c-nac" class="input-manual"></div>
+            </div>
+
+            <div class="input-group">
+                <div><span class="label-mini">Teléfono</span><input type="tel" id="c-tel" class="input-manual" placeholder="600 000 000"></div>
+                <div><span class="label-mini">Instagram / TikTok</span><input type="text" id="c-redes" class="input-manual" placeholder="@usuario"></div>
+            </div>
+
+            <div style="background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333;">
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 0.8em; cursor: pointer;">
+                    <input type="checkbox" id="c-menor" onchange="toggleMenor(this.checked)"> ¿ES MENOR DE EDAD?
+                </label>
+                <div id="box-menor" style="display:none; margin-top: 10px; border-top: 1px solid #222; padding-top: 10px;">
+                    <span class="label-mini" style="color:var(--orange)">DNI DEL TUTOR / PADRE</span>
+                    <input type="text" id="c-dni-tutor" class="input-manual" placeholder="DNI Tutor">
+                </div>
+            </div>
         </div>
         
         <select id="c-piloto" class="input-huge"></select>
@@ -126,7 +142,7 @@
         <table id="tabla-espera"></table>
     </div>
 
-    <div class="table-card" style="border-color: #333;">
+    <div class="table-card" style="border-color: #333; opacity: 0.8;">
         <div style="font-size:0.75em; color:#888; font-weight:bold; margin-bottom:10px; text-transform: uppercase;">🏁 Últimos completados</div>
         <table id="tabla-historial"></table>
     </div>
@@ -158,6 +174,7 @@
         const proximoNumTxt = document.getElementById('v-proximo-numero');
         const seccionManual = document.getElementById('seccion-manual');
 
+        window.toggleMenor = (val) => { document.getElementById('box-menor').style.display = val ? 'block' : 'none'; };
         window.seleccionarPago = (tipo) => {
             metodoPago = tipo;
             document.getElementById('pago-efectivo').classList.toggle('selected', tipo === 'EFECTIVO');
@@ -174,37 +191,38 @@
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             
+            // 1. Ver si ya está registrado
             let yaEsta = Object.values(data.espera || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
             if(!yaEsta) yaEsta = Object.values(data.completados || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
             
             if(yaEsta) {
-                avisoBox.innerHTML = `⚠️ <b>REGISTRADO</b>: ${yaEsta.copiloto} (#${yaEsta.nPapel})`;
-                avisoBox.style.display = 'block';
-                avisoBox.style.borderColor = 'var(--red)';
+                avisoBox.innerHTML = `⚠️ <b>YA REGISTRADO</b>: ${yaEsta.copiloto} (Ticket #${yaEsta.nPapel})`;
+                avisoBox.style.display = 'block'; avisoBox.style.borderColor = 'var(--red)';
                 seccionManual.style.display = 'none';
                 return;
             }
 
+            // 2. Ver si es preinscrito
             const pre = Object.values(data.pre_inscritos || {}).find(r => r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda || r.nPapel.toString() === busqueda);
             if (pre) {
-                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN</b>: ${pre.copiloto} (#${pre.nPapel})`;
-                avisoBox.style.display = 'block';
-                avisoBox.style.borderColor = 'var(--accent)';
+                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b>: ${pre.copiloto}`;
+                avisoBox.style.display = 'block'; avisoBox.style.borderColor = 'var(--accent)';
                 nombreInput.value = pre.copiloto;
                 proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
                 if(pre.piloto && pre.piloto !== "CUALQUIERA") selPiloto.value = pre.piloto;
                 seleccionarPago(pre.metodoPago || 'EFECTIVO');
                 registroRecuperado = pre;
-                seccionManual.style.display = 'none'; // Es preinscrito, ocultamos campos manuales
+                seccionManual.style.display = 'none';
             } else {
                 avisoBox.style.display = 'none';
                 registroRecuperado = null;
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
-                seccionManual.style.display = 'block'; // NO es preinscrito, mostramos campos para llenar
+                seccionManual.style.display = 'block'; // Mostrar formulario para nuevos
             }
             fnValidar();
         };
 
+        // Escucha de datos
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
@@ -239,15 +257,17 @@
             tHisto.innerHTML = "";
             if(data.completados) {
                 Object.values(data.completados).filter(x => x.finalizado).sort((a,b) => b.tsSalida - a.tsSalida).slice(0, 5).forEach(item => {
-                    tHisto.insertRow().innerHTML = `<td style="color:#aaa">#${item.nPapel}</td><td>${item.copiloto}</td><td style="text-align:right"><span class="time-tag">⏱ ${item.duracionTotal || '---'}</span></td>`;
+                    tHisto.insertRow().innerHTML = `<td style="color:#aaa">#${item.nPapel}</td><td>${item.copiloto}</td><td style="text-align:right"><span style="color:var(--green); font-family:monospace">⏱ ${item.duracionTotal || '--:--'}</span></td>`;
                 });
             }
         });
 
         window.marcarAcceso = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
 
+        // CONFIRMAR REGISTRO
         btnAdd.onclick = async () => {
             const numFinal = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
+            
             const datos = { 
                 nPapel: numFinal, 
                 copiloto: nombreInput.value.trim(), 
@@ -255,57 +275,57 @@
                 metodoPago: metodoPago, 
                 enRecinto: false, 
                 finalizado: false,
+                horaFirma: new Date().toLocaleTimeString('es-ES'),
+                // Datos extendidos
                 dni: registroRecuperado ? (registroRecuperado.dni || "") : document.getElementById('c-dni').value.trim(),
+                fechaNac: registroRecuperado ? (registroRecuperado.fechaNac || "") : document.getElementById('c-nac').value,
                 telefono: registroRecuperado ? (registroRecuperado.telefono || "") : document.getElementById('c-tel').value.trim(),
                 redes: registroRecuperado ? (registroRecuperado.redes || "") : document.getElementById('c-redes').value.trim(),
-                horaFirma: new Date().toLocaleTimeString('es-ES')
+                esMenor: registroRecuperado ? (registroRecuperado.esMenor || false) : document.getElementById('c-menor').checked,
+                dniTutor: registroRecuperado ? (registroRecuperado.dniTutor || "") : document.getElementById('c-dni-tutor').value.trim()
             };
+
             await push(ref(db, 'copilotajes/espera'), datos);
             if (registroRecuperado) await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
             else await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
             
-            // Limpiar todo
+            // Reset campos
             nombreInput.value = ""; firmaChk.checked = false; registroRecuperado = null;
-            document.getElementById('c-dni').value = ""; document.getElementById('c-tel').value = ""; document.getElementById('c-redes').value = "";
+            document.querySelectorAll('.input-manual').forEach(i => i.value = "");
+            document.getElementById('c-menor').checked = false; toggleMenor(false);
             avisoBox.style.display = 'none'; seccionManual.style.display = 'none';
             fnValidar();
         };
 
-        // EXPORTACIÓN COMPLETA
+        // EXPORTAR Y REINICIAR (CSV COMPLETO)
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val();
-            if(!data) { alert("Sin datos."); return; }
-            let csv = "TICKET;NOMBRE;DNI;TEL;REDES;PILOTO;PAGO;ESTADO;H_ENTRADA;H_SALIDA;DURACION\n";
+            if(!data) return;
+            
+            let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;TEL;REDES;MENOR;DNI_TUTOR;PILOTO;PAGO;ESTADO;H_ENTRADA;H_SALIDA;DURACION\n";
             const limpiar = (t) => t ? t.toString().replace(/;/g, ',').trim() : "";
-            const row = (i, e) => `${limpiar(i.nPapel)};${limpiar(i.copiloto)};${limpiar(i.dni)};${limpiar(i.telefono)};${limpiar(i.redes)};${limpiar(i.piloto)};${limpiar(i.metodoPago)};${e};${limpiar(i.horaEntradaTexto)};${limpiar(i.horaSalidaTexto)};${limpiar(i.duracionTotal)}\n`;
+            const row = (i, e) => `${limpiar(i.nPapel)};${limpiar(i.copiloto)};${limpiar(i.dni)};${limpiar(i.fechaNac)};${limpiar(i.telefono)};${limpiar(i.redes)};${i.esMenor?'SI':'NO'};${limpiar(i.dniTutor)};${limpiar(i.piloto)};${limpiar(i.metodoPago)};${e};${limpiar(i.horaEntradaTexto)};${limpiar(i.horaSalidaTexto)};${limpiar(i.duracionTotal)}\n`;
+            
             if(data.espera) Object.values(data.espera).forEach(i => csv += row(i, "ESPERA"));
             if(data.completados) Object.values(data.completados).forEach(i => csv += row(i, "FINALIZADO"));
+            
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `TAXI_DRIFT_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv`;
+            link.download = `TAXI_DRIFT_FULL_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv`;
             link.click();
+
             setTimeout(async () => {
-                if(confirm("EXPORTADO. ¿Borrar base de datos?")) { await remove(ref(db, 'copilotajes')); location.reload(); }
+                if(confirm("EXPORTACIÓN COMPLETADA. ¿Deseas borrar toda la base de datos?")) { 
+                    await remove(ref(db, 'copilotajes')); 
+                    location.reload(); 
+                }
             }, 1000);
         };
 
         nombreInput.oninput = fnValidar;
         firmaChk.onchange = fnValidar;
-        document.getElementById('csv-pilotos').onchange = (e) => {
-            const r = new FileReader();
-            r.onload = (ev) => {
-                const lines = ev.target.result.split(/\n/).filter(l => l.trim() !== "").slice(1);
-                const obj = {};
-                lines.forEach((l, i) => { 
-                    const c = l.split(l.includes(';') ? ';' : ',');
-                    if(c.length >= 3) obj[i] = `[#${c[0].trim()}] ${c[1].trim()} | ${c[2].trim()}`;
-                });
-                set(ref(db, 'copilotajes/config_pilotos'), obj);
-            };
-            r.readAsText(e.target.files[0]);
-        };
     </script>
 </body>
 </html>

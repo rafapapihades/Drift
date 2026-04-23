@@ -46,7 +46,6 @@
         .btn-recinto { background: var(--blue); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
-        
         .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; text-transform: uppercase; width: 100%; font-weight: bold; }
         
         /* BOTÓN REASIGNAR */
@@ -54,6 +53,13 @@
             background: transparent; color: var(--accent); border: 1px solid var(--accent);
             padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer;
             margin-top: 8px; display: inline-block; font-family: sans-serif; font-weight: bold;
+        }
+
+        /* Selector rápido que aparece al reasignar */
+        .selector-rapido {
+            background: #000; color: var(--accent); border: 1px solid var(--accent);
+            padding: 5px; border-radius: 5px; font-family: sans-serif; font-weight: bold;
+            margin-top: 5px; width: 100%;
         }
 
         #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
@@ -119,17 +125,47 @@
             }
         });
 
-        function generarMatriculaHTML(pilotoData) {
+        function generarMatriculaHTML(pilotoData, id, esRecinto) {
             const d = pilotoData.match(/\[#(\d+)\]/) || pilotoData.match(/^(\d+)/);
             const num = d ? d[1] : "??";
             const nom = pilotoData.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
-            return `<div style="display:flex; flex-direction:column; align-items:flex-start;">
-                        <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
-                            <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
-                            <span style="font-size:0.85em; color:#bbb;">${nom}</span>
-                        </div>
-                    </div>`;
+            
+            let html = `
+            <div id="contenedor-piloto-${id}">
+                <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+                    <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
+                    <span style="font-size:0.85em; color:#bbb;">${nom}</span>
+                </div>`;
+            
+            if(esRecinto) {
+                html += `<button class="btn-reasignar" onclick="activarSelector('${id}', '${pilotoData}')">✎ REASIGNAR PILOTO</button>`;
+            }
+            
+            html += `</div>`;
+            return html;
         }
+
+        // --- NUEVA LÓGICA DE SELECTOR ---
+        window.activarSelector = (id, pilotoActual) => {
+            const contenedor = document.getElementById(`contenedor-piloto-${id}`);
+            const options = pilotosDisponibles.map(p => `<option value="${p}" ${p === pilotoActual ? 'selected' : ''}>${p}</option>`).join('');
+            
+            contenedor.innerHTML = `
+                <select class="selector-rapido" onchange="guardarCambioPiloto('${id}', this.value)">
+                    <option value="" disabled selected>SELECCIONA PILOTO...</option>
+                    ${options}
+                    <option value="CANCELAR">❌ CANCELAR</option>
+                </select>
+            `;
+        };
+
+        window.guardarCambioPiloto = async (id, nuevoPiloto) => {
+            if (nuevoPiloto === "CANCELAR") {
+                // El onValue de Firebase refrescará la vista automáticamente al estado anterior
+                return;
+            }
+            await update(ref(db, `copilotajes/espera/${id}`), { piloto: nuevoPiloto });
+        };
 
         window.marcarEnRecinto = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
         
@@ -137,14 +173,6 @@
             showConfirm("¿DEVOLVER PARTICIPANTE A LA COLA?", () => {
                 update(ref(db, `copilotajes/espera/${id}`), { enRecinto: false });
             });
-        };
-
-        // FUNCIÓN REASIGNAR PILOTO
-        window.reasignarPiloto = async (id, pilotoActual) => {
-            const nuevoPiloto = prompt(`REASIGNAR PILOTO (Actual: ${pilotoActual})\nPilotos activos:\n${pilotosDisponibles.join("\n")}`, pilotoActual);
-            if (nuevoPiloto && nuevoPiloto !== pilotoActual) {
-                await update(ref(db, `copilotajes/espera/${id}`), { piloto: nuevoPiloto });
-            }
         };
 
         window.confirmarSubida = async (id) => {
@@ -193,7 +221,6 @@
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             
-            // Actualizar lista de pilotos para el prompt
             const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
             pilotosDisponibles = config.filter(p => !bajas.includes(p));
@@ -205,14 +232,10 @@
 
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    const rowHtml = `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}`;
-                    
                     if(!item.enRecinto) {
-                        tCola.innerHTML += rowHtml + `</td><td style="width:115px"><button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
+                        tCola.innerHTML += `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto, id, false)}</td><td style="width:115px"><button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
                     } else {
-                        tRecinto.innerHTML += rowHtml + `
-                            <button class="btn-reasignar" onclick="reasignarPiloto('${id}', '${item.piloto}')">✎ REASIGNAR PILOTO</button>
-                            </td><td style="width:115px">
+                        tRecinto.innerHTML += `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto, id, true)}</td><td style="width:115px">
                             <button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>
                             <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ SACAR A COLA</button>
                         </td></tr>`;
@@ -224,7 +247,7 @@
                 Object.entries(data.completados).filter(x => !x[1].finalizado).forEach(([id, item]) => {
                     tPista.innerHTML += `<tr><td>
                         <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>
-                        ${generarMatriculaHTML(item.piloto)}
+                        ${generarMatriculaHTML(item.piloto, id, false)}
                         <span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span> <small>(${item.horaEntradaTexto})</small></span>
                     </td><td style="width:115px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button></td></tr>`;
                 });

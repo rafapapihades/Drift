@@ -28,7 +28,6 @@
 
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         
-        /* Buscador con Lupa */
         .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
         .btn-search { background: var(--accent); border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: 1.5em; transition: 0.2s; }
         .btn-search:active { transform: scale(0.9); }
@@ -64,7 +63,6 @@
         td { padding: 15px 5px; border-bottom: 1px solid #222; }
         
         .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
-        .time-tag { font-size: 0.7em; color: var(--blue); font-family: sans-serif; font-weight: bold; margin-left: 5px; }
         
         .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; }
         .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
@@ -149,6 +147,7 @@
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
         };
 
+        // Función para buscar por nombre, DNI o turno
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
             if (!busqueda) return;
@@ -156,7 +155,6 @@
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             
-            // Buscar en pre-inscritos
             const pre = Object.values(data.pre_inscritos || {}).find(r => 
                 r.copiloto.toLowerCase().includes(busqueda) || 
                 r.dni?.toLowerCase() === busqueda ||
@@ -167,7 +165,7 @@
                 avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b><br>Participante: <b>${pre.copiloto}</b> (Turno #${pre.nPapel})`;
                 avisoBox.style.display = 'block';
                 
-                // Autorrelleno y sincronización de turno
+                // Autorrelleno de datos guardados
                 nombreInput.value = pre.copiloto;
                 proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
                 selPiloto.value = pre.piloto;
@@ -177,6 +175,7 @@
             } else {
                 alert("No se encontró ninguna pre-inscripción.");
                 registroRecuperado = null;
+                // Si no hay preinscrito, mostramos el número que sigue en la cola
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             }
             fnValidar();
@@ -184,24 +183,26 @@
 
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
+            
+            // Actualizamos la variable global con el último número manual registrado + 1
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
             
-            // Solo actualizamos el visual si no estamos editando un pre-inscrito
+            // Solo actualizamos el texto de pantalla si NO estamos gestionando un pre-inscrito seleccionado
             if(!registroRecuperado) {
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             }
             
-            // Cargar Pilotos
+            // Pilotos
             const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
             const pilotosOK = config.filter(p => !bajas.includes(p));
-            
             document.getElementById('count-tag').innerText = pilotosOK.length;
-            const currentVal = selPiloto.value;
+            
+            const prevVal = selPiloto.value;
             selPiloto.innerHTML = pilotosOK.map(p => `<option value="${p}">${p}</option>`).join('');
-            if(currentVal) selPiloto.value = currentVal;
+            if(prevVal) selPiloto.value = prevVal;
 
-            // Tabla Cola
+            // Tabla de espera
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
@@ -239,18 +240,22 @@
                 await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
             }
 
-            // Limpiar
+            // LIMPIEZA Y RESETEO TOTAL DESPUÉS DE REGISTRAR
             nombreInput.value = "";
             firmaChk.checked = false;
-            registroRecuperado = null;
+            registroRecuperado = null; // Liberamos la referencia para que vuelva a contar normal
             avisoBox.style.display = 'none';
+            
+            // Forzamos que el texto del número vuelva a ser el siguiente libre
+            proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
+            
             fnValidar();
         };
 
         nombreInput.oninput = fnValidar;
         firmaChk.onchange = fnValidar;
 
-        // --- BOTONES INFERIORES ---
+        // Gestión Pilotos
         document.getElementById('btn-gestionar-pilotos').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
@@ -265,9 +270,9 @@
         };
 
         window.guardarBajas = async () => {
-            const bajas = [];
-            document.querySelectorAll('.p-chk').forEach(c => { if(!c.checked) bajas.push(c.dataset.n); });
-            await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
+            const nuevasBajas = [];
+            document.querySelectorAll('.p-chk').forEach(c => { if(!c.checked) nuevasBajas.push(c.dataset.n); });
+            await set(ref(db, 'copilotajes/pilotos_baja'), nuevasBajas);
             document.getElementById('modal-bajas').remove();
         };
 

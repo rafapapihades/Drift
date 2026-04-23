@@ -54,7 +54,6 @@
         .chk-massive input { transform: scale(2); }
 
         .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
-        .btn-add-massive:active { transform: translateY(3px); box-shadow: 0 3px 0 #155d27; }
 
         .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
         table { width: 100%; border-collapse: collapse; }
@@ -62,9 +61,7 @@
         
         .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
         
-        /* Botón de acceso a recinto */
-        .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: 900; font-size: 0.7em; cursor: pointer; text-transform: uppercase; width: 100%; box-shadow: 0 3px 0 #004488; }
-        .btn-acceso:active { transform: translateY(2px); box-shadow: none; }
+        .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: 900; font-size: 0.7em; cursor: pointer; text-transform: uppercase; width: 100%; }
         .badge-recinto { background: #222; color: var(--blue); border: 1px solid var(--blue); padding: 5px; border-radius: 5px; font-size: 0.6em; font-weight: bold; text-align: center; display: block; }
 
         .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; }
@@ -79,7 +76,7 @@
 <body>
 
     <div class="header-top">
-        <img src="logotaxi.jpg" alt="Logo Taxi Drift" class="header-logo">
+        <img src="logotaxi.jpg" alt="Logo" class="header-logo">
         <input type="text" id="nombre-evento" class="event-name-input" placeholder="NOMBRE DEL EVENTO">
     </div>
 
@@ -100,7 +97,7 @@
         </div>
         <label class="chk-massive">
             <input type="checkbox" id="c-firma"> 
-            <span style="font-family: sans-serif; font-weight: bold;">RESPONSABILIDAD FIRMADA</span>
+            <span>RESPONSABILIDAD FIRMADA</span>
         </label>
         <button id="btn-add" class="btn-add-massive" disabled>CONFIRMAR REGISTRO</button>
     </div>
@@ -113,15 +110,15 @@
         <table id="tabla-espera"></table>
     </div>
 
-    <div class="table-card" style="border-color: #333; opacity: 0.8;">
-        <div style="font-size:0.75em; color:#888; font-weight:bold; margin-bottom:10px; text-transform: uppercase;">🏁 Últimos en salir de pista</div>
+    <div class="table-card" style="border-color: #333;">
+        <div style="font-size:0.75em; color:#888; font-weight:bold; margin-bottom:10px; text-transform: uppercase;">🏁 Últimos completados</div>
         <table id="tabla-historial"></table>
     </div>
 
     <div class="controls-row">
         <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CSV PILOTOS (<span id="count-tag">0</span>)</button>
         <button class="btn-mini" id="btn-gestionar-pilotos" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS</button>
-        <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">REINICIAR DÍA</button>
+        <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">EXPORTAR Y REINICIAR</button>
     </div>
     <input type="file" id="csv-pilotos" hidden accept=".csv">
 
@@ -158,21 +155,19 @@
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             
-            // Buscar si ya existe
             let activoData = Object.values(data.espera || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
             if(!activoData) activoData = Object.values(data.completados || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
             
             if(activoData) {
-                avisoBox.innerHTML = `⚠️ <b>YA REGISTRADO</b><br>Participante: <b>${activoData.copiloto}</b> (Ticket #${activoData.nPapel})`;
+                avisoBox.innerHTML = `⚠️ <b>REGISTRADO</b>: ${activoData.copiloto} (#${activoData.nPapel})`;
                 avisoBox.style.display = 'block';
                 avisoBox.style.borderColor = 'var(--red)';
                 return;
             }
 
-            // Buscar en pre-inscritos
             const pre = Object.values(data.pre_inscritos || {}).find(r => r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda || r.nPapel.toString() === busqueda);
             if (pre) {
-                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN</b><br>Participante: <b>${pre.copiloto}</b> (Turno #${pre.nPapel})`;
+                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN</b>: ${pre.copiloto} (#${pre.nPapel})`;
                 avisoBox.style.display = 'block';
                 avisoBox.style.borderColor = 'var(--accent)';
                 nombreInput.value = pre.copiloto;
@@ -180,10 +175,6 @@
                 if(pre.piloto && pre.piloto !== "CUALQUIERA") selPiloto.value = pre.piloto;
                 seleccionarPago(pre.metodoPago || 'EFECTIVO');
                 registroRecuperado = pre;
-            } else {
-                alert("Sin resultados.");
-                registroRecuperado = null;
-                proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             }
             fnValidar();
         };
@@ -193,7 +184,6 @@
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
             if(!registroRecuperado) proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             
-            // Pilotos
             const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
             const pilotosOK = config.filter(p => !bajas.includes(p));
@@ -203,43 +193,28 @@
             if(registroRecuperado && registroRecuperado.piloto) selPiloto.value = registroRecuperado.piloto;
             else if(currentVal) selPiloto.value = currentVal;
 
-            // Tabla Espera
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             let count = 0;
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
                     count++;
-                    const row = tEspera.insertRow();
-                    row.innerHTML = `
+                    tEspera.insertRow().innerHTML = `
                         <td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td>
                         <td><strong>${item.copiloto}</strong><br><small>${item.piloto}</small></td>
                         <td style="width:100px; text-align:right">
-                            ${item.enRecinto 
-                                ? `<span class="badge-recinto">EN RECINTO</span>` 
-                                : `<button class="btn-acceso" onclick="marcarAcceso('${id}')">Acceso Recinto</button>`}
-                        </td>
-                    `;
+                            ${item.enRecinto ? `<span class="badge-recinto">EN RECINTO</span>` : `<button class="btn-acceso" onclick="marcarAcceso('${id}')">ACCESO</button>`}
+                        </td>`;
                 });
             }
             document.getElementById('contador-espera').innerText = `${count} personas`;
 
-            // Tabla Historial (Últimos 5 completados)
             const tHisto = document.getElementById('tabla-historial');
             tHisto.innerHTML = "";
             if(data.completados) {
-                Object.values(data.completados)
-                    .filter(x => x.finalizado)
-                    .sort((a,b) => b.tsSalida - a.tsSalida)
-                    .slice(0, 5)
-                    .forEach(item => {
-                        const row = tHisto.insertRow();
-                        row.innerHTML = `
-                            <td style="font-size:0.8em; color:#aaa">#${item.nPapel}</td>
-                            <td style="font-size:0.8em;">${item.copiloto}</td>
-                            <td style="text-align:right"><span class="time-tag">⏱ ${item.duracionTotal || '---'}</span></td>
-                        `;
-                    });
+                Object.values(data.completados).filter(x => x.finalizado).sort((a,b) => b.tsSalida - a.tsSalida).slice(0, 5).forEach(item => {
+                    tHisto.insertRow().innerHTML = `<td style="color:#aaa">#${item.nPapel}</td><td>${item.copiloto}</td><td style="text-align:right"><span class="time-tag">⏱ ${item.duracionTotal || '---'}</span></td>`;
+                });
             }
         });
 
@@ -247,31 +222,60 @@
 
         btnAdd.onclick = async () => {
             const numFinal = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
-            const datos = {
-                nPapel: numFinal,
-                copiloto: nombreInput.value.trim(),
-                piloto: selPiloto.value,
-                metodoPago: metodoPago,
-                enRecinto: false,
-                finalizado: false
-            };
+            const datos = { nPapel: numFinal, copiloto: nombreInput.value.trim(), piloto: selPiloto.value, metodoPago: metodoPago, enRecinto: false, finalizado: false };
             await push(ref(db, 'copilotajes/espera'), datos);
             if (registroRecuperado) await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
             else await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
-            
             nombreInput.value = ""; firmaChk.checked = false; registroRecuperado = null;
             avisoBox.style.display = 'none'; fnValidar();
+        };
+
+        // --- FUNCIÓN CRÍTICA: EXPORTAR Y REINICIAR ---
+        document.getElementById('btn-reset').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            const data = snap.val();
+            if(!data || (!data.espera && !data.completados)) {
+                alert("No hay datos para exportar.");
+                return;
+            }
+
+            // Crear contenido CSV
+            let csv = "N_TICKET;COPILOTO;PILOTO;PAGO;ESTADO;DURACION_PISTA\n";
+            
+            // Añadir los que están en espera/recinto
+            if(data.espera) {
+                Object.values(data.espera).forEach(i => {
+                    csv += `${i.nPapel};${i.copiloto};${i.piloto};${i.metodoPago};PENDIENTE;---\n`;
+                });
+            }
+            // Añadir los completados
+            if(data.completados) {
+                Object.values(data.completados).forEach(i => {
+                    csv += `${i.nPapel};${i.copiloto};${i.piloto};${i.metodoPago};FINALIZADO;${i.duracionTotal || '---'}\n`;
+                });
+            }
+
+            // Descargar archivo
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Resumen_TaxiDrift_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Confirmar borrado después de la descarga
+            setTimeout(async () => {
+                if(confirm("ARCHIVO DESCARGADO.\n\n¿Quieres BORRAR toda la base de datos para empezar un nuevo día?")) {
+                    await remove(ref(db, 'copilotajes'));
+                    location.reload();
+                }
+            }, 1000);
         };
 
         nombreInput.oninput = fnValidar;
         firmaChk.onchange = fnValidar;
 
-        // Reset
-        document.getElementById('btn-reset').onclick = () => {
-            if(confirm("¿Seguro que quieres borrar todos los datos?")) { remove(ref(db, 'copilotajes')); location.reload(); }
-        };
-
-        // CSV
         document.getElementById('csv-pilotos').onchange = (e) => {
             const r = new FileReader();
             r.onload = (ev) => {

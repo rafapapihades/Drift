@@ -7,35 +7,63 @@
     <style>
         :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #003399; --orange: #fd7e14; }
         * { box-sizing: border-box; }
+
         body { 
             background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg);
             color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; 
         }
+
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
-        .pista-status-bar { width: 100%; padding: 15px; border-radius: 10px; text-align: center; font-size: 1.2em; font-weight: 900; text-transform: uppercase; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.4s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+
+        .pista-status-bar {
+            width: 100%; padding: 15px; border-radius: 10px; text-align: center;
+            font-size: 1.2em; font-weight: 900; text-transform: uppercase;
+            margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.4s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; width: 100%; }
         .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
-        .n-doc { background: var(--accent); color: #000; padding: 8px 12px; border-radius: 8px; font-family: monospace; font-weight: 900; margin-right: 10px; font-size: 2.2em; display: inline-block; line-height: 1; box-shadow: 0 0 10px rgba(255,204,0,0.3); }
+
+        .n-doc { 
+            background: var(--accent); color: #000; padding: 8px 12px; 
+            border-radius: 8px; font-family: monospace; font-weight: 900; 
+            margin-right: 10px; font-size: 2.2em; display: inline-block;
+            line-height: 1; box-shadow: 0 0 10px rgba(255,204,0,0.3);
+        }
+
         .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; font-family: 'Arial', sans-serif; font-weight: 900; border: 1px solid #fff; margin-top: 5px; }
         .m-bandera { background: var(--blue); color: white; padding: 4px 5px; font-size: 0.6em; }
         .m-num { padding: 2px 12px; font-size: 1.4em; min-width: 35px; text-align: center; }
+        
         .time-info { font-size: 0.75em; color: #00ff99; display: block; margin-top: 8px; font-family: sans-serif; font-weight: bold; background: rgba(0,255,153,0.1); padding: 5px; border-radius: 5px; }
+
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 8px; border-bottom: 1px solid #222; }
+
+        /* Botones */
         .btn-recinto { background: var(--blue); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
+        
         .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; text-transform: uppercase; width: 100%; font-weight: bold; }
         
-        /* Estilo para el botón Reasignar */
-        .btn-reasignar { background: transparent; color: var(--accent); border: 1px dashed var(--accent); padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer; margin-top: 5px; font-weight: bold; text-transform: uppercase; display: block; width: fit-content; }
+        /* BOTÓN REASIGNAR */
+        .btn-reasignar {
+            background: transparent; color: var(--accent); border: 1px solid var(--accent);
+            padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer;
+            margin-top: 8px; display: inline-block; font-family: sans-serif; font-weight: bold;
+        }
 
         #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
+
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
         .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
         .btn-modal { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; color: white; }
+
+        @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -52,6 +80,7 @@
 
     <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
     <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">ESPERANDO ESTADO...</div>
+
     <input type="search" id="buscador" placeholder="🔍 BUSCAR Nº TURNO O NOMBRE..." oninput="filtrar()">
 
     <div class="card"><div class="section-title">⏳ 1. COLA DE ACCESO</div><table id="lista-cola-acceso"></table></div>
@@ -67,7 +96,7 @@
         const db = getDatabase(app);
 
         let confirmAction = null;
-        let listaPilotosGlobal = [];
+        let pilotosDisponibles = [];
 
         window.showConfirm = (texto, callback) => {
             document.getElementById('confirm-text').innerText = texto;
@@ -84,9 +113,9 @@
             const data = snapshot.val();
             if (data) {
                 const sb = document.getElementById('status-bar');
-                sb.innerText = data.mensaje;
-                sb.style.background = data.color;
+                sb.innerText = data.mensaje; sb.style.background = data.color;
                 sb.style.color = (data.color === '#ffcc00' || data.color === 'yellow') ? '#000' : '#fff';
+                sb.style.animation = (data.id === 'btn-acc') ? "pulse-red 1s infinite" : "none";
             }
         });
 
@@ -94,21 +123,13 @@
             const d = pilotoData.match(/\[#(\d+)\]/) || pilotoData.match(/^(\d+)/);
             const num = d ? d[1] : "??";
             const nom = pilotoData.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
-            return `<div style="display:flex; flex-direction:column; gap:2px;">
-                        <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
-                        <span style="font-size:0.75em; color:#bbb;">${nom}</span>
+            return `<div style="display:flex; flex-direction:column; align-items:flex-start;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+                            <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
+                            <span style="font-size:0.85em; color:#bbb;">${nom}</span>
+                        </div>
                     </div>`;
         }
-
-        // --- REASIGNAR PILOTO ---
-        window.reasignarPiloto = async (id, pilotoActual) => {
-            const msg = "SELECCIONA NUEVO PILOTO:\n\n" + listaPilotosGlobal.map((p, i) => `${i + 1}. ${p}`).join("\n");
-            const index = prompt(msg);
-            if (index && listaPilotosGlobal[index - 1]) {
-                const nuevoPiloto = listaPilotosGlobal[index - 1];
-                await update(ref(db, `copilotajes/espera/${id}`), { piloto: nuevoPiloto });
-            }
-        };
 
         window.marcarEnRecinto = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
         
@@ -116,6 +137,14 @@
             showConfirm("¿DEVOLVER PARTICIPANTE A LA COLA?", () => {
                 update(ref(db, `copilotajes/espera/${id}`), { enRecinto: false });
             });
+        };
+
+        // FUNCIÓN REASIGNAR PILOTO
+        window.reasignarPiloto = async (id, pilotoActual) => {
+            const nuevoPiloto = prompt(`REASIGNAR PILOTO (Actual: ${pilotoActual})\nPilotos activos:\n${pilotosDisponibles.join("\n")}`, pilotoActual);
+            if (nuevoPiloto && nuevoPiloto !== pilotoActual) {
+                await update(ref(db, `copilotajes/espera/${id}`), { piloto: nuevoPiloto });
+            }
         };
 
         window.confirmarSubida = async (id) => {
@@ -133,8 +162,7 @@
 
                 const newRef = push(ref(db, 'copilotajes/completados'));
                 await set(newRef, { 
-                    ...d, 
-                    tsEntrada: Date.now(),
+                    ...d, tsEntrada: Date.now(),
                     horaEntradaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
                     finalizado: false 
                 });
@@ -152,6 +180,7 @@
                     const duracionFinal = Math.floor(diffMs / 60000) + "m " + Math.floor((diffMs % 60000) / 1000) + "s";
                     const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
                     if(dMatch) await remove(ref(db, `votacion_activa/items/${dMatch[1]}`));
+
                     await update(ref(db, `copilotajes/completados/${id}`), { 
                         finalizado: true, tsSalida: tsSalida,
                         horaSalidaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
@@ -163,9 +192,11 @@
 
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
+            
+            // Actualizar lista de pilotos para el prompt
             const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
-            listaPilotosGlobal = config.filter(p => !bajas.includes(p));
+            pilotosDisponibles = config.filter(p => !bajas.includes(p));
 
             const tCola = document.getElementById('lista-cola-acceso');
             const tRecinto = document.getElementById('lista-espera-recinto');
@@ -174,21 +205,17 @@
 
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    const infoHTML = `<td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}</td>`;
+                    const rowHtml = `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}`;
                     
                     if(!item.enRecinto) {
-                        tCola.innerHTML += `<tr>${infoHTML}<td style="width:115px"><button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
+                        tCola.innerHTML += rowHtml + `</td><td style="width:115px"><button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
                     } else {
-                        tRecinto.innerHTML += `<tr>
-                            <td>
-                                <span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>
-                                ${generarMatriculaHTML(item.piloto)}
-                                <button class="btn-reasignar" onclick="reasignarPiloto('${id}', '${item.piloto}')">Reasignar piloto</button>
-                            </td>
-                            <td style="width:115px">
-                                <button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>
-                                <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ SACAR A COLA</button>
-                            </td></tr>`;
+                        tRecinto.innerHTML += rowHtml + `
+                            <button class="btn-reasignar" onclick="reasignarPiloto('${id}', '${item.piloto}')">✎ REASIGNAR PILOTO</button>
+                            </td><td style="width:115px">
+                            <button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>
+                            <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ SACAR A COLA</button>
+                        </td></tr>`;
                     }
                 });
             }

@@ -12,8 +12,21 @@
             color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; 
         }
 
+        /* --- NUEVO: BARRA ESTADO DE PISTA --- */
+        .track-status-bar {
+            width: 100%; padding: 15px; text-align: center; font-size: 1.5em; font-weight: 900;
+            border-radius: 8px; margin-bottom: 15px; text-transform: uppercase;
+            border: 2px solid rgba(255,255,255,0.1); transition: all 0.5s ease;
+        }
+        .status-libre { background: var(--green); color: white; box-shadow: 0 0 20px rgba(40, 167, 69, 0.4); }
+        .status-obstaculo { background: var(--accent); color: black; box-shadow: 0 0 20px rgba(255, 204, 0, 0.4); }
+        .status-accidente { background: var(--red); color: white; box-shadow: 0 0 25px rgba(255, 0, 0, 0.6); animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        /* ------------------------------------ */
+
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
-        .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
+        .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 300px; height: auto; }
 
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
@@ -24,23 +37,19 @@
 
         .n-doc { background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 900; margin-right: 5px; }
         
-        /* Info de tiempo */
         .time-info { font-size: 0.75em; color: #00ff99; display: block; margin-top: 8px; font-family: sans-serif; font-weight: bold; background: rgba(0,255,153,0.1); padding: 5px; border-radius: 5px; }
         .cronometro { color: #fff; font-size: 1.1em; }
 
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 8px; border-bottom: 1px solid #222; }
 
-        /* Botones */
         .btn-recinto { background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #002266; }
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.85em; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 12px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e; }
         .btn-change { background: #222; color: var(--accent); border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 10px; text-transform: uppercase; width: 100%; font-weight: bold; }
 
-        /* Modales */
         #modal-cambio, #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 450px; text-align: center; }
-        .select-modal { width: 100%; padding: 15px; margin: 20px 0; background: #000; color: #fff; border: 1px solid var(--accent); border-radius: 8px; }
         .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
         .btn-modal { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; color: white; }
     </style>
@@ -49,7 +58,7 @@
 
     <div id="custom-confirm">
         <div class="modal-content" style="border-color: var(--orange);">
-            <h2 id="confirm-text" style="color:white; margin:0; font-size: 1.2em;">¿ACOMPAÑADO A LA SALIDA?</h2>
+            <h2 id="confirm-text" style="color:white; margin:0; font-size: 1.2em;">¿CONFIRMAR ACCIÓN?</h2>
             <div class="modal-btns">
                 <button class="btn-modal" style="background:#444;" onclick="handleConfirm(false)">CANCELAR</button>
                 <button class="btn-modal" style="background:var(--orange);" onclick="handleConfirm(true)">CONFIRMAR</button>
@@ -58,6 +67,8 @@
     </div>
 
     <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
+
+    <div id="status-display" class="track-status-bar status-libre">CARGANDO ESTADO...</div>
 
     <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR DORSAL O NOMBRE..." oninput="filtrar()">
 
@@ -68,7 +79,7 @@
     <div id="modal-cambio">
         <div class="modal-content">
             <h3 style="color: var(--accent);">REASIGNAR COCHE</h3>
-            <select id="nuevo-piloto-select" class="select-modal"></select>
+            <select id="nuevo-piloto-select" style="width:100%; padding:15px; margin:20px 0; background:#000; color:#fff; border:1px solid var(--accent); border-radius:8px;"></select>
             <div class="modal-btns">
                 <button class="btn-modal" style="background:var(--blue);" onclick="ejecutarCambio()">REASIGNAR</button>
                 <button class="btn-modal" style="background:#333;" onclick="cerrarModal()">VOLVER</button>
@@ -87,6 +98,19 @@
         let idSeleccionado = null;
         let confirmAction = null;
 
+        // --- LÓGICA ESTADO DE PISTA ---
+        const statusEl = document.getElementById('status-display');
+        onValue(ref(db, 'pista/estado'), (snapshot) => {
+            const estado = snapshot.val() || "LIBRE";
+            statusEl.innerText = `PISTA ${estado}`;
+            statusEl.className = "track-status-bar"; // reset
+            
+            if (estado === "LIBRE") statusEl.classList.add('status-libre');
+            else if (estado === "OBSTÁCULO") statusEl.classList.add('status-obstaculo');
+            else if (estado === "ACCIDENTE") statusEl.classList.add('status-accidente');
+        });
+
+        // --- SISTEMA DE CONFIRMACIÓN ---
         window.showConfirm = (texto, callback) => {
             document.getElementById('confirm-text').innerText = texto;
             document.getElementById('custom-confirm').style.display = 'flex';
@@ -118,14 +142,12 @@
                 const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
                 const dorsal = dMatch ? dMatch[1] : "0";
                 
-                // Activar Speaker
                 await update(ref(db, 'votacion_activa'), { activa: true });
                 await set(ref(db, `votacion_activa/items/${dorsal}`), {
                     nombre: `${d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim()} & ${d.copiloto}`,
                     coche: "TAXI DRIFT", ap:0, up:0, dw:0
                 });
 
-                // Mover a Pista guardando el Timestamp exacto
                 const newRef = push(ref(db, 'copilotajes/completados'));
                 await set(newRef, { 
                     ...d, 
@@ -143,14 +165,12 @@
                 if(snap.exists()){
                     const d = snap.val();
                     const tsSalida = Date.now();
-                    const diffMs = tsSalida - d.tsEntrada;
+                    const diffMs = tsSalida - (d.tsEntrada || Date.now());
                     const duracionFinal = Math.floor(diffMs / 60000) + " min " + Math.floor((diffMs % 60000) / 1000) + "s";
                     
-                    // Quitar de Speaker
                     const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
                     if(dMatch) await remove(ref(db, `votacion_activa/items/${dMatch[1]}`));
 
-                    // Guardar datos finales para el CSV
                     await update(ref(db, `copilotajes/completados/${id}`), { 
                         finalizado: true,
                         tsSalida: tsSalida,
@@ -202,7 +222,6 @@
             }
         });
 
-        // CRONÓMETRO EN TIEMPO REAL (Actualiza cada segundo)
         setInterval(() => {
             document.querySelectorAll('.time-info').forEach(el => {
                 const ts = parseInt(el.getAttribute('data-ts'));

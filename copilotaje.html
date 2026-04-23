@@ -152,34 +152,63 @@
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
         };
 
-        // Detector de nombres repetidos
-        nombreInput.addEventListener('input', async () => {
-            const nombreBusqueda = nombreInput.value.trim().toLowerCase();
-            if (nombreBusqueda.length < 3) {
-                avisoBox.style.display = 'none';
-                registroRecuperado = null;
-                fnValidar();
-                return;
-            }
-            const snap = await get(ref(db, 'copilotajes'));
-            const data = snap.val() || {};
-            const todos = [
-                ...Object.values(data.espera || {}), 
-                ...Object.values(data.completados || {})
-            ];
-            const encontrado = todos.find(r => r.copiloto.toLowerCase() === nombreBusqueda);
-            if (encontrado) {
-                avisoBox.innerHTML = `✅ <b>¡YA REGISTRADO!</b><br>Ticket <b>#${encontrado.nPapel.toString().padStart(3, '0')}</b>.<br>Datos recuperados.`;
-                avisoBox.style.display = 'block';
-                firmaChk.checked = true;
-                registroRecuperado = encontrado;
-                if(encontrado.metodoPago) seleccionarPago(encontrado.metodoPago);
-            } else {
-                avisoBox.style.display = 'none';
-                registroRecuperado = null;
-            }
-            fnValidar();
-        });
+        // Detector de búsqueda: Nombre, DNI o Número de Turno
+nombreInput.addEventListener('input', async () => {
+    const busqueda = nombreInput.value.trim().toLowerCase();
+    
+    // Si el campo está vacío, limpiamos avisos y salimos
+    if (busqueda.length === 0) {
+        avisoBox.style.display = 'none';
+        registroRecuperado = null;
+        fnValidar();
+        return;
+    }
+
+    const snap = await get(ref(db, 'copilotajes'));
+    const data = snap.val() || {};
+    
+    // 1. BUSCAR EN ACTIVOS (Gente que ya pasó por mesa)
+    const activo = [
+        ...Object.values(data.espera || {}), 
+        ...Object.values(data.completados || {})
+    ].find(r => 
+        r.copiloto.toLowerCase().includes(busqueda) || 
+        r.dni?.toLowerCase() === busqueda ||
+        r.nPapel.toString() === busqueda
+    );
+
+    // 2. BUSCAR EN PRE-INSCRITOS (Gente que viene de la web de inscripción)
+    const pre = Object.values(data.pre_inscritos || {}).find(r => 
+        r.copiloto.toLowerCase().includes(busqueda) || 
+        r.dni?.toLowerCase() === busqueda ||
+        r.nPapel.toString() === busqueda
+    );
+
+    if (activo) {
+        avisoBox.innerHTML = `⚠️ <b>¡ATENCIÓN!</b> Este participante ya está en el sistema activo.<br>Ticket <b>#${activo.nPapel.toString().padStart(3, '0')}</b>.`;
+        avisoBox.style.display = 'block';
+        avisoBox.style.borderColor = 'var(--red)';
+        registroRecuperado = activo;
+        // Autorrelleno por si quieres editarlo
+        selPiloto.value = activo.piloto;
+        seleccionarPago(activo.metodoPago || 'EFECTIVO');
+        firmaChk.checked = true;
+    } else if (pre) {
+        avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b><br>Participante: <b>${pre.copiloto}</b> (Turno #${pre.nPapel.toString().padStart(3, '0')})<br><small>DNI: ${pre.dni} | Pago: ${pre.metodoPago}</small>`;
+        avisoBox.style.display = 'block';
+        avisoBox.style.borderColor = 'var(--accent)';
+        
+        // AUTORRELLENO AUTOMÁTICO DE LA PRE-INSCRIPCIÓN
+        nombreInput.value = pre.copiloto; // Muestra el nombre completo aunque busques por número
+        selPiloto.value = pre.piloto;
+        seleccionarPago(pre.metodoPago);
+        registroRecuperado = pre;
+    } else {
+        avisoBox.style.display = 'none';
+        registroRecuperado = null;
+    }
+    fnValidar();
+});
 
         firmaChk.onchange = fnValidar;
 
@@ -239,39 +268,38 @@
         });
 
         // Registrar Nuevo o Recuperar
-        btnAdd.onclick = async () => {
-            const horaActual = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
-            if (registroRecuperado) {
-                // Si estaba en completados, lo quitamos de allí para re-meterlo en espera
-                const snapC = await get(ref(db, 'copilotajes/completados'));
-                if(snapC.exists()){
-                    Object.entries(snapC.val()).forEach(([id, reg]) => {
-                        if(reg.nPapel === registroRecuperado.nPapel) remove(ref(db, `copilotajes/completados/${id}`));
-                    });
-                }
-                await push(ref(db, 'copilotajes/espera'), {
-                    ...registroRecuperado,
-                    piloto: selPiloto.value,
-                    metodoPago: metodoPago,
-                    enRecinto: false, 
-                    horaRegistro: horaActual,
-                    finalizado: false // Resetear estado de pista
-                });
-            } else {
-                const snapNum = await get(ref(db, 'copilotajes/ultimo_numero'));
-                const num = (snapNum.val() || 0) + 1;
-                await push(ref(db, 'copilotajes/espera'), {
-                    nPapel: num,
-                    copiloto: nombreInput.value.trim(),
-                    piloto: selPiloto.value,
-                    metodoPago: metodoPago,
-                    enRecinto: false,
-                    horaRegistro: horaActual
-                });
-                await set(ref(db, 'copilotajes/ultimo_numero'), num);
-            }
-            nombreInput.value = ""; firmaChk.checked = false; seleccionarPago('EFECTIVO'); fnValidar();
-        };
+btnAdd.onclick = async () => {
+    const horaActual = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+    
+    // Preparamos el objeto final (Limpiamos datos extra de la web para no saturar pista)
+    const datosFinales = {
+        nPapel: registroRecuperado ? registroRecuperado.nPapel : (parseInt(document.getElementById('v-proximo-numero').innerText)),
+        copiloto: nombreInput.value.trim(),
+        piloto: selPiloto.value,
+        metodoPago: metodoPago,
+        enRecinto: false,
+        horaRegistro: horaActual,
+        finalizado: false
+    };
+
+    // 1. Guardar en la lista de espera de los comisarios
+    await push(ref(db, 'copilotajes/espera'), datosFinales);
+
+    // 2. Si venía de una pre-inscripción, la borramos de la lista de pendientes
+    if (registroRecuperado && registroRecuperado.nPapel) {
+        await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
+    } else {
+        // Si es un registro manual nuevo, actualizamos el contador global
+        await set(ref(db, 'copilotajes/ultimo_numero'), datosFinales.nPapel);
+    }
+
+    // Resetear formulario
+    nombreInput.value = ""; 
+    firmaChk.checked = false; 
+    seleccionarPago('EFECTIVO'); 
+    avisoBox.style.display = 'none';
+    fnValidar();
+};
 
         // Gestión Pilotos
         document.getElementById('btn-gestionar-pilotos').onclick = async () => {

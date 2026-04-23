@@ -7,6 +7,8 @@
     <style>
         :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #003399; --orange: #fd7e14; }
         
+        * { box-sizing: border-box; } /* CRÍTICO: Evita que el padding ensanche los elementos */
+
         body { 
             background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg);
             color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; 
@@ -15,7 +17,7 @@
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
 
-        /* BARRA DE ESTADO DE PISTA (SINCRONIZADA) */
+        /* BARRA DE ESTADO DINÁMICA - AJUSTE DE TAMAÑO */
         .pista-status-bar {
             width: 100%;
             padding: 15px;
@@ -28,9 +30,10 @@
             border: 1px solid rgba(255,255,255,0.1);
             transition: all 0.4s ease;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: block;
         }
 
-        .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
+        .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; width: 100%; }
         .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
 
         .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; font-family: 'Arial', sans-serif; font-weight: 900; border: 1px solid #fff; margin-top: 5px; }
@@ -50,6 +53,9 @@
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.85em; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 12px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; font-size: 0.75em; box-shadow: 0 4px 0 #a04e0e; }
         .btn-change { background: #222; color: var(--accent); border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 10px; text-transform: uppercase; width: 100%; font-weight: bold; }
+
+        /* Buscador */
+        #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
 
         /* Modales */
         #modal-cambio, #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
@@ -79,7 +85,7 @@
         ESPERANDO ESTADO...
     </div>
 
-    <input type="search" id="buscador" style="width:100%; padding:15px; background:#000; border:1px solid #444; color:#fff; border-radius:10px; margin-bottom:15px;" placeholder="🔍 BUSCAR DORSAL O NOMBRE..." oninput="filtrar()">
+    <input type="search" id="buscador" placeholder="🔍 BUSCAR DORSAL O NOMBRE..." oninput="filtrar()">
 
     <div class="card"><div class="section-title">⏳ 1. COLA DE ACCESO</div><table id="lista-cola-acceso"></table></div>
     <div class="card" style="border-color: var(--blue);"><div class="section-title" style="color: var(--blue);">📍 2. ESPERA EN RECINTO</div><table id="lista-espera-recinto"></table></div>
@@ -115,14 +121,14 @@
                 statusBar.innerText = data.mensaje;
                 statusBar.style.background = data.color;
                 
-                // Ajuste de contraste: si es amarillo (obstáculo), texto negro
-                if (data.color === '#ffcc00') {
+                // Ajuste de contraste
+                if (data.color === '#ffcc00' || data.color === 'yellow') {
                     statusBar.style.color = '#000';
                 } else {
                     statusBar.style.color = '#fff';
                 }
 
-                // Efecto de parpadeo si es Accidente
+                // Animación para Accidente
                 if (data.id === 'btn-acc') {
                     statusBar.style.animation = "pulse-red 1s infinite";
                 } else {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOGÍSTICA TAXI DRIFT</title>
     <style>
-        :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; }
+        :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
         
         body { 
             background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg);
@@ -30,7 +30,6 @@
         
         .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
         .btn-search { background: var(--accent); border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: 1.5em; transition: 0.2s; }
-        .btn-search:active { transform: scale(0.9); }
 
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
         
@@ -56,17 +55,23 @@
 
         .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
         .btn-add-massive:active { transform: translateY(3px); box-shadow: 0 3px 0 #155d27; }
-        .btn-add-massive:disabled { background: #333; color: #555; box-shadow: none; opacity: 0.5; }
 
         .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
         table { width: 100%; border-collapse: collapse; }
-        td { padding: 15px 5px; border-bottom: 1px solid #222; }
+        td { padding: 12px 5px; border-bottom: 1px solid #222; }
         
         .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
         
+        /* Botón de acceso a recinto */
+        .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: 900; font-size: 0.7em; cursor: pointer; text-transform: uppercase; width: 100%; box-shadow: 0 3px 0 #004488; }
+        .btn-acceso:active { transform: translateY(2px); box-shadow: none; }
+        .badge-recinto { background: #222; color: var(--blue); border: 1px solid var(--blue); padding: 5px; border-radius: 5px; font-size: 0.6em; font-weight: bold; text-align: center; display: block; }
+
         .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; }
         .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
         
+        .time-tag { color: var(--green); font-family: monospace; font-weight: bold; font-size: 0.9em; }
+
         #modal-bajas { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; box-sizing:border-box; display:flex; align-items:center;}
         .modal-card { background:#1a1a1a; padding:20px; border-radius:15px; border:1px solid var(--accent); max-width:500px; margin: 0 auto; width:100%;}
     </style>
@@ -80,39 +85,41 @@
 
     <div class="main-card">
         <div id="aviso-repetido" class="asistente-aviso"></div>
-        
         <div class="search-container">
             <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o Nº" autocomplete="off">
             <button class="btn-search" onclick="buscarParticipante()">🔍</button>
         </div>
-        
         <select id="c-piloto" class="input-huge"></select>
-
         <div class="pago-container">
             <div id="pago-efectivo" class="pago-option selected" onclick="seleccionarPago('EFECTIVO')">💵 EFECTIVO</div>
             <div id="pago-tarjeta" class="pago-option" onclick="seleccionarPago('TARJETA')">💳 TARJETA</div>
         </div>
-        
         <div class="doc-box">
             <small>Nº DOCUMENTO CORRELATIVO</small>
             <b id="v-proximo-numero">001</b>
         </div>
-
         <label class="chk-massive">
             <input type="checkbox" id="c-firma"> 
             <span style="font-family: sans-serif; font-weight: bold;">RESPONSABILIDAD FIRMADA</span>
         </label>
-
         <button id="btn-add" class="btn-add-massive" disabled>CONFIRMAR REGISTRO</button>
     </div>
 
     <div class="table-card">
-        <div style="font-size:0.8em; color:var(--accent); font-weight:bold; margin-bottom:15px; text-transform: uppercase;">📋 Cola de Acceso</div>
+        <div style="font-size:0.85em; color:var(--accent); font-weight:bold; margin-bottom:15px; text-transform: uppercase; display: flex; justify-content: space-between;">
+            <span>📋 Cola de Acceso</span>
+            <span id="contador-espera" style="color:#666">0 personas</span>
+        </div>
         <table id="tabla-espera"></table>
     </div>
 
+    <div class="table-card" style="border-color: #333; opacity: 0.8;">
+        <div style="font-size:0.75em; color:#888; font-weight:bold; margin-bottom:10px; text-transform: uppercase;">🏁 Últimos en salir de pista</div>
+        <table id="tabla-historial"></table>
+    </div>
+
     <div class="controls-row">
-        <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR CSV (<span id="count-tag">0</span>)</button>
+        <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CSV PILOTOS (<span id="count-tag">0</span>)</button>
         <button class="btn-mini" id="btn-gestionar-pilotos" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS</button>
         <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">REINICIAR DÍA</button>
     </div>
@@ -143,75 +150,40 @@
             document.getElementById('pago-tarjeta').classList.toggle('selected', tipo === 'TARJETA');
         };
 
-        const fnValidar = () => { 
-            btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
-        };
+        const fnValidar = () => { btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); };
 
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
             if (!busqueda) return;
-
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             
-            // 1. BUSCAR EN SISTEMA ACTIVO (¿Ya está registrado?)
-            let activoId = null;
-            let activoData = null;
-            let estado = "";
-
-            // Buscar en espera
-            Object.entries(data.espera || {}).forEach(([id, r]) => {
-                if(r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda) {
-                    activoId = id; activoData = r; 
-                    estado = r.enRecinto ? "ESPERA EN RECINTO (Punto 2)" : "COLA DE ACCESO (Punto 1)";
-                }
-            });
-            // Buscar en completados (pista)
-            if(!activoData) {
-                Object.entries(data.completados || {}).forEach(([id, r]) => {
-                    if(r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda) {
-                        activoId = id; activoData = r; 
-                        estado = r.finalizado ? "VIAJE FINALIZADO" : "EN PISTA / RETORNO (Punto 3)";
-                    }
-                });
-            }
-
+            // Buscar si ya existe
+            let activoData = Object.values(data.espera || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
+            if(!activoData) activoData = Object.values(data.completados || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
+            
             if(activoData) {
-                avisoBox.innerHTML = `⚠️ <b>YA ESTÁ EN EL SISTEMA</b><br>Participante: <b>${activoData.copiloto}</b> (Ticket #${activoData.nPapel})<br>Estado: <span style="color:var(--green)">${estado}</span>`;
+                avisoBox.innerHTML = `⚠️ <b>YA REGISTRADO</b><br>Participante: <b>${activoData.copiloto}</b> (Ticket #${activoData.nPapel})`;
                 avisoBox.style.display = 'block';
                 avisoBox.style.borderColor = 'var(--red)';
-                return; // Bloqueamos para no duplicar
+                return;
             }
 
-            // 2. BUSCAR EN PRE-INSCRITOS
-            const pre = Object.values(data.pre_inscritos || {}).find(r => 
-                r.copiloto.toLowerCase().includes(busqueda) || 
-                r.dni?.toLowerCase() === busqueda ||
-                r.nPapel.toString() === busqueda
-            );
-
+            // Buscar en pre-inscritos
+            const pre = Object.values(data.pre_inscritos || {}).find(r => r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda || r.nPapel.toString() === busqueda);
             if (pre) {
-                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b><br>Participante: <b>${pre.copiloto}</b> (Turno #${pre.nPapel})`;
+                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN</b><br>Participante: <b>${pre.copiloto}</b> (Turno #${pre.nPapel})`;
                 avisoBox.style.display = 'block';
                 avisoBox.style.borderColor = 'var(--accent)';
-                
                 nombreInput.value = pre.copiloto;
                 proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
-                
-                // --- AJUSTE PILOTO SELECCIONADO ---
-                if(pre.piloto && pre.piloto !== "CUALQUIERA") {
-                    selPiloto.value = pre.piloto;
-                } else {
-                    selPiloto.selectedIndex = 0;
-                }
-
+                if(pre.piloto && pre.piloto !== "CUALQUIERA") selPiloto.value = pre.piloto;
                 seleccionarPago(pre.metodoPago || 'EFECTIVO');
                 registroRecuperado = pre;
             } else {
-                alert("No se encontró nada con ese criterio.");
+                alert("Sin resultados.");
                 registroRecuperado = null;
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
-                avisoBox.style.display = 'none';
             }
             fnValidar();
         };
@@ -219,41 +191,59 @@
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
+            if(!registroRecuperado) proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             
-            if(!registroRecuperado) {
-                proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
-            }
-            
+            // Pilotos
             const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
             const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
             const pilotosOK = config.filter(p => !bajas.includes(p));
-            
             document.getElementById('count-tag').innerText = pilotosOK.length;
             const currentVal = selPiloto.value;
             selPiloto.innerHTML = pilotosOK.map(p => `<option value="${p}">${p}</option>`).join('');
-            
-            // Si venimos de un pre-inscrito y ya se cargó su piloto, lo respetamos
-            if(registroRecuperado && registroRecuperado.piloto) {
-                selPiloto.value = registroRecuperado.piloto;
-            } else if(currentVal) {
-                selPiloto.value = currentVal;
-            }
+            if(registroRecuperado && registroRecuperado.piloto) selPiloto.value = registroRecuperado.piloto;
+            else if(currentVal) selPiloto.value = currentVal;
 
+            // Tabla Espera
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
+            let count = 0;
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
+                    count++;
                     const row = tEspera.insertRow();
                     row.innerHTML = `
                         <td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td>
                         <td><strong>${item.copiloto}</strong><br><small>${item.piloto}</small></td>
-                        <td style="text-align:right"><input type="checkbox" style="transform:scale(1.5)" ${item.enRecinto?'checked':''} onchange="actualizarRecinto('${id}', this.checked)"></td>
+                        <td style="width:100px; text-align:right">
+                            ${item.enRecinto 
+                                ? `<span class="badge-recinto">EN RECINTO</span>` 
+                                : `<button class="btn-acceso" onclick="marcarAcceso('${id}')">Acceso Recinto</button>`}
+                        </td>
                     `;
                 });
             }
+            document.getElementById('contador-espera').innerText = `${count} personas`;
+
+            // Tabla Historial (Últimos 5 completados)
+            const tHisto = document.getElementById('tabla-historial');
+            tHisto.innerHTML = "";
+            if(data.completados) {
+                Object.values(data.completados)
+                    .filter(x => x.finalizado)
+                    .sort((a,b) => b.tsSalida - a.tsSalida)
+                    .slice(0, 5)
+                    .forEach(item => {
+                        const row = tHisto.insertRow();
+                        row.innerHTML = `
+                            <td style="font-size:0.8em; color:#aaa">#${item.nPapel}</td>
+                            <td style="font-size:0.8em;">${item.copiloto}</td>
+                            <td style="text-align:right"><span class="time-tag">⏱ ${item.duracionTotal || '---'}</span></td>
+                        `;
+                    });
+            }
         });
 
-        window.actualizarRecinto = (id, val) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: val });
+        window.marcarAcceso = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
 
         btnAdd.onclick = async () => {
             const numFinal = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
@@ -263,56 +253,25 @@
                 piloto: selPiloto.value,
                 metodoPago: metodoPago,
                 enRecinto: false,
-                horaRegistro: new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'}),
                 finalizado: false
             };
-
             await push(ref(db, 'copilotajes/espera'), datos);
+            if (registroRecuperado) await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
+            else await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
             
-            if (registroRecuperado) {
-                await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
-            } else {
-                await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
-            }
-
-            nombreInput.value = "";
-            firmaChk.checked = false;
-            registroRecuperado = null;
-            avisoBox.style.display = 'none';
-            proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
-            fnValidar();
+            nombreInput.value = ""; firmaChk.checked = false; registroRecuperado = null;
+            avisoBox.style.display = 'none'; fnValidar();
         };
 
         nombreInput.oninput = fnValidar;
         firmaChk.onchange = fnValidar;
 
-        document.getElementById('btn-gestionar-pilotos').onclick = async () => {
-            const snap = await get(ref(db, 'copilotajes'));
-            const data = snap.val() || {};
-            const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
-            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
-            let html = `<div id="modal-bajas"><div class="modal-card"><h2>ESTADO PILOTOS</h2>`;
-            config.forEach(p => {
-                html += `<label style="display:block; margin:10px 0;"><input type="checkbox" class="p-chk" data-n="${p}" ${!bajas.includes(p)?'checked':''}> ${p}</label>`;
-            });
-            html += `<button onclick="guardarBajas()" class="btn-add-massive" style="height:50px">CERRAR</button></div></div>`;
-            document.body.insertAdjacentHTML('beforeend', html);
-        };
-
-        window.guardarBajas = async () => {
-            const bajas = [];
-            document.querySelectorAll('.p-chk').forEach(c => { if(!c.checked) bajas.push(c.dataset.n); });
-            await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
-            document.getElementById('modal-bajas').remove();
-        };
-
+        // Reset
         document.getElementById('btn-reset').onclick = () => {
-            if(confirm("¿Seguro que quieres borrar todos los datos del día?")) {
-                remove(ref(db, 'copilotajes'));
-                location.reload();
-            }
+            if(confirm("¿Seguro que quieres borrar todos los datos?")) { remove(ref(db, 'copilotajes')); location.reload(); }
         };
 
+        // CSV
         document.getElementById('csv-pilotos').onchange = (e) => {
             const r = new FileReader();
             r.onload = (ev) => {
@@ -326,9 +285,6 @@
             };
             r.readAsText(e.target.files[0]);
         };
-
-        onValue(ref(db, 'copilotajes/nombre_evento'), s => document.getElementById('nombre-evento').value = s.val() || "");
-        document.getElementById('nombre-evento').onchange = (e) => set(ref(db, 'copilotajes/nombre_evento'), e.target.value);
     </script>
 </body>
 </html>

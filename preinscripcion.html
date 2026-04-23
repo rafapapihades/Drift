@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRE-INSCRIPCIÓN - TAXI DRIFT</title>
+    <title>INSCRIPCIÓN - TAXI DRIFT</title>
     <style>
         :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; }
         * { box-sizing: border-box; }
@@ -12,17 +12,19 @@
             color: #fff; font-family: sans-serif; padding: 15px; margin: 0;
             display: flex; justify-content: center;
         }
-        .container { max-width: 500px; width: 100%; background: rgba(20,20,20,0.95); padding: 25px; border-radius: 20px; border: 1px solid #333; }
+        .container { max-width: 500px; width: 100%; background: rgba(20,20,20,0.95); padding: 25px; border-radius: 20px; border: 1px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         .logo { width: 100%; max-width: 250px; display: block; margin: 0 auto 20px; }
-        h2 { text-align: center; color: var(--accent); text-transform: uppercase; margin-bottom: 25px; }
+        h2 { text-align: center; color: var(--accent); text-transform: uppercase; margin-bottom: 25px; font-size: 1.4em; }
         
         .section { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid var(--accent); }
-        .section-title { font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 15px; display: block; }
+        .section-title { font-size: 0.75em; color: var(--accent); font-weight: bold; margin-bottom: 15px; display: block; text-transform: uppercase; }
 
         input, select { 
             width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #444; 
-            background: #000; color: #fff; font-size: 1em;
+            background: #000; color: #fff; font-size: 1em; outline: none;
         }
+        input:focus { border-color: var(--accent); }
+
         .row { display: flex; gap: 10px; }
         
         .chk-group { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85em; color: #ccc; margin-bottom: 15px; cursor: pointer; }
@@ -32,66 +34,78 @@
             width: 100%; padding: 20px; border: none; border-radius: 12px; 
             background: var(--accent); color: #000; font-weight: 900; 
             font-size: 1.2em; cursor: pointer; text-transform: uppercase; margin-top: 10px;
+            box-shadow: 0 5px 0 #ccaa00;
         }
-        #menor-extra { display: none; background: #221a00; border: 1px dashed var(--accent); padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+        .btn-enviar:active { transform: translateY(4px); box-shadow: none; }
+
+        #menor-extra { display: none; background: #221a00; border: 1px dashed var(--accent); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         
         #success-screen { display: none; text-align: center; }
-        .ticket { font-size: 4em; color: var(--accent); font-family: monospace; border: 2px dashed var(--accent); display: inline-block; padding: 10px 30px; margin: 20px 0; border-radius: 10px; }
+        .ticket { font-size: 4.5em; color: var(--accent); font-family: monospace; border: 3px dashed var(--accent); display: inline-block; padding: 10px 30px; margin: 20px 0; border-radius: 15px; background: #111; }
+        
+        .info-pago { font-size: 0.8em; color: #888; text-align: center; margin-top: 15px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
 <div class="container" id="form-screen">
-    <img src="logotaxi.jpg" alt="Logo" class="logo">
+    <img src="logotaxi.jpg" alt="Logo Taxi Drift" class="logo">
     <h2>Pre-Registro Taxi Drift</h2>
 
     <div class="section">
         <span class="section-title">DATOS DEL PARTICIPANTE</span>
-        <input type="text" id="nombre" placeholder="Nombre Completo" required>
+        <input type="text" id="nombre" placeholder="Nombre y Apellidos" required>
         <div class="row">
             <input type="text" id="dni" placeholder="DNI / NIE" required style="flex:2">
-            <input type="date" id="fecha_nac" required style="flex:3" onchange="checkEdad()">
+            <input type="text" id="fecha_nac" placeholder="F. Nacimiento (DD/MM/AAAA)" required style="flex:3" oninput="checkEdadManual(this)">
         </div>
         <input type="text" id="insta" placeholder="Instagram (Opcional)">
         <input type="email" id="email" placeholder="Correo electrónico (Opcional)">
     </div>
 
     <div id="menor-extra">
-        <span class="section-title">AUTORIZACIÓN (MENOR DE EDAD)</span>
+        <span class="section-title" style="color: #fff;">⚠️ AUTORIZACIÓN PARA MENORES</span>
+        <p style="font-size: 0.7em; color: var(--accent); margin-top: -10px; margin-bottom: 10px;">Debe ser completado por el representante legal.</p>
         <input type="text" id="tutor_nombre" placeholder="Nombre del Padre/Madre/Tutor">
         <input type="text" id="tutor_dni" placeholder="DNI del Tutor">
     </div>
 
     <div class="section">
-        <span class="section-title">LOGÍSTICA</span>
+        <span class="section-title">LOGÍSTICA Y PAGO</span>
         <select id="pago">
             <option value="EFECTIVO">Pagaré en EFECTIVO</option>
             <option value="TARJETA">Pagaré con TARJETA</option>
         </select>
         <select id="piloto-select">
-            <option value="">Cualquier Piloto (Más rápido)</option>
+            <option value="CUALQUIERA">Cualquier Piloto (Más rápido)</option>
         </select>
+        <p style="font-size: 0.65em; color: var(--accent); margin-top: -8px; font-style: italic; line-height: 1.2;">
+            * Por motivos de fuerza mayor (averías, tiempos de espera), la organización se reserva el derecho de asignar un piloto distinto al seleccionado.
+        </p>
     </div>
 
     <label class="chk-group">
         <input type="checkbox" id="chk-fotos" checked>
-        <span>Acepto el uso de mi imagen para redes sociales y recibir fotos del evento.</span>
+        <span>Acepto el uso de mi imagen para redes sociales y que me envíen las fotos del evento.</span>
     </label>
     
-    <label class="chk-group">
-        <input type="checkbox" id="chk-legal" required>
-        <span>He leído y acepto las normas de seguridad del evento.</span>
-    </label>
-
     <button class="btn-enviar" onclick="enviarRegistro()">Inscribirme</button>
+    <p class="info-pago">Al inscribirte, se te asignará un turno. Deberás acudir a la carpa de control para pagar y firmar la hoja oficial.</p>
 </div>
 
 <div class="container" id="success-screen">
-    <h2 style="color: var(--accent)">¡REGISTRO RECIBIDO!</h2>
-    <p>Tu número de turno es:</p>
-    <div class="ticket" id="turno-txt">---</div>
-    <p>Por favor, dirígete a la carpa de control para <b>firmar la hoja física</b> y completar el pago.</p>
-    <button class="btn-enviar" style="background: #333; color: #fff" onclick="location.reload()">Nuevo Registro</button>
+    <h2 style="color: var(--accent)">¡REGISTRO COMPLETADO!</h2>
+    <p style="margin-bottom: 5px;">Tu número de turno es:</p>
+    <div class="ticket" id="turno-txt">000</div>
+    <div style="text-align: left; background: #111; padding: 15px; border-radius: 10px; font-size: 0.9em; line-height: 1.5; border: 1px solid #333;">
+        <p>✅ <b>¿Qué hacer ahora?</b></p>
+        <ol>
+            <li>Ve a la carpa de <b>CONTROL</b>.</li>
+            <li>Di tu nombre o el número <b><span id="turno-small"></span></b>.</li>
+            <li>Realiza el pago y firma la hoja física.</li>
+        </ol>
+    </div>
+    <button class="btn-enviar" style="background: #333; color: #fff; margin-top: 30px;" onclick="location.reload()">Nuevo Registro</button>
 </div>
 
 <script type="module">
@@ -102,52 +116,82 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Cargar pilotos de la config de Copilotajes
+    // Cargar pilotos de la base de datos
     onValue(ref(db, 'copilotajes/config_pilotos'), (snap) => {
         const pilotos = snap.val() || {};
         const sel = document.getElementById('piloto-select');
-        sel.innerHTML = '<option value="">Cualquier Piloto (Más rápido)</option>' + 
-                        Object.values(pilotos).map(p => `<option value="${p}">${p}</option>`).join('');
+        let html = '<option value="CUALQUIERA">Cualquier Piloto (Más rápido)</option>';
+        Object.values(pilotos).forEach(p => {
+            html += `<option value="${p}">${p}</option>`;
+        });
+        sel.innerHTML = html;
     });
 
-    window.checkEdad = () => {
-        const fecha = document.getElementById('fecha_nac').value;
-        if(!fecha) return;
-        const edad = Math.floor((new Date() - new Date(fecha)) / 31557600000);
-        document.getElementById('menor-extra').style.display = (edad < 18) ? 'block' : 'none';
+    // Detectar si es menor de edad por la fecha escrita (DD/MM/AAAA)
+    window.checkEdadManual = (el) => {
+        const valor = el.value;
+        if(valor.length === 10) {
+            const partes = valor.split('/');
+            const fechaNac = new Date(partes[2], partes[1] - 1, partes[0]);
+            const hoy = new Date();
+            let edad = hoy.getFullYear() - fechaNac.getFullYear();
+            const m = hoy.getMonth() - fechaNac.getMonth();
+            if (m < 0 || (m === 0 && hoy.getDate() < fechaNac.getDate())) { edad--; }
+            
+            document.getElementById('menor-extra').style.display = (edad < 18) ? 'block' : 'none';
+        }
     };
 
     window.enviarRegistro = async () => {
-        if(!document.getElementById('chk-legal').checked) return alert("Debes aceptar las normas.");
-        
+        const nombre = document.getElementById('nombre').value.trim();
+        const dni = document.getElementById('dni').value.trim();
+        const fecha = document.getElementById('fecha_nac').value.trim();
+
+        if(!nombre || !dni || !fecha) {
+            alert("Por favor, rellena los campos obligatorios (Nombre, DNI y Fecha).");
+            return;
+        }
+
         const data = {
-            copiloto: document.getElementById('nombre').value.trim(),
-            dni: document.getElementById('dni').value.trim(),
-            fecha_nac: document.getElementById('fecha_nac').value,
+            copiloto: nombre,
+            dni: dni,
+            fecha_nac: fecha,
             insta: document.getElementById('insta').value.trim(),
             email: document.getElementById('email').value.trim(),
             metodoPago: document.getElementById('pago').value,
-            piloto: document.getElementById('piloto-select').value || "CUALQUIERA",
+            piloto: document.getElementById('piloto-select').value,
             consentimiento_fotos: document.getElementById('chk-fotos').checked,
-            tutor: document.getElementById('tutor_nombre').value,
-            tutor_dni: document.getElementById('tutor_dni').value
+            tutor: document.getElementById('tutor_nombre').value.trim(),
+            tutor_dni: document.getElementById('tutor_dni').value.trim()
         };
 
-        if(!data.copiloto || !data.dni) return alert("Faltan datos obligatorios.");
-
         try {
-            // Turno de pescadería atómico
-            const result = await runTransaction(ref(db, 'copilotajes/ultimo_numero'), (val) => (val || 0) + 1);
-            const num = result.snapshot.val();
+            // Incrementar el número de turno global (Turno de pescadería)
+            const result = await runTransaction(ref(db, 'copilotajes/ultimo_numero'), (current) => {
+                return (current || 0) + 1;
+            });
             
-            // Guardar en PRE-INSCRITOS (Para no ensuciar la lista activa)
-            await set(ref(db, `copilotajes/pre_inscritos/${num}`), { ...data, nPapel: num });
-            
-            document.getElementById('turno-txt').innerText = num.toString().padStart(3, '0');
+            const numTurno = result.snapshot.val();
+
+            // Guardar en la bandeja de pre-inscritos
+            await set(ref(db, `copilotajes/pre_inscritos/${numTurno}`), {
+                ...data,
+                nPapel: numTurno,
+                ts: Date.now()
+            });
+
+            // Mostrar ticket de éxito
+            document.getElementById('turno-txt').innerText = numTurno.toString().padStart(3, '0');
+            document.getElementById('turno-small').innerText = numTurno.toString().padStart(3, '0');
             document.getElementById('form-screen').style.display = 'none';
             document.getElementById('success-screen').style.display = 'block';
-        } catch(e) { alert("Error de conexión"); }
+
+        } catch (e) {
+            console.error(e);
+            alert("Error al conectar con el servidor. Revisa tu conexión.");
+        }
     };
 </script>
+
 </body>
 </html>

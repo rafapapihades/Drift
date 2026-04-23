@@ -201,7 +201,7 @@
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
                     const rowHtml = `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto)}</td><td style="width:115px">`;
                     if(!item.enRecinto) {
-                        tCola.innerHTML += rowHtml + `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">LLEGÓ</button></td></tr>`;
+                        tCola.innerHTML += rowHtml + `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
                     } else {
                         tRecinto.innerHTML += rowHtml + `
                             <button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>

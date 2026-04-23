@@ -91,16 +91,16 @@
         </div>
 
         <div id="seccion-manual" class="extra-fields">
-            <div style="font-size: 0.7em; color: var(--accent); margin-bottom: 10px; font-weight: bold;">📝 DATOS OBLIGATORIOS (CLIENTE NUEVO)</div>
+            <div style="font-size: 0.7em; color: var(--accent); margin-bottom: 10px; font-weight: bold;">📝 DATOS MANUALES (CLIENTE NUEVO)</div>
             
             <div class="input-group">
-                <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual" placeholder="12345678X"></div>
-                <div><span class="label-mini">Fecha Nacimiento</span><input type="date" id="c-nac" class="input-manual"></div>
+                <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual" placeholder="DNI"></div>
+                <div><span class="label-mini">Fecha Nacimiento</span><input type="text" id="c-nac" class="input-manual" placeholder="DD/MM/AAAA"></div>
             </div>
 
-            <div class="input-group">
-                <div><span class="label-mini">Teléfono</span><input type="tel" id="c-tel" class="input-manual" placeholder="600 000 000"></div>
-                <div><span class="label-mini">Instagram / TikTok</span><input type="text" id="c-redes" class="input-manual" placeholder="@usuario"></div>
+            <div style="margin-bottom: 10px;">
+                <span class="label-mini">Instagram / TikTok</span>
+                <input type="text" id="c-redes" class="input-manual" placeholder="@usuario">
             </div>
 
             <div style="background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333;">
@@ -108,8 +108,10 @@
                     <input type="checkbox" id="c-menor" onchange="toggleMenor(this.checked)"> ¿ES MENOR DE EDAD?
                 </label>
                 <div id="box-menor" style="display:none; margin-top: 10px; border-top: 1px solid #222; padding-top: 10px;">
-                    <span class="label-mini" style="color:var(--orange)">DNI DEL TUTOR / PADRE</span>
-                    <input type="text" id="c-dni-tutor" class="input-manual" placeholder="DNI Tutor">
+                    <div class="input-group">
+                        <div><span class="label-mini" style="color:var(--orange)">DNI TUTOR</span><input type="text" id="c-dni-tutor" class="input-manual" placeholder="DNI"></div>
+                        <div><span class="label-mini" style="color:var(--orange)">NOMBRE TUTOR</span><input type="text" id="c-nombre-tutor" class="input-manual" placeholder="Nombre completo"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -191,21 +193,19 @@
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             
-            // 1. Ver si ya está registrado
             let yaEsta = Object.values(data.espera || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
             if(!yaEsta) yaEsta = Object.values(data.completados || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
             
             if(yaEsta) {
-                avisoBox.innerHTML = `⚠️ <b>YA REGISTRADO</b>: ${yaEsta.copiloto} (Ticket #${yaEsta.nPapel})`;
+                avisoBox.innerHTML = `⚠️ <b>REGISTRADO</b>: ${yaEsta.copiloto} (#${yaEsta.nPapel})`;
                 avisoBox.style.display = 'block'; avisoBox.style.borderColor = 'var(--red)';
                 seccionManual.style.display = 'none';
                 return;
             }
 
-            // 2. Ver si es preinscrito
             const pre = Object.values(data.pre_inscritos || {}).find(r => r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda || r.nPapel.toString() === busqueda);
             if (pre) {
-                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b>: ${pre.copiloto}`;
+                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN</b>: ${pre.copiloto}`;
                 avisoBox.style.display = 'block'; avisoBox.style.borderColor = 'var(--accent)';
                 nombreInput.value = pre.copiloto;
                 proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
@@ -217,12 +217,11 @@
                 avisoBox.style.display = 'none';
                 registroRecuperado = null;
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
-                seccionManual.style.display = 'block'; // Mostrar formulario para nuevos
+                seccionManual.style.display = 'block';
             }
             fnValidar();
         };
 
-        // Escucha de datos
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
@@ -264,7 +263,6 @@
 
         window.marcarAcceso = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
 
-        // CONFIRMAR REGISTRO
         btnAdd.onclick = async () => {
             const numFinal = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
             
@@ -276,20 +274,18 @@
                 enRecinto: false, 
                 finalizado: false,
                 horaFirma: new Date().toLocaleTimeString('es-ES'),
-                // Datos extendidos
                 dni: registroRecuperado ? (registroRecuperado.dni || "") : document.getElementById('c-dni').value.trim(),
-                fechaNac: registroRecuperado ? (registroRecuperado.fechaNac || "") : document.getElementById('c-nac').value,
-                telefono: registroRecuperado ? (registroRecuperado.telefono || "") : document.getElementById('c-tel').value.trim(),
+                fechaNac: registroRecuperado ? (registroRecuperado.fechaNac || "") : document.getElementById('c-nac').value.trim(),
                 redes: registroRecuperado ? (registroRecuperado.redes || "") : document.getElementById('c-redes').value.trim(),
                 esMenor: registroRecuperado ? (registroRecuperado.esMenor || false) : document.getElementById('c-menor').checked,
-                dniTutor: registroRecuperado ? (registroRecuperado.dniTutor || "") : document.getElementById('c-dni-tutor').value.trim()
+                dniTutor: registroRecuperado ? (registroRecuperado.dniTutor || "") : document.getElementById('c-dni-tutor').value.trim(),
+                nombreTutor: registroRecuperado ? (registroRecuperado.nombreTutor || "") : document.getElementById('c-nombre-tutor').value.trim()
             };
 
             await push(ref(db, 'copilotajes/espera'), datos);
             if (registroRecuperado) await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
             else await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
             
-            // Reset campos
             nombreInput.value = ""; firmaChk.checked = false; registroRecuperado = null;
             document.querySelectorAll('.input-manual').forEach(i => i.value = "");
             document.getElementById('c-menor').checked = false; toggleMenor(false);
@@ -297,15 +293,15 @@
             fnValidar();
         };
 
-        // EXPORTAR Y REINICIAR (CSV COMPLETO)
+        // EXPORTACIÓN COMPLETA
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val();
             if(!data) return;
             
-            let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;TEL;REDES;MENOR;DNI_TUTOR;PILOTO;PAGO;ESTADO;H_ENTRADA;H_SALIDA;DURACION\n";
+            let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO;H_ENTRADA;H_SALIDA;DURACION\n";
             const limpiar = (t) => t ? t.toString().replace(/;/g, ',').trim() : "";
-            const row = (i, e) => `${limpiar(i.nPapel)};${limpiar(i.copiloto)};${limpiar(i.dni)};${limpiar(i.fechaNac)};${limpiar(i.telefono)};${limpiar(i.redes)};${i.esMenor?'SI':'NO'};${limpiar(i.dniTutor)};${limpiar(i.piloto)};${limpiar(i.metodoPago)};${e};${limpiar(i.horaEntradaTexto)};${limpiar(i.horaSalidaTexto)};${limpiar(i.duracionTotal)}\n`;
+            const row = (i, e) => `${limpiar(i.nPapel)};${limpiar(i.copiloto)};${limpiar(i.dni)};${limpiar(i.fechaNac)};${limpiar(i.redes)};${i.esMenor?'SI':'NO'};${limpiar(i.dniTutor)};${limpiar(i.nombreTutor)};${limpiar(i.piloto)};${limpiar(i.metodoPago)};${e};${limpiar(i.horaEntradaTexto)};${limpiar(i.horaSalidaTexto)};${limpiar(i.duracionTotal)}\n`;
             
             if(data.espera) Object.values(data.espera).forEach(i => csv += row(i, "ESPERA"));
             if(data.completados) Object.values(data.completados).forEach(i => csv += row(i, "FINALIZADO"));
@@ -313,14 +309,11 @@
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `TAXI_DRIFT_FULL_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv`;
+            link.download = `RESUMEN_EVENTO_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv`;
             link.click();
 
             setTimeout(async () => {
-                if(confirm("EXPORTACIÓN COMPLETADA. ¿Deseas borrar toda la base de datos?")) { 
-                    await remove(ref(db, 'copilotajes')); 
-                    location.reload(); 
-                }
+                if(confirm("EXPORTADO. ¿Borrar base de datos?")) { await remove(ref(db, 'copilotajes')); location.reload(); }
             }, 1000);
         };
 

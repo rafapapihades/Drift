@@ -1,163 +1,157 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DRIFT SHOW LIVE</title>
-  <style>
-    body { background: #000; color: #fff; font-family: 'Arial Black', sans-serif; text-align: center; padding: 10px; margin: 0; }
-    .contenedor { max-width: 450px; margin: auto; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 20px; border: 2px solid #ffcc00; min-height: 90vh; display: flex; flex-direction: column; justify-content: center; }
-    
-    #banner-estado { padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: bold; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.2); }
-    
-    .voto-card { background: #1a1a1a; padding: 20px; border-radius: 15px; margin-bottom: 15px; border-left: 6px solid #ffcc00; }
-    .piloto-nom { color: #ffcc00; font-size: 1.3em; text-transform: uppercase; margin-bottom: 5px; }
-    
-    .v-btns { display: flex; justify-content: space-around; margin-top: 15px; }
-    .btn-voto { font-size: 3.5em; cursor: pointer; background: none; border: none; padding: 10px; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
-    
-    /* BLOQUEO: Solo cuando ya se ha votado */
-    .votos-bloqueados .btn-voto { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
-    .btn-voto.seleccionado { transform: scale(1.3); filter: none !important; opacity: 1 !important; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRIFT SHOW</title>
+    <style>
+        body { 
+            background-image: url('logo.jpg'); 
+            background-repeat: repeat; 
+            background-size: 400px; 
+            background-color: #000; 
+            color: #fff; 
+            font-family: sans-serif; 
+            margin: 0; 
+            text-align: center; 
+        }
+        .overlay { 
+            min-height: 100vh; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            background: rgba(0, 0, 0, 0.4); /* Capa base muy sutil */
+            box-sizing: border-box;
+        }
 
-    .timer { color: #ff4444; font-size: 2.2em; font-weight: bold; margin-top: 20px; animation: blink 1s infinite; }
-    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        /* EL RECUADRO QUE OPACA EL FONDO */
+        .glass-panel {
+            background: rgba(0, 0, 0, 0.8); /* Fondo negro bastante opaco */
+            backdrop-filter: blur(10px);    /* Efecto de desenfoque para el mosaico */
+            -webkit-backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 95%;
+            max-width: 450px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
 
-    #sorteo-box { margin-top: 30px; font-size: 0.8em; color: #aaa; border: 1px dashed #444; padding: 10px; border-radius: 10px; }
-    #id-num { font-size: 2em; color: #ffcc00; display: block; letter-spacing: 4px; }
-  </style>
+        .v-btn { font-size: 4.5em; filter: grayscale(1); margin: 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
+        .v-act { filter: grayscale(0) !important; transform: scale(1.2); }
+        #timer-box { color: #ff0000; font-weight: bold; font-size: 1.5em; margin-top: 15px; height: 25px; }
+        
+        .rank-card { 
+            background: rgba(255, 255, 255, 0.05); 
+            padding: 12px; 
+            border-radius: 8px; 
+            width: 100%; 
+            margin: 8px 0; 
+            border-left: 4px solid #ffcc00; 
+            display: flex; 
+            justify-content: space-between; 
+            text-align: left;
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body>
-
-<div class="contenedor">
-    <div id="banner-estado">CONECTANDO...</div>
-    
-    <div id="seccion-votos" style="display:none">
-        <div id="lista-votables"></div>
-        <div id="timer-box" class="timer"></div>
-    </div>
-
-    <div id="sorteo-box">
-        Nº PARA EL SORTEO
-        <span id="id-num">-----</span>
-    </div>
-</div>
-
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, update, increment, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
-
-    // --- ID USUARIO ---
-    let USER_ID = localStorage.getItem('drift_user_id');
-    if (!USER_ID) {
-        USER_ID = Math.floor(10000 + Math.random() * 90000).toString();
-        localStorage.setItem('drift_user_id', USER_ID);
-    }
-    document.getElementById('id-num').innerText = USER_ID;
-
-    let currentDorsal = "";
-    let yaVoto = false;
-
-    // --- MONITOR ESTADO PISTA ---
-    onValue(ref(db, 'estado_pista'), s => {
-        const p = s.val();
-        if (p) {
-            const b = document.getElementById('banner-estado');
-            b.innerText = p.mensaje;
-            b.style.backgroundColor = p.color;
-            b.style.color = (p.color === "yellow" || p.color === "#ffcc00") ? "#000" : "#fff";
-        }
-    });
-
-    // --- MONITOR VOTACIÓN ---
-    onValue(ref(db, 'votacion_activa'), async s => {
-        const v = s.val();
-        const seccion = document.getElementById('seccion-votos');
-        const lista = document.getElementById('lista-votables');
-
-        if (!v || !v.activa) {
-            seccion.style.display = 'none';
-            lista.innerHTML = "";
-            currentDorsal = "";
-            yaVoto = false; // Reset total al cerrar
-            return;
-        }
-
-        // SI CAMBIA EL DORSAL, RESETEAMOS TODO PARA EL NUEVO PILOTO
-        if (currentDorsal !== v.dorsal) {
-            currentDorsal = v.dorsal;
-            lista.innerHTML = ""; 
+    <div class="overlay">
+        <div class="glass-panel">
             
-            // Comprobamos si ya votamos para este nuevo dorsal
-            const snap = await get(ref(db, `registro_votos/${currentDorsal}/${USER_ID}`));
-            yaVoto = snap.exists();
-        }
+            <div id="ui-show" style="display:none; width: 90%;">
+                <h1 id="s-mensaje" style="font-size: 2.8em; margin: 0; text-shadow: 2px 2px 4px #000;"></h1>
+                <h2 id="s-info" style="color:#007bff; margin: 15px 0; min-height: 1.2em; font-size: 1.8em;"></h2>
+                
+                <div id="voto-box" style="display:none;">
+                    <span id="v-ap" class="v-btn" onclick="votar('aplausos')">👏</span>
+                    <span id="v-up" class="v-btn" onclick="votar('up')">👍</span>
+                    <span id="v-down" class="v-btn" onclick="votar('down')">👎</span>
+                    <div id="timer-box"></div>
+                </div>
+            </div>
 
-        seccion.style.display = 'block';
+            <div id="ui-esc" style="display:none; width: 100%">
+                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">RANKING dB</h2>
+                <div id="l-db"></div>
+                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 20px;">RANKING SONORIDAD</h2>
+                <div id="l-hz"></div>
+            </div>
 
-        // Dibujar tarjetas si la lista está vacía
-        if (v.items && lista.innerHTML === "") {
-            Object.entries(v.items).forEach(([id, data]) => {
-                const card = document.createElement('div');
-                card.className = 'voto-card';
-                card.innerHTML = `
-                    <div class="piloto-nom">${data.nombre}</div>
-                    <div class="v-btns ${yaVoto ? 'votos-bloqueados' : ''}">
-                        <button class="btn-voto" onclick="enviarVoto('${id}','ap')">👏</button>
-                        <button class="btn-voto" onclick="enviarVoto('${id}','up')">👍</button>
-                        <button class="btn-voto" onclick="enviarVoto('${id}','dw')">👎</button>
-                    </div>
-                `;
-                lista.appendChild(card);
-            });
-        }
+        </div>
+    </div>
 
-        // Bloqueo por tiempo o por voto realizado
-        const containerBtns = document.querySelector('.v-btns');
-        if (containerBtns) {
-            if (yaVoto || v.timer === 0) {
-                containerBtns.classList.add('votos-bloqueados');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, update, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        
+        const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
+
+        let miVoto = "";
+
+        onValue(ref(db, 'modo_actual'), s => {
+            const m = s.val() || 'tab-show';
+            document.getElementById('ui-show').style.display = m==='tab-show'?'block':'none';
+            document.getElementById('ui-esc').style.display = m==='tab-esc'?'block':'none';
+        });
+
+        onValue(ref(db, 'estado_pista'), s => {
+            const e = s.val();
+            const msg = document.getElementById('s-mensaje');
+            msg.innerText = e?.mensaje || "";
+            msg.style.color = e?.color || "white";
+        });
+
+        onValue(ref(db, 'votacion_activa'), s => {
+            const v = s.val();
+            const box = document.getElementById('voto-box');
+            const timerDisplay = document.getElementById('timer-box');
+
+            if(v?.activa) {
+                box.style.display = 'block';
+                document.getElementById('s-info').innerText = v.info || "";
+                if(v.timer !== undefined && v.timer > 0) {
+                    timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
+                } else {
+                    timerDisplay.innerText = "";
+                }
             } else {
-                containerBtns.classList.remove('votos-bloqueados');
+                box.style.display = 'none';
+                document.getElementById('s-info').innerText = "";
+                miVoto = "";
+                resetIconos();
             }
+        });
+
+        window.votar = (tipo) => {
+            if(miVoto) {
+                update(ref(db, 'votacion_activa'), { [miVoto]: increment(-1) });
+            }
+            update(ref(db, 'votacion_activa'), { [tipo]: increment(1) });
+            miVoto = tipo;
+            resetIconos();
+            const idMapeo = { 'aplausos': 'v-ap', 'up': 'v-up', 'down': 'v-down' };
+            document.getElementById(idMapeo[tipo]).classList.add('v-act');
+        };
+
+        function resetIconos() {
+            document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
         }
 
-        // Timer de cierre
-        const tDiv = document.getElementById('timer-box');
-        if (v.timer > 0 && v.timer <= 5) {
-            tDiv.innerText = `¡CIERRE EN ${v.timer}s!`;
-        } else {
-            tDiv.innerText = "";
-        }
-    });
-
-    // --- FUNCIÓN ENVIAR VOTO ---
-    window.enviarVoto = async (idPiloto, tipo) => {
-        if (yaVoto) return;
-
-        // Doble check de tiempo
-        const tSnap = await get(ref(db, 'votacion_activa/timer'));
-        if (tSnap.exists() && tSnap.val() === 0) {
-            alert("VOTACIÓN CERRADA");
-            return;
-        }
-
-        const updates = {};
-        updates[`votacion_activa/items/${idPiloto}/${tipo}`] = increment(1);
-        updates[`registro_votos/${currentDorsal}/${USER_ID}`] = { voto: tipo, ts: Date.now() };
-        updates[`participantes_sorteo/${USER_ID}/votos_totales`] = increment(1);
-
-        try {
-            await update(ref(db), updates);
-            yaVoto = true;
-            document.querySelector('.v-btns').classList.add('votos-bloqueados');
-            alert("VOTO ENVIADO - Nº " + USER_ID);
-        } catch (e) {
-            alert("ERROR DE CONEXIÓN");
-        }
-    };
-</script>
+        onValue(ref(db, 'ranking_escapes'), s => {
+            if(!s.exists()) return;
+            const data = Object.values(s.val());
+            const render = (arr, tId, sFn, u) => {
+                document.getElementById(tId).innerHTML = arr.sort(sFn).slice(0,10).map(p => 
+                    `<div class="rank-card"><span><b>${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[u.toLowerCase()==='db'?'db':'hz']}${u}</b></div>`).join('');
+            };
+            render([...data], 'l-db', (a,b)=>b.db-a.db, 'dB');
+            render([...data], 'l-hz', (a,b)=>a.hz-b.hz, 'Hz');
+        });
+    </script>
 </body>
+
 </html>
+

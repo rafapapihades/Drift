@@ -36,17 +36,18 @@
       background: rgba(255, 255, 255, 0.1);
       padding: 15px; border-radius: 12px; border-left: 5px solid #ffcc00;
     }
-    .voto-card.es-batalla {
-      border-left: 5px solid #ff4444; background: rgba(255, 0, 0, 0.15);
-    }
     .nombre-piloto { font-weight: bold; font-size: 1.2em; color: #ffcc00; text-transform: uppercase; }
     .coche-piloto { font-size: 0.8em; color: #aaa; margin-bottom: 10px; font-style: italic; }
-    .v-btns { display: flex; justify-content: space-around; font-size: 2.8em; margin-top: 10px; }
-    .btn-voto { cursor: pointer; filter: brightness(0.5) grayscale(1); transition: 0.3s; padding: 5px; }
-    .btn-voto.seleccionado { filter: none !important; transform: scale(1.2); }
-    .votos-bloqueados .btn-voto { cursor: not-allowed; pointer-events: none; opacity: 0.3; }
     
-    /* ESTILO CUENTA ATRÁS */
+    /* BOTONES */
+    .v-btns { display: flex; justify-content: space-around; font-size: 2.8em; margin-top: 10px; }
+    .btn-voto { cursor: pointer; filter: brightness(0.6) grayscale(0.5); transition: 0.3s; padding: 5px; pointer-events: auto; }
+    .btn-voto:active { transform: scale(0.9); }
+    .btn-voto.seleccionado { filter: none !important; transform: scale(1.2); }
+    
+    /* ESTADO BLOQUEADO */
+    .votos-bloqueados .btn-voto { cursor: not-allowed; pointer-events: none; opacity: 0.2; filter: grayscale(1); }
+    
     .timer-alerta { 
       color: #ff4444; 
       font-weight: bold; 
@@ -91,7 +92,7 @@
   const DB_URL = "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com";
   const db = getDatabase(initializeApp({ databaseURL: DB_URL }));
 
-  // --- GENERACIÓN DE ID NUMÉRICA DE 5 CIFRAS CON AUTO-CORRECCIÓN ---
+  // --- ID USUARIO ---
   let storedID = localStorage.getItem('drift_user_id');
   if (!storedID || isNaN(storedID) || storedID.length !== 5) {
     const numAleatorio = Math.floor(10000 + Math.random() * 90000);
@@ -116,7 +117,7 @@
     yaVotoEnEstaRonda = false;
   }
 
-  // Monitor Estado Pista
+  // --- MONITOR ESTADO PISTA ---
   onValue(ref(db, 'estado_pista'), s => {
     const p = s.val();
     if (!p) return;
@@ -125,41 +126,41 @@
     b.style.background = p.color || "#222";
   });
 
-  // Monitor Votación Activa y CUENTA REGRESIVA
+  // --- MONITOR VOTACIÓN ACTIVA ---
   onValue(ref(db, 'votacion_activa'), async s => {
     const v = s.val();
 
     if (v && v.activa) {
       divVotos.style.display = 'block';
 
-      // Detectar cambio de piloto/ronda
+      // Si cambia el piloto o ronda, comprobamos si este usuario ya votó
       if (currentDorsalGlobal !== v.dorsal) {
         currentDorsalGlobal = v.dorsal || "";
-        lista.innerHTML = "";
+        lista.innerHTML = ""; 
         const check = await get(ref(db, `registro_votos/${currentDorsalGlobal}/${USER_ID}`));
         yaVotoEnEstaRonda = check.exists();
       }
 
-      // Dibujar tarjetas si la lista está vacía
+      // Dibujar tarjetas si no están creadas
       if (v.items && lista.innerHTML === "") {
         Object.entries(v.items).forEach(([id, data]) => {
           crearTarjetaUI(id, data?.nombre || "", data?.coche || "");
         });
       }
 
-      // Gestionar bloqueo visual
-      if (yaVotoEnEstaRonda) {
+      // LÓGICA DE BLOQUEO: Solo bloqueamos si el usuario ya votó O si el timer es exactamente 0
+      // Nota: El controlador de pista manda 999 al inicio, por lo que NO se bloquea al salir el coche.
+      if (yaVotoEnEstaRonda || v.timer === 0) {
         lista.classList.add('votos-bloqueados');
       } else {
         lista.classList.remove('votos-bloqueados');
       }
 
-      // ACTUALIZACIÓN DE LA CUENTA REGRESIVA EN TIEMPO REAL
-      if (v.timer !== undefined && v.timer > 0) {
+      // Mostrar cuenta atrás solo cuando sea real (ej. menor a 10 segundos)
+      if (v.timer !== undefined && v.timer > 0 && v.timer <= 5) {
         timerDiv.style.display = "block";
         timerDiv.innerText = `¡CIERRE EN ${v.timer}s!`;
       } else {
-        timerDiv.innerText = "";
         timerDiv.style.display = "none";
       }
 
@@ -169,33 +170,37 @@
   });
 
   function crearTarjetaUI(id, nombre, coche) {
-    const esBatalla = id === 'BATALLA';
     const card = document.createElement('div');
-    card.className = 'voto-card' + (esBatalla ? ' es-batalla' : '');
+    card.className = 'voto-card';
     card.id = "card-" + id;
-
     card.innerHTML = `
-      <div class="nombre-piloto">${esBatalla ? "🔥 BATALLA 🔥" : nombre}</div>
+      <div class="nombre-piloto">${nombre}</div>
       <div class="coche-piloto">${coche}</div>
       <div class="v-btns">
-        <span class="btn-voto v-ap" onclick="enviarVoto('${id}','ap')">👏</span>
-        <span class="btn-voto v-up" onclick="enviarVoto('${id}','up')">👍</span>
-        <span class="btn-voto v-dw" onclick="enviarVoto('${id}','dw')">👎</span>
+        <span class="btn-voto v-ap" data-id="${id}" data-voto="ap">👏</span>
+        <span class="btn-voto v-up" data-id="${id}" data-voto="up">👍</span>
+        <span class="btn-voto v-dw" data-id="${id}" data-voto="dw">👎</span>
       </div>
     `;
+    
+    // Delegación de eventos para los botones
+    card.querySelectorAll('.btn-voto').forEach(btn => {
+        btn.onclick = () => {
+            const idV = btn.getAttribute('data-id');
+            const tipoV = btn.getAttribute('data-voto');
+            enviarVoto(idV, tipoV);
+        };
+    });
+    
     lista.appendChild(card);
   }
 
-  window.enviarVoto = async (idVotable, tipoVoto) => {
+  async function enviarVoto(idVotable, tipoVoto) {
     if (!currentDorsalGlobal || yaVotoEnEstaRonda) return;
 
-    // Obtenemos el estado completo de la votación
-    const snapVotacion = await get(ref(db, 'votacion_activa'));
-    const v = snapVotacion.val();
-
-    // Bloquear SOLO si el timer es exactamente 0 (pero no si es 999 o null)
-    // El valor 0 solo ocurre cuando la cuenta atrás de 5s ha terminado.
-    if (v.timer === 0) {
+    // Verificar si el timer ha cerrado (solo si es exactamente 0)
+    const snap = await get(ref(db, 'votacion_activa/timer'));
+    if (snap.exists() && snap.val() === 0) {
         alert("¡Votación cerrada!");
         return;
     }
@@ -207,20 +212,18 @@
     updates[`participantes_sorteo/${USER_ID}/ultimo_voto`] = Date.now();
 
     try {
-        await update(ref(db), updates);
-        yaVotoEnEstaRonda = true;
-        lista.classList.add('votos-bloqueados');
-        
-        const btn = document.querySelector(`#card-${idVotable} .v-${tipoVoto}`);
-        if (btn) btn.classList.add('seleccionado');
-        
-        alert("¡VOTO REGISTRADO! Participas con el Nº: " + USER_ID);
+      await update(ref(db), updates);
+      yaVotoEnEstaRonda = true;
+      lista.classList.add('votos-bloqueados');
+      
+      const btn = document.querySelector(`#card-${idVotable} .v-${tipoVoto}`);
+      if (btn) btn.classList.add('seleccionado');
+      
+      alert("¡VOTO REGISTRADO!\nTu Nº para el sorteo: " + USER_ID);
     } catch (e) {
-        alert("Error al enviar el voto.");
+      alert("Error de conexión al votar.");
     }
-};
+  }
 </script>
 </body>
 </html>
-
-

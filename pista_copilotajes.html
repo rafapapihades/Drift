@@ -5,62 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CONTROL PISTA - TAXI DRIFT</title>
     <style>
-        :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #003399; --orange: #fd7e14; }
+        :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
         * { box-sizing: border-box; }
-
         body { 
             background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg);
             color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; 
         }
-
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
-
         .pista-status-bar {
             width: 100%; padding: 15px; border-radius: 10px; text-align: center;
             font-size: 1.2em; font-weight: 900; text-transform: uppercase;
             margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.4s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: all 0.4s ease;
         }
-
-        .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; width: 100%; }
+        .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
-
-        .n-doc { 
-            background: var(--accent); color: #000; padding: 8px 12px; 
-            border-radius: 8px; font-family: monospace; font-weight: 900; 
-            margin-right: 10px; font-size: 2.2em; display: inline-block;
-            line-height: 1; box-shadow: 0 0 10px rgba(255,204,0,0.3);
-        }
-
-        .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; font-family: 'Arial', sans-serif; font-weight: 900; border: 1px solid #fff; margin-top: 5px; }
-        .m-bandera { background: var(--blue); color: white; padding: 4px 5px; font-size: 0.6em; }
-        .m-num { padding: 2px 12px; font-size: 1.4em; min-width: 35px; text-align: center; }
         
-        .time-info { font-size: 0.75em; color: #00ff99; display: block; margin-top: 8px; font-family: sans-serif; font-weight: bold; background: rgba(0,255,153,0.1); padding: 5px; border-radius: 5px; }
+        .n-doc { background: var(--accent); color: #000; padding: 8px 12px; border-radius: 8px; font-weight: 900; margin-right: 10px; font-size: 2.2em; display: inline-block; line-height: 1; }
+        .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; border: 1px solid #fff; margin-top: 5px; }
+        .m-bandera { background: #003399; color: white; padding: 4px 5px; font-size: 0.6em; }
+        .m-num { padding: 2px 12px; font-size: 1.4em; font-weight: 900; }
+        
+        .time-info { font-size: 0.75em; color: #00ff99; display: block; margin-top: 8px; font-family: sans-serif; font-weight: bold; }
 
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 8px; border-bottom: 1px solid #222; }
 
-        /* Botones */
-        .btn-recinto { background: var(--blue); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
+        .btn-recinto { background: #003399; color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
-        .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; text-transform: uppercase; width: 100%; font-weight: bold; }
-        
-        /* BOTÓN REASIGNAR */
-        .btn-reasignar {
-            background: transparent; color: var(--accent); border: 1px solid var(--accent);
-            padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer;
-            margin-top: 8px; display: inline-block; font-family: sans-serif; font-weight: bold;
-        }
-
-        /* Selector rápido que aparece al reasignar */
-        .selector-rapido {
-            background: #000; color: var(--accent); border: 1px solid var(--accent);
-            padding: 5px; border-radius: 5px; font-family: sans-serif; font-weight: bold;
-            margin-top: 5px; width: 100%;
-        }
+        .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; width: 100%; }
+        .btn-reasignar { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer; margin-top: 8px; }
+        .selector-rapido { background: #000; color: var(--accent); border: 1px solid var(--accent); padding: 5px; border-radius: 5px; width: 100%; margin-top: 5px; }
 
         #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
 
@@ -68,15 +45,16 @@
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
         .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
         .btn-modal { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; color: white; }
-
-        @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
 
     <div id="custom-confirm">
-        <div class="modal-content" style="border-color: var(--orange);">
-            <h2 id="confirm-text" style="color:white; margin:0; font-size: 1.1em;">¿CONFIRMAR ACCIÓN?</h2>
+        <div class="modal-content">
+            <h2 id="confirm-text" style="color:white; margin:0; font-size: 1.1em;">¿CONFIRMAR?</h2>
             <div class="modal-btns">
                 <button class="btn-modal" style="background:#444;" onclick="handleConfirm(false)">CANCELAR</button>
                 <button class="btn-modal" style="background:var(--orange);" onclick="handleConfirm(true)">CONFIRMAR</button>
@@ -85,181 +63,178 @@
     </div>
 
     <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
-    <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">ESPERANDO ESTADO...</div>
+    <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">ESPERANDO...</div>
 
-    <input type="search" id="buscador" placeholder="🔍 BUSCAR Nº TURNO O NOMBRE..." oninput="filtrar()">
+    <input type="search" id="buscador" placeholder="🔍 BUSCAR TURNO O NOMBRE..." oninput="filtrar()">
 
     <div class="card"><div class="section-title">⏳ 1. COLA DE ACCESO</div><table id="lista-cola-acceso"></table></div>
     <div class="card" style="border-color: var(--orange);"><div class="section-title" style="color: var(--orange);">📍 2. ESPERA EN RECINTO</div><table id="lista-espera-recinto"></table></div>
     <div class="card" style="border-color: var(--green);"><div class="section-title" style="color: var(--green);">🏁 3. EN PISTA / RETORNO</div><table id="lista-pista-activa"></table></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, push, remove, get, update, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+    <script>
+        firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
+        const db = firebase.database();
 
         let confirmAction = null;
         let pilotosDisponibles = [];
 
-        window.showConfirm = (texto, callback) => {
+        window.showConfirm = (texto, cb) => {
             document.getElementById('confirm-text').innerText = texto;
             document.getElementById('custom-confirm').style.display = 'flex';
-            confirmAction = callback;
+            confirmAction = cb;
         };
-        window.handleConfirm = (valor) => {
+        window.handleConfirm = (v) => {
             document.getElementById('custom-confirm').style.display = 'none';
-            if (valor && confirmAction) confirmAction();
+            if(v && confirmAction) confirmAction();
             confirmAction = null;
         };
 
-        onValue(ref(db, 'estado_pista'), (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                const sb = document.getElementById('status-bar');
-                sb.innerText = data.mensaje; sb.style.background = data.color;
-                sb.style.color = (data.color === '#ffcc00' || data.color === 'yellow') ? '#000' : '#fff';
-                sb.style.animation = (data.id === 'btn-acc') ? "pulse-red 1s infinite" : "none";
+        // Escuchar Estado Pista
+        db.ref('estado_pista').on('value', s => {
+            const d = s.val();
+            if(d) {
+                const bar = document.getElementById('status-bar');
+                bar.innerText = d.mensaje; bar.style.background = d.color;
+                bar.style.color = (d.color === '#ffcc00') ? '#000' : '#fff';
             }
         });
 
-        function generarMatriculaHTML(pilotoData, id, esRecinto) {
-            const d = pilotoData.match(/\[#(\d+)\]/) || pilotoData.match(/^(\d+)/);
-            const num = d ? d[1] : "??";
-            const nom = pilotoData.replace(/\[#\d+\]/, "").replace(/^\d+[\s,.-]*/, "").split('|')[0].trim();
-            
-            let html = `
-            <div id="contenedor-piloto-${id}">
-                <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
-                    <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
-                    <span style="font-size:0.85em; color:#bbb;">${nom}</span>
-                </div>`;
-            
-            if(esRecinto) {
-                html += `<button class="btn-reasignar" onclick="activarSelector('${id}', '${pilotoData}')">✎ REASIGNAR PILOTO</button>`;
+        // Escuchar Pilotos para el selector
+        db.ref('inscritos_drift').on('value', s => {
+            const data = s.val() || {};
+            pilotosDisponibles = Object.entries(data).map(([d, p]) => `[#${d}] ${p.piloto} | ${p.coche}`);
+        });
+
+        function generarFilaHTML(id, item, esRecinto, esPista) {
+            const dMatch = item.piloto.match(/\[#(\d+)\]/) || item.piloto.match(/^(\d+)/);
+            const num = dMatch ? dMatch[1] : "??";
+            const nom = item.piloto.replace(/\[#\d+\]/, "").split('|')[0].trim();
+
+            let botones = '';
+            if (!esRecinto && !esPista) {
+                botones = `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button>`;
+            } else if (esRecinto) {
+                botones = `<button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>
+                           <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ COLA</button>`;
+            } else if (esPista) {
+                botones = `<button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button>`;
             }
-            
-            html += `</div>`;
-            return html;
+
+            return `<tr>
+                <td>
+                    <span class="n-doc" ${esPista?'style="background:#444;color:#fff"':''}>${item.nPapel.toString().padStart(3,'0')}</span>
+                    <b>${item.copiloto}</b><br>
+                    <div id="cont-p-${id}">
+                        <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
+                        <small style="color:#aaa;margin-left:5px">${nom}</small>
+                        ${esRecinto ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">✎ CAMBIAR PILOTO</button>` : ''}
+                    </div>
+                    ${esPista ? `<span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span></span>` : ''}
+                </td>
+                <td style="width:110px">${botones}</td>
+            </tr>`;
         }
 
-        // --- NUEVA LÓGICA DE SELECTOR ---
-        window.activarSelector = (id, pilotoActual) => {
-            const contenedor = document.getElementById(`contenedor-piloto-${id}`);
-            const options = pilotosDisponibles.map(p => `<option value="${p}" ${p === pilotoActual ? 'selected' : ''}>${p}</option>`).join('');
-            
-            contenedor.innerHTML = `
-                <select class="selector-rapido" onchange="guardarCambioPiloto('${id}', this.value)">
-                    <option value="" disabled selected>SELECCIONA PILOTO...</option>
-                    ${options}
-                    <option value="CANCELAR">❌ CANCELAR</option>
-                </select>
-            `;
+        window.activarSelector = (id, actual) => {
+            const cont = document.getElementById(`cont-p-${id}`);
+            const options = pilotosDisponibles.map(p => `<option value="${p}" ${p===actual?'selected':''}>${p}</option>`).join('');
+            cont.innerHTML = `<select class="selector-rapido" onchange="guardarPiloto('${id}', this.value)">
+                <option value="" disabled>Selecciona...</option>${options}
+                <option value="CANCEL">❌ CANCELAR</option></select>`;
         };
 
-        window.guardarCambioPiloto = async (id, nuevoPiloto) => {
-            if (nuevoPiloto === "CANCELAR") {
-                // El onValue de Firebase refrescará la vista automáticamente al estado anterior
-                return;
-            }
-            await update(ref(db, `copilotajes/espera/${id}`), { piloto: nuevoPiloto });
+        window.guardarPiloto = (id, nuevo) => {
+            if(nuevo !== "CANCEL") db.ref(`copilotajes/espera/${id}`).update({ piloto: nuevo });
+            else location.reload(); // Recarga rápida para restaurar UI
         };
 
-        window.marcarEnRecinto = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
-        
-        window.sacarDeRecinto = (id) => {
-            showConfirm("¿DEVOLVER PARTICIPANTE A LA COLA?", () => {
-                update(ref(db, `copilotajes/espera/${id}`), { enRecinto: false });
-            });
-        };
+        window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: true });
+        window.sacarDeRecinto = (id) => showConfirm("¿DEVOLVER A LA COLA?", () => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: false }));
 
+        // --- ACCIÓN A PISTA (Sincronizada con Master) ---
         window.confirmarSubida = async (id) => {
-            const snap = await get(ref(db, `copilotajes/espera/${id}`));
-            if(snap.exists()){
-                const d = snap.val();
-                const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
-                const dorsal = dMatch ? dMatch[1] : "0";
-                
-                await update(ref(db, 'votacion_activa'), { activa: true, dorsal: dorsal });
-                await set(ref(db, `votacion_activa/items/${dorsal}`), {
-                    nombre: `${d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim()} & ${d.copiloto}`,
-                    coche: "TAXI DRIFT", ap:0, up:0, dw:0
-                });
+            const snap = await db.ref(`copilotajes/espera/${id}`).once('value');
+            if(!snap.exists()) return;
+            const d = snap.val();
+            
+            const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
+            const dorsal = dMatch ? dMatch[1] : "0";
+            const nombreLimpio = d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim();
 
-                const newRef = push(ref(db, 'copilotajes/completados'));
-                await set(newRef, { 
-                    ...d, tsEntrada: Date.now(),
-                    horaEntradaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-                    finalizado: false 
-                });
-                await remove(ref(db, `copilotajes/espera/${id}`));
-            }
+            const items = {};
+            items[dorsal] = { nombre: nombreLimpio + " & " + d.copiloto, coche: "TAXI DRIFT", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
+
+            const updates = {};
+            // Sincronizar Votos
+            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 0, items: items };
+            updates['estado_pista'] = { mensaje: '🏎️ EN PISTA: ' + dorsal, color: '#007bff', id: 'btn-coche' };
+            // Mover en copilotajes
+            const newK = db.ref('copilotajes/completados').push().key;
+            updates[`copilotajes/completados/${newK}`] = { ...d, tsEntrada: Date.now(), finalizado: false };
+            updates[`copilotajes/espera/${id}`] = null;
+
+            await db.ref().update(updates);
         };
 
+        // --- ACCIÓN SALIDA (Sincronizada con Master) ---
         window.confirmarSalidaRecinto = (id) => {
             showConfirm("¿CONFIRMAR FIN DE VIAJE?", async () => {
-                const snap = await get(ref(db, `copilotajes/completados/${id}`));
-                if(snap.exists()){
-                    const d = snap.val();
-                    const tsSalida = Date.now();
-                    const diffMs = tsSalida - (d.tsEntrada || Date.now());
-                    const duracionFinal = Math.floor(diffMs / 60000) + "m " + Math.floor((diffMs % 60000) / 1000) + "s";
-                    const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
-                    if(dMatch) await remove(ref(db, `votacion_activa/items/${dMatch[1]}`));
+                await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
+                
+                const vSnap = await db.ref('votacion_activa').once('value');
+                const v = vSnap.val();
 
-                    await update(ref(db, `copilotajes/completados/${id}`), { 
-                        finalizado: true, tsSalida: tsSalida,
-                        horaSalidaTexto: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-                        duracionTotal: duracionFinal
+                if(v && v.activa) {
+                    // Historial (igual que Master)
+                    Object.entries(v.items).forEach(([idItem, data]) => {
+                        if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
+                            db.ref('historial_votos').push({ dorsal: idItem, info: data.nombre, ap: data.ap||0, up: data.up||0, dw: data.dw||0, ts: Date.now() });
+                        }
                     });
+
+                    // Cuenta atrás 5 seg
+                    let count = 5;
+                    await db.ref('votacion_activa').update({ timer: count });
+                    const inv = setInterval(async () => {
+                        count--;
+                        await db.ref('votacion_activa').update({ timer: count });
+                        if(count <= 0) { clearInterval(inv); await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" }); }
+                    }, 1000);
                 }
+                await db.ref(`copilotajes/completados/${id}`).update({ finalizado: true, tsSalida: Date.now() });
             });
         };
 
-        onValue(ref(db, 'copilotajes'), (snap) => {
+        // Renderizado Principal
+        db.ref('copilotajes').on('value', snap => {
             const data = snap.val() || {};
-            
-            const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
-            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
-            pilotosDisponibles = config.filter(p => !bajas.includes(p));
-
             const tCola = document.getElementById('lista-cola-acceso');
             const tRecinto = document.getElementById('lista-espera-recinto');
             const tPista = document.getElementById('lista-pista-activa');
+            
             tCola.innerHTML = ""; tRecinto.innerHTML = ""; tPista.innerHTML = "";
 
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    if(!item.enRecinto) {
-                        tCola.innerHTML += `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto, id, false)}</td><td style="width:115px"><button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button></td></tr>`;
-                    } else {
-                        tRecinto.innerHTML += `<tr><td><span class="n-doc">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>${generarMatriculaHTML(item.piloto, id, true)}</td><td style="width:115px">
-                            <button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>
-                            <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ SACAR A COLA</button>
-                        </td></tr>`;
-                    }
+                    if(!item.enRecinto) tCola.innerHTML += generarFilaHTML(id, item, false, false);
+                    else tRecinto.innerHTML += generarFilaHTML(id, item, true, false);
                 });
             }
-
             if(data.completados) {
                 Object.entries(data.completados).filter(x => !x[1].finalizado).forEach(([id, item]) => {
-                    tPista.innerHTML += `<tr><td>
-                        <span class="n-doc" style="background:#444; color:#fff">${item.nPapel.toString().padStart(3,'0')}</span> <b>${item.copiloto}</b>
-                        ${generarMatriculaHTML(item.piloto, id, false)}
-                        <span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span> <small>(${item.horaEntradaTexto})</small></span>
-                    </td><td style="width:115px"><button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button></td></tr>`;
+                    tPista.innerHTML += generarFilaHTML(id, item, false, true);
                 });
             }
         });
 
+        // Cronómetros
         setInterval(() => {
             document.querySelectorAll('.time-info').forEach(el => {
                 const ts = parseInt(el.getAttribute('data-ts'));
-                if(!ts) return;
                 const diff = Date.now() - ts;
-                el.querySelector('.cronometro').innerText = Math.floor(diff / 60000) + ":" + Math.floor((diff % 60000) / 1000).toString().padStart(2,'0');
+                const m = Math.floor(diff/60000);
+                const s = Math.floor((diff%60000)/1000);
+                el.querySelector('.cronometro').innerText = `${m}:${s.toString().padStart(2,'0')}`;
             });
         }, 1000);
 

@@ -1,245 +1,221 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CONTROL PISTA - TAXI DRIFT</title>
-    <style>
-        :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
-        * { box-sizing: border-box; }
-        body { 
-            background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg);
-            color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; 
-        }
-        .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
-        .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
-        .pista-status-bar {
-            width: 100%; padding: 15px; border-radius: 10px; text-align: center;
-            font-size: 1.2em; font-weight: 900; text-transform: uppercase;
-            margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.4s ease;
-        }
-        .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
-        .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
-        
-        .n-doc { background: var(--accent); color: #000; padding: 8px 12px; border-radius: 8px; font-weight: 900; margin-right: 10px; font-size: 2.2em; display: inline-block; line-height: 1; }
-        .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; border: 1px solid #fff; margin-top: 5px; }
-        .m-bandera { background: #003399; color: white; padding: 4px 5px; font-size: 0.6em; }
-        .m-num { padding: 2px 12px; font-size: 1.4em; font-weight: 900; }
-        
-        .time-info { font-size: 0.75em; color: #00ff99; display: block; margin-top: 8px; font-family: sans-serif; font-weight: bold; }
-
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 15px 8px; border-bottom: 1px solid #222; }
-
-        .btn-recinto { background: #003399; color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
-        .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #155d27; }
-        .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
-        .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; width: 100%; }
-        .btn-reasignar { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer; margin-top: 8px; }
-        .selector-rapido { background: #000; color: var(--accent); border: 1px solid var(--accent); padding: 5px; border-radius: 5px; width: 100%; margin-top: 5px; }
-
-        #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
-
-        #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
-        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-modal { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; color: white; }
-    </style>
-
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRIFT SHOW LIVE - PÚBLICO</title>
+  <style>
+    body {
+      background-image: url('logo_peq.png');
+      background-repeat: repeat;
+      background-size: 200px;
+      background-position: top right;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Arial Black', Gadget, sans-serif;
+      padding: 10px; margin: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh;
+    }
+    .contenedor-principal {
+      background: rgba(0, 0, 0, 0.97);
+      border: 2px solid #ffcc00;
+      border-radius: 20px;
+      padding: 20px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 0 30px #000;
+      text-align: center;
+    }
+    #banner-estado {
+      padding: 15px; font-weight: bold; border-radius: 10px; margin-bottom: 20px;
+      text-transform: uppercase; font-size: 1.2em; border: 1px solid rgba(255,255,255,0.2);
+    }
+    #lista-votables { display: flex; flex-direction: column; gap: 15px; }
+    .voto-card {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px; border-radius: 12px; border-left: 5px solid #ffcc00;
+    }
+    .voto-card.es-batalla {
+      border-left: 5px solid #ff4444; background: rgba(255, 0, 0, 0.15);
+    }
+    .nombre-piloto { font-weight: bold; font-size: 1.2em; color: #ffcc00; text-transform: uppercase; }
+    .coche-piloto { font-size: 0.8em; color: #aaa; margin-bottom: 10px; font-style: italic; }
+    .v-btns { display: flex; justify-content: space-around; font-size: 2.8em; margin-top: 10px; }
+    .btn-voto { cursor: pointer; filter: brightness(0.5) grayscale(1); transition: 0.3s; padding: 5px; }
+    .btn-voto.seleccionado { filter: none !important; transform: scale(1.2); }
+    .votos-bloqueados .btn-voto { cursor: not-allowed; pointer-events: none; opacity: 0.3; }
+    
+    /* ESTILO CUENTA ATRÁS */
+    .timer-alerta { 
+      color: #ff4444; 
+      font-weight: bold; 
+      margin-top: 20px; 
+      font-size: 1.8em; 
+      text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+      animation: flash 1s infinite;
+    }
+    @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    
+    #id-sorteo-box { 
+      background: #1a1a1a;
+      border: 1px dashed #ffcc00;
+      padding: 10px;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+    #id-label { font-size: 0.7em; color: #aaa; display: block; margin-bottom: 5px; }
+    #id-numero { font-size: 1.8em; color: #ffcc00; letter-spacing: 5px; }
+  </style>
 </head>
 <body>
 
-    <div id="custom-confirm">
-        <div class="modal-content">
-            <h2 id="confirm-text" style="color:white; margin:0; font-size: 1.1em;">¿CONFIRMAR?</h2>
-            <div class="modal-btns">
-                <button class="btn-modal" style="background:#444;" onclick="handleConfirm(false)">CANCELAR</button>
-                <button class="btn-modal" style="background:var(--orange);" onclick="handleConfirm(true)">CONFIRMAR</button>
-            </div>
-        </div>
-    </div>
+<div class="contenedor-principal">
+  <div id="banner-estado">CONECTANDO...</div>
+  
+  <div id="seccion-votos" style="display:none">
+    <div id="lista-votables"></div>
+    <div id="cuenta-atras" class="timer-alerta"></div>
+  </div>
 
-    <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
-    <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">CONECTANDO...</div>
+  <div id="id-sorteo-box">
+    <span id="id-label">Nº DE PARTICIPANTE PARA EL SORTEO</span>
+    <span id="id-numero">-----</span>
+  </div>
+</div>
 
-    <input type="search" id="buscador" placeholder="🔍 BUSCAR TURNO O NOMBRE..." oninput="filtrar()">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, onValue, update, increment, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    <div class="card"><div class="section-title">⏳ 1. COLA DE ACCESO</div><table id="lista-cola-acceso"></table></div>
-    <div class="card" style="border-color: var(--orange);"><div class="section-title" style="color: var(--orange);">📍 2. ESPERA EN RECINTO</div><table id="lista-espera-recinto"></table></div>
-    <div class="card" style="border-color: var(--green);"><div class="section-title" style="color: var(--green);">🏁 3. EN PISTA / RETORNO</div><table id="lista-pista-activa"></table></div>
+  const DB_URL = "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com";
+  const db = getDatabase(initializeApp({ databaseURL: DB_URL }));
 
-    <script>
-        firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
-        const db = firebase.database();
+  // --- GENERACIÓN DE ID NUMÉRICA DE 5 CIFRAS CON AUTO-CORRECCIÓN ---
+  let storedID = localStorage.getItem('drift_user_id');
+  if (!storedID || isNaN(storedID) || storedID.length !== 5) {
+    const numAleatorio = Math.floor(10000 + Math.random() * 90000);
+    localStorage.setItem('drift_user_id', numAleatorio.toString());
+    storedID = numAleatorio.toString();
+  }
+  const USER_ID = storedID;
+  document.getElementById('id-numero').innerText = USER_ID;
 
-        let confirmAction = null;
-        let pilotosDisponibles = [];
+  let currentDorsalGlobal = "";
+  let yaVotoEnEstaRonda = false;
 
-        window.showConfirm = (texto, cb) => {
-            document.getElementById('confirm-text').innerText = texto;
-            document.getElementById('custom-confirm').style.display = 'flex';
-            confirmAction = cb;
-        };
-        window.handleConfirm = (v) => {
-            document.getElementById('custom-confirm').style.display = 'none';
-            if(v && confirmAction) confirmAction();
-            confirmAction = null;
-        };
+  const lista = document.getElementById('lista-votables');
+  const divVotos = document.getElementById('seccion-votos');
+  const timerDiv = document.getElementById('cuenta-atras');
 
-        db.ref('estado_pista').on('value', s => {
-            const d = s.val();
-            if(d) {
-                const bar = document.getElementById('status-bar');
-                bar.innerText = d.mensaje; bar.style.background = d.color;
-                bar.style.color = (d.color === '#ffcc00' || d.color === 'yellow') ? '#000' : '#fff';
-            }
+  function resetUIVotos() {
+    divVotos.style.display = 'none';
+    lista.innerHTML = "";
+    timerDiv.innerText = "";
+    currentDorsalGlobal = "";
+    yaVotoEnEstaRonda = false;
+  }
+
+  // Monitor Estado Pista
+  onValue(ref(db, 'estado_pista'), s => {
+    const p = s.val();
+    if (!p) return;
+    const b = document.getElementById('banner-estado');
+    b.innerText = String(p.mensaje || "").replace('🏎️ ', '');
+    b.style.background = p.color || "#222";
+  });
+
+  // Monitor Votación Activa y CUENTA REGRESIVA
+  onValue(ref(db, 'votacion_activa'), async s => {
+    const v = s.val();
+
+    if (v && v.activa) {
+      divVotos.style.display = 'block';
+
+      // Detectar cambio de piloto/ronda
+      if (currentDorsalGlobal !== v.dorsal) {
+        currentDorsalGlobal = v.dorsal || "";
+        lista.innerHTML = "";
+        const check = await get(ref(db, `registro_votos/${currentDorsalGlobal}/${USER_ID}`));
+        yaVotoEnEstaRonda = check.exists();
+      }
+
+      // Dibujar tarjetas si la lista está vacía
+      if (v.items && lista.innerHTML === "") {
+        Object.entries(v.items).forEach(([id, data]) => {
+          crearTarjetaUI(id, data?.nombre || "", data?.coche || "");
         });
+      }
 
-        db.ref('inscritos_drift').on('value', s => {
-            const data = s.val() || {};
-            pilotosDisponibles = Object.entries(data).map(([d, p]) => `[#${d}] ${p.piloto} | ${p.coche}`);
-        });
+      // Gestionar bloqueo visual
+      if (yaVotoEnEstaRonda) {
+        lista.classList.add('votos-bloqueados');
+      } else {
+        lista.classList.remove('votos-bloqueados');
+      }
 
-        function generarFilaHTML(id, item, esRecinto, esPista) {
-            const dMatch = item.piloto.match(/\[#(\d+)\]/) || item.piloto.match(/^(\d+)/);
-            const num = dMatch ? dMatch[1] : "??";
-            const nom = item.piloto.replace(/\[#\d+\]/, "").split('|')[0].trim();
+      // ACTUALIZACIÓN DE LA CUENTA REGRESIVA EN TIEMPO REAL
+      if (v.timer !== undefined && v.timer > 0) {
+        timerDiv.style.display = "block";
+        timerDiv.innerText = `¡CIERRE EN ${v.timer}s!`;
+      } else {
+        timerDiv.innerText = "";
+        timerDiv.style.display = "none";
+      }
 
-            let botones = '';
-            if (!esRecinto && !esPista) {
-                botones = `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button>`;
-            } else if (esRecinto) {
-                botones = `<button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>
-                           <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ COLA</button>`;
-            } else if (esPista) {
-                botones = `<button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button>`;
-            }
+    } else {
+      resetUIVotos();
+    }
+  });
 
-            return `<tr>
-                <td>
-                    <span class="n-doc" ${esPista?'style="background:#444;color:#fff"':''}>${item.nPapel.toString().padStart(3,'0')}</span>
-                    <b>${item.copiloto}</b><br>
-                    <div id="cont-p-${id}">
-                        <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
-                        <small style="color:#aaa;margin-left:5px">${nom}</small>
-                        ${esRecinto ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">✎ CAMBIAR</button>` : ''}
-                    </div>
-                    ${esPista ? `<span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span></span>` : ''}
-                </td>
-                <td style="width:110px">${botones}</td>
-            </tr>`;
-        }
+  function crearTarjetaUI(id, nombre, coche) {
+    const esBatalla = id === 'BATALLA';
+    const card = document.createElement('div');
+    card.className = 'voto-card' + (esBatalla ? ' es-batalla' : '');
+    card.id = "card-" + id;
 
-        window.activarSelector = (id, actual) => {
-            const cont = document.getElementById(`cont-p-${id}`);
-            const options = pilotosDisponibles.map(p => `<option value="${p}" ${p===actual?'selected':''}>${p}</option>`).join('');
-            cont.innerHTML = `<select class="selector-rapido" onchange="guardarPiloto('${id}', this.value)">${options}<option value="CANCEL">❌ CANCELAR</option></select>`;
-        };
+    card.innerHTML = `
+      <div class="nombre-piloto">${esBatalla ? "🔥 BATALLA 🔥" : nombre}</div>
+      <div class="coche-piloto">${coche}</div>
+      <div class="v-btns">
+        <span class="btn-voto v-ap" onclick="enviarVoto('${id}','ap')">👏</span>
+        <span class="btn-voto v-up" onclick="enviarVoto('${id}','up')">👍</span>
+        <span class="btn-voto v-dw" onclick="enviarVoto('${id}','dw')">👎</span>
+      </div>
+    `;
+    lista.appendChild(card);
+  }
 
-        window.guardarPiloto = (id, nuevo) => {
-            if(nuevo !== "CANCEL") db.ref(`copilotajes/espera/${id}`).update({ piloto: nuevo });
-            else location.reload();
-        };
+  window.enviarVoto = async (idVotable, tipoVoto) => {
+    if (!currentDorsalGlobal || yaVotoEnEstaRonda) return;
 
-        window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: true });
-        window.sacarDeRecinto = (id) => showConfirm("¿DEVOLVER A LA COLA?", () => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: false }));
+    // Verificar si el timer ya llegó a cero antes de dejar votar
+    const snap = await get(ref(db, 'votacion_activa/timer'));
+    if (snap.exists() && snap.val() <= 0) {
+        alert("¡Votación cerrada!");
+        return;
+    }
 
-        // --- A PISTA ---
-        window.confirmarSubida = async (id) => {
-            const snap = await db.ref(`copilotajes/espera/${id}`).once('value');
-            if(!snap.exists()) return;
-            const d = snap.val();
-            
-            const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
-            const dorsal = dMatch ? dMatch[1] : "0";
-            const nombreLimpio = d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim();
+    const updates = {};
+    updates[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
+    updates[`registro_votos/${currentDorsalGlobal}/${USER_ID}`] = { voto: tipoVoto, ts: Date.now() };
+    updates[`participantes_sorteo/${USER_ID}/votos_totales`] = increment(1);
+    updates[`participantes_sorteo/${USER_ID}/ultimo_voto`] = Date.now();
 
-            const items = {};
-            items[dorsal] = { nombre: nombreLimpio + " & " + d.copiloto, coche: "TAXI DRIFT", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
-
-            const updates = {};
-            // IMPORTANTE: Ponemos timer en false para que el público sepa que está ABIERTA
-            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: false, items: items };
-            updates['estado_pista'] = { mensaje: '🏎️ EN PISTA: ' + dorsal, color: '#007bff', id: 'btn-coche' };
-            
-            const newK = db.ref('copilotajes/completados').push().key;
-            updates[`copilotajes/completados/${newK}`] = { ...d, tsEntrada: Date.now(), finalizado: false };
-            updates[`copilotajes/espera/${id}`] = null;
-
-            await db.ref().update(updates);
-        };
-
-        // --- SALIDA (Sincronizada con Master 5 seg) ---
-        window.confirmarSalidaRecinto = (id) => {
-            showConfirm("¿TERMINAR VIAJE Y CERRAR VOTOS?", async () => {
-                await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
-                
-                const vSnap = await db.ref('votacion_activa').once('value');
-                const v = vSnap.val();
-
-                if(v && v.activa) {
-                    // Guardar historial
-                    Object.entries(v.items).forEach(([idItem, data]) => {
-                        if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
-                            db.ref('historial_votos').push({ dorsal: idItem, info: data.nombre, ap: data.ap||0, up: data.up||0, dw: data.dw||0, ts: Date.now() });
-                        }
-                    });
-
-                    // Cuenta atrás 5 segundos real
-                    let count = 5;
-                    await db.ref('votacion_activa').update({ timer: count });
-                    const inv = setInterval(async () => {
-                        count--;
-                        if(count >= 0) {
-                            await db.ref('votacion_activa').update({ timer: count });
-                        }
-                        if(count <= 0) { 
-                            clearInterval(inv); 
-                            await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" }); 
-                        }
-                    }, 1000);
-                }
-                await db.ref(`copilotajes/completados/${id}`).update({ finalizado: true, tsSalida: Date.now() });
-            });
-        };
-
-        db.ref('copilotajes').on('value', snap => {
-            const data = snap.val() || {};
-            const tCola = document.getElementById('lista-cola-acceso');
-            const tRecinto = document.getElementById('lista-espera-recinto');
-            const tPista = document.getElementById('lista-pista-activa');
-            tCola.innerHTML = ""; tRecinto.innerHTML = ""; tPista.innerHTML = "";
-            if(data.espera) {
-                Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    if(!item.enRecinto) tCola.innerHTML += generarFilaHTML(id, item, false, false);
-                    else tRecinto.innerHTML += generarFilaHTML(id, item, true, false);
-                });
-            }
-            if(data.completados) {
-                Object.entries(data.completados).filter(x => !x[1].finalizado).forEach(([id, item]) => {
-                    tPista.innerHTML += generarFilaHTML(id, item, false, true);
-                });
-            }
-        });
-
-        setInterval(() => {
-            document.querySelectorAll('.time-info').forEach(el => {
-                const ts = parseInt(el.getAttribute('data-ts'));
-                const diff = Date.now() - ts;
-                const m = Math.floor(diff/60000);
-                const s = Math.floor((diff%60000)/1000);
-                el.querySelector('.cronometro').innerText = `${m}:${s.toString().padStart(2,'0')}`;
-            });
-        }, 1000);
-
-        window.filtrar = () => {
-            const b = document.getElementById('buscador').value.toLowerCase();
-            document.querySelectorAll('tr').forEach(tr => tr.style.display = tr.innerText.toLowerCase().includes(b) ? '' : 'none');
-        };
-    </script>
+    try {
+      await update(ref(db), updates);
+      yaVotoEnEstaRonda = true;
+      lista.classList.add('votos-bloqueados');
+      
+      const btn = document.querySelector(`#card-${idVotable} .v-${tipoVoto}`);
+      if (btn) btn.classList.add('seleccionado');
+      
+      alert("¡VOTO REGISTRADO! Tu número para el sorteo es el " + USER_ID);
+    } catch (e) {
+      alert("Error al conectar.");
+    }
+  };
+</script>
 </body>
 </html>
 

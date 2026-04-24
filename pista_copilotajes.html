@@ -13,34 +13,38 @@
         }
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
+        
         .pista-status-bar {
             width: 100%; padding: 15px; border-radius: 10px; text-align: center;
             font-size: 1.2em; font-weight: 900; text-transform: uppercase;
             margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.4s ease;
         }
+
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
         
+        /* Elementos de Fila */
         .n-doc { background: var(--accent); color: #000; padding: 8px 12px; border-radius: 8px; font-weight: 900; margin-right: 10px; font-size: 2.2em; display: inline-block; line-height: 1; }
         .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; border: 1px solid #fff; margin-top: 5px; }
         .m-bandera { background: #003399; color: white; padding: 4px 5px; font-size: 0.6em; }
         .m-num { padding: 2px 12px; font-size: 1.4em; font-weight: 900; }
-        
         .time-info { font-size: 0.75em; color: #00ff99; display: block; margin-top: 8px; font-family: sans-serif; font-weight: bold; }
 
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 8px; border-bottom: 1px solid #222; }
 
+        /* Botones */
         .btn-recinto { background: #003399; color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
         .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; width: 100%; }
         .btn-reasignar { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer; margin-top: 8px; }
-        .selector-rapido { background: #000; color: var(--accent); border: 1px solid var(--accent); padding: 5px; border-radius: 5px; width: 100%; margin-top: 5px; }
+        
+        .selector-rapido { background: #000; color: var(--accent); border: 1px solid var(--accent); padding: 5px; border-radius: 5px; width: 100%; margin-top: 5px; font-size: 0.9em; }
 
-        #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; }
+        #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; font-size: 1.1em; }
 
+        /* Modal */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
         .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
@@ -63,21 +67,35 @@
     </div>
 
     <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
-    <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">CONECTANDO...</div>
+    
+    <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">ESTADO: CONECTANDO...</div>
 
     <input type="search" id="buscador" placeholder="🔍 BUSCAR TURNO O NOMBRE..." oninput="filtrar()">
 
-    <div class="card"><div class="section-title">⏳ 1. COLA DE ACCESO</div><table id="lista-cola-acceso"></table></div>
-    <div class="card" style="border-color: var(--orange);"><div class="section-title" style="color: var(--orange);">📍 2. ESPERA EN RECINTO</div><table id="lista-espera-recinto"></table></div>
-    <div class="card" style="border-color: var(--green);"><div class="section-title" style="color: var(--green);">🏁 3. EN PISTA / RETORNO</div><table id="lista-pista-activa"></table></div>
+    <div class="card">
+        <div class="section-title">⏳ 1. COLA DE ACCESO (PENDIENTES)</div>
+        <table id="lista-cola-acceso"></table>
+    </div>
+
+    <div class="card" style="border-color: var(--orange);">
+        <div class="section-title" style="color: var(--orange);">📍 2. ESPERA EN RECINTO (LISTOS)</div>
+        <table id="lista-espera-recinto"></table>
+    </div>
+
+    <div class="card" style="border-color: var(--green);">
+        <div class="section-title" style="color: var(--green);">🏁 3. EN PISTA / RETORNO</div>
+        <table id="lista-pista-activa"></table>
+    </div>
 
     <script>
+        // CONFIGURACIÓN FIREBASE
         firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
         const db = firebase.database();
 
         let confirmAction = null;
         let pilotosDisponibles = [];
 
+        // Funciones del Modal
         window.showConfirm = (texto, cb) => {
             document.getElementById('confirm-text').innerText = texto;
             document.getElementById('custom-confirm').style.display = 'flex';
@@ -89,65 +107,93 @@
             confirmAction = null;
         };
 
+        // Escuchar estado de pista global
         db.ref('estado_pista').on('value', s => {
             const d = s.val();
             if(d) {
                 const bar = document.getElementById('status-bar');
-                bar.innerText = d.mensaje; bar.style.background = d.color;
+                bar.innerText = d.mensaje; 
+                bar.style.background = d.color;
                 bar.style.color = (d.color === '#ffcc00' || d.color === 'yellow') ? '#000' : '#fff';
             }
         });
 
+        // Cargar Pilotos para el selector rápido
         db.ref('inscritos_drift').on('value', s => {
             const data = s.val() || {};
-            pilotosDisponibles = Object.entries(data).map(([d, p]) => `[#${d}] ${p.piloto} | ${p.coche}`);
+            pilotosDisponibles = Object.entries(data).map(([dorsal, p]) => {
+                return { dorsal, label: `[#${dorsal}] ${p.piloto} | ${p.coche}` };
+            });
         });
 
+        // GENERADOR DE FILAS (RESTAURADO)
         function generarFilaHTML(id, item, esRecinto, esPista) {
+            // Extraer dorsal para la matrícula
             const dMatch = item.piloto.match(/\[#(\d+)\]/) || item.piloto.match(/^(\d+)/);
             const num = dMatch ? dMatch[1] : "??";
             const nom = item.piloto.replace(/\[#\d+\]/, "").split('|')[0].trim();
 
-            let botones = '';
-            if (!esRecinto && !esPista) {
-                botones = `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGIDO</button>`;
+            let botones = "";
+            if (esPista) {
+                botones = `<button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">FINALIZAR</button>`;
             } else if (esRecinto) {
-                botones = `<button class="btn-pista" onclick="confirmarSubida('${id}')">A PISTA</button>
-                           <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ COLA</button>`;
-            } else if (esPista) {
-                botones = `<button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">SALIDA</button>`;
+                botones = `
+                    <button class="btn-pista" onclick="confirmarSubida('${id}')">SALIR PISTA</button>
+                    <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ COLA</button>
+                `;
+            } else {
+                botones = `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGER</button>`;
             }
 
-            return `<tr>
-                <td>
-                    <span class="n-doc" ${esPista?'style="background:#444;color:#fff"':''}>${item.nPapel.toString().padStart(3,'0')}</span>
-                    <b>${item.copiloto}</b><br>
-                    <div id="cont-p-${id}">
-                        <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
-                        <small style="color:#aaa;margin-left:5px">${nom}</small>
-                        ${esRecinto ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">✎ CAMBIAR</button>` : ''}
-                    </div>
-                    ${esPista ? `<span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span></span>` : ''}
-                </td>
-                <td style="width:110px">${botones}</td>
-            </tr>`;
+            return `
+                <tr id="row-${id}">
+                    <td>
+                        <span class="n-doc" ${esPista ? 'style="background:#444;color:#fff"' : ''}>
+                            ${item.nPapel.toString().padStart(3, '0')}
+                        </span>
+                        <b style="font-size:1.1em">${item.copiloto}</b><br>
+                        <div id="cont-p-${id}">
+                            <div class="matricula">
+                                <div class="m-bandera">E</div>
+                                <div class="m-num">${num}</div>
+                            </div>
+                            <small style="color:#aaa;margin-left:5px">${nom}</small>
+                            ${esRecinto ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">✎ REASIGNAR</button>` : ''}
+                        </div>
+                        ${esPista ? `<span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span></span>` : ''}
+                    </td>
+                    <td style="width:115px">${botones}</td>
+                </tr>
+            `;
         }
+
+        // --- FUNCIONES DE ACCIÓN ---
 
         window.activarSelector = (id, actual) => {
             const cont = document.getElementById(`cont-p-${id}`);
-            const options = pilotosDisponibles.map(p => `<option value="${p}" ${p===actual?'selected':''}>${p}</option>`).join('');
-            cont.innerHTML = `<select class="selector-rapido" onchange="guardarPiloto('${id}', this.value)">${options}<option value="CANCEL">❌ CANCELAR</option></select>`;
+            let opts = pilotosDisponibles.map(p => `<option value="${p.label}" ${p.label === actual ? 'selected' : ''}>${p.label}</option>`).join('');
+            cont.innerHTML = `
+                <select class="selector-rapido" onchange="guardarPiloto('${id}', this.value)">
+                    <option value="" disabled>Selecciona Piloto...</option>
+                    ${opts}
+                    <option value="CANCEL">❌ CANCELAR</option>
+                </select>`;
         };
 
         window.guardarPiloto = (id, nuevo) => {
-            if(nuevo !== "CANCEL") db.ref(`copilotajes/espera/${id}`).update({ piloto: nuevo });
-            else location.reload();
+            if(nuevo === "CANCEL") { renderizarTodo(); return; }
+            db.ref(`copilotajes/espera/${id}`).update({ piloto: nuevo });
         };
 
         window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: true });
-        window.sacarDeRecinto = (id) => showConfirm("¿DEVOLVER A LA COLA?", () => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: false }));
+        
+        window.sacarDeRecinto = (id) => {
+            showConfirm("¿EL PASAJERO HA SALIDO DEL RECINTO?", () => {
+                db.ref(`copilotajes/espera/${id}`).update({ enRecinto: false });
+            });
+        };
 
-        // --- A PISTA ---
+        // SALIDA A PISTA (Votaciones abiertas desde aquí)
         window.confirmarSubida = async (id) => {
             const snap = await db.ref(`copilotajes/espera/${id}`).once('value');
             if(!snap.exists()) return;
@@ -158,11 +204,14 @@
             const nombreLimpio = d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim();
 
             const items = {};
-            items[dorsal] = { nombre: nombreLimpio + " & " + d.copiloto, coche: "TAXI DRIFT", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
+            items[dorsal] = { 
+                nombre: nombreLimpio + " & " + d.copiloto, 
+                coche: "TAXI DRIFT", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 
+            };
 
             const updates = {};
-            // IMPORTANTE: Ponemos timer en false para que el público sepa que está ABIERTA
-            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: false, items: items };
+            // TIMER 999: Esto engaña a la web del público para que crea que hay tiempo y habilite el voto
+            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 999, items: items };
             updates['estado_pista'] = { mensaje: '🏎️ EN PISTA: ' + dorsal, color: '#007bff', id: 'btn-coche' };
             
             const newK = db.ref('copilotajes/completados').push().key;
@@ -172,30 +221,31 @@
             await db.ref().update(updates);
         };
 
-        // --- SALIDA (Sincronizada con Master 5 seg) ---
+        // FINALIZAR VIAJE (Cuenta atrás de 5 segundos)
         window.confirmarSalidaRecinto = (id) => {
-            showConfirm("¿TERMINAR VIAJE Y CERRAR VOTOS?", async () => {
+            showConfirm("¿CONFIRMAR FIN DE VIAJE?", async () => {
                 await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
                 
                 const vSnap = await db.ref('votacion_activa').once('value');
                 const v = vSnap.val();
 
                 if(v && v.activa) {
-                    // Guardar historial
+                    // Guardar en historial antes de borrar
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
-                            db.ref('historial_votos').push({ dorsal: idItem, info: data.nombre, ap: data.ap||0, up: data.up||0, dw: data.dw||0, ts: Date.now() });
+                            db.ref('historial_votos').push({ 
+                                dorsal: idItem, info: data.nombre, 
+                                ap: data.ap||0, up: data.up||0, dw: data.dw||0, ts: Date.now() 
+                            });
                         }
                     });
 
-                    // Cuenta atrás 5 segundos real
+                    // Cuenta atrás real de 5 seg para cerrar
                     let count = 5;
                     await db.ref('votacion_activa').update({ timer: count });
                     const inv = setInterval(async () => {
                         count--;
-                        if(count >= 0) {
-                            await db.ref('votacion_activa').update({ timer: count });
-                        }
+                        if(count >= 0) await db.ref('votacion_activa').update({ timer: count });
                         if(count <= 0) { 
                             clearInterval(inv); 
                             await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" }); 
@@ -206,25 +256,36 @@
             });
         };
 
-        db.ref('copilotajes').on('value', snap => {
-            const data = snap.val() || {};
-            const tCola = document.getElementById('lista-cola-acceso');
-            const tRecinto = document.getElementById('lista-espera-recinto');
-            const tPista = document.getElementById('lista-pista-activa');
-            tCola.innerHTML = ""; tRecinto.innerHTML = ""; tPista.innerHTML = "";
-            if(data.espera) {
-                Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    if(!item.enRecinto) tCola.innerHTML += generarFilaHTML(id, item, false, false);
-                    else tRecinto.innerHTML += generarFilaHTML(id, item, true, false);
-                });
-            }
-            if(data.completados) {
-                Object.entries(data.completados).filter(x => !x[1].finalizado).forEach(([id, item]) => {
-                    tPista.innerHTML += generarFilaHTML(id, item, false, true);
-                });
-            }
-        });
+        // --- RENDERIZADO Y FILTROS ---
 
+        function renderizarTodo() {
+            db.ref('copilotajes').once('value', snap => {
+                const data = snap.val() || {};
+                const tCola = document.getElementById('lista-cola-acceso');
+                const tRecinto = document.getElementById('lista-espera-recinto');
+                const tPista = document.getElementById('lista-pista-activa');
+                
+                tCola.innerHTML = ""; tRecinto.innerHTML = ""; tPista.innerHTML = "";
+
+                if(data.espera) {
+                    Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
+                        if(!item.enRecinto) tCola.innerHTML += generarFilaHTML(id, item, false, false);
+                        else tRecinto.innerHTML += generarFilaHTML(id, item, true, false);
+                    });
+                }
+                if(data.completados) {
+                    Object.entries(data.completados).filter(x => !x[1].finalizado).forEach(([id, item]) => {
+                        tPista.innerHTML += generarFilaHTML(id, item, false, true);
+                    });
+                }
+                filtrar(); // Aplicar búsqueda si hay algo escrito
+            });
+        }
+
+        // Escuchar cambios en tiempo real
+        db.ref('copilotajes').on('value', renderizarTodo);
+
+        // Cronómetros de tiempo en pista
         setInterval(() => {
             document.querySelectorAll('.time-info').forEach(el => {
                 const ts = parseInt(el.getAttribute('data-ts'));
@@ -237,7 +298,9 @@
 
         window.filtrar = () => {
             const b = document.getElementById('buscador').value.toLowerCase();
-            document.querySelectorAll('tr').forEach(tr => tr.style.display = tr.innerText.toLowerCase().includes(b) ? '' : 'none');
+            document.querySelectorAll('tr').forEach(tr => {
+                tr.style.display = tr.innerText.toLowerCase().includes(b) ? '' : 'none';
+            });
         };
     </script>
 </body>

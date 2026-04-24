@@ -9,7 +9,6 @@
       background-image: url('logo_peq.png');
       background-repeat: repeat;
       background-size: 200px;
-      background-position: top right;
       background-color: #000;
       color: #fff;
       font-family: 'Arial Black', Gadget, sans-serif;
@@ -21,52 +20,53 @@
       background: rgba(0, 0, 0, 0.97);
       border: 2px solid #ffcc00;
       border-radius: 20px;
-      padding: 20px;
-      width: 100%;
-      max-width: 500px;
-      box-shadow: 0 0 30px #000;
-      text-align: center;
+      padding: 20px; width: 100%; max-width: 500px;
+      box-shadow: 0 0 30px #000; text-align: center;
     }
     #banner-estado {
       padding: 15px; font-weight: bold; border-radius: 10px; margin-bottom: 20px;
       text-transform: uppercase; font-size: 1.2em; border: 1px solid rgba(255,255,255,0.2);
     }
-    #lista-votables { display: flex; flex-direction: column; gap: 15px; }
+    
+    /* BOTONES Y TARJETAS */
     .voto-card {
       background: rgba(255, 255, 255, 0.1);
-      padding: 15px; border-radius: 12px; border-left: 5px solid #ffcc00;
+      padding: 15px; border-radius: 12px; border-left: 5px solid #ffcc00; margin-bottom: 15px;
     }
     .nombre-piloto { font-weight: bold; font-size: 1.2em; color: #ffcc00; text-transform: uppercase; }
     .coche-piloto { font-size: 0.8em; color: #aaa; margin-bottom: 10px; font-style: italic; }
     
-    /* BOTONES */
-    .v-btns { display: flex; justify-content: space-around; font-size: 2.8em; margin-top: 10px; }
-    .btn-voto { cursor: pointer; filter: brightness(0.6) grayscale(0.5); transition: 0.3s; padding: 5px; pointer-events: auto; }
-    .btn-voto:active { transform: scale(0.9); }
-    .btn-voto.seleccionado { filter: none !important; transform: scale(1.2); }
+    .v-btns { display: flex; justify-content: space-around; font-size: 3em; margin-top: 10px; }
     
-    /* ESTADO BLOQUEADO */
-    .votos-bloqueados .btn-voto { cursor: not-allowed; pointer-events: none; opacity: 0.2; filter: grayscale(1); }
-    
+    /* ESTADO NORMAL: Botones brillantes y activos */
+    .btn-voto { 
+        cursor: pointer !important; 
+        filter: brightness(1) grayscale(0); 
+        transition: 0.2s; 
+        padding: 10px;
+        pointer-events: auto !important;
+    }
+    .btn-voto:hover { transform: scale(1.1); }
+    .btn-voto.seleccionado { filter: drop-shadow(0 0 10px #ffcc00); transform: scale(1.2); }
+
+    /* ESTADO BLOQUEADO: Solo cuando ya se ha votado o cerró el tiempo */
+    .votos-bloqueados .btn-voto { 
+        cursor: default !important; 
+        pointer-events: none !important; 
+        opacity: 0.3; 
+        filter: grayscale(1) brightness(0.5); 
+    }
+
     .timer-alerta { 
-      color: #ff4444; 
-      font-weight: bold; 
-      margin-top: 20px; 
-      font-size: 1.8em; 
+      color: #ff4444; font-weight: bold; margin-top: 20px; font-size: 1.8em;
       text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
       animation: flash 1s infinite;
     }
-    @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     
-    #id-sorteo-box { 
-      background: #1a1a1a;
-      border: 1px dashed #ffcc00;
-      padding: 10px;
-      margin-top: 20px;
-      border-radius: 10px;
-    }
-    #id-label { font-size: 0.7em; color: #aaa; display: block; margin-bottom: 5px; }
+    #id-sorteo-box { background: #1a1a1a; border: 1px dashed #ffcc00; padding: 10px; margin-top: 20px; border-radius: 10px; }
     #id-numero { font-size: 1.8em; color: #ffcc00; letter-spacing: 5px; }
+    #debug-info { font-size: 0.6em; color: #444; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -80,26 +80,25 @@
   </div>
 
   <div id="id-sorteo-box">
-    <span id="id-label">Nº DE PARTICIPANTE PARA EL SORTEO</span>
+    <span style="font-size: 0.7em; color:#aaa">Nº PARA EL SORTEO</span><br>
     <span id="id-numero">-----</span>
   </div>
+  
+  <div id="debug-info">Cargando sistema...</div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getDatabase, ref, onValue, update, increment, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-  const DB_URL = "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com";
-  const db = getDatabase(initializeApp({ databaseURL: DB_URL }));
+  const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
-  // --- ID USUARIO ---
-  let storedID = localStorage.getItem('drift_user_id');
-  if (!storedID || isNaN(storedID) || storedID.length !== 5) {
-    const numAleatorio = Math.floor(10000 + Math.random() * 90000);
-    localStorage.setItem('drift_user_id', numAleatorio.toString());
-    storedID = numAleatorio.toString();
+  // ID USUARIO
+  let USER_ID = localStorage.getItem('drift_user_id');
+  if (!USER_ID) {
+    USER_ID = Math.floor(10000 + Math.random() * 90000).toString();
+    localStorage.setItem('drift_user_id', USER_ID);
   }
-  const USER_ID = storedID;
   document.getElementById('id-numero').innerText = USER_ID;
 
   let currentDorsalGlobal = "";
@@ -108,99 +107,86 @@
   const lista = document.getElementById('lista-votables');
   const divVotos = document.getElementById('seccion-votos');
   const timerDiv = document.getElementById('cuenta-atras');
+  const debug = document.getElementById('debug-info');
 
-  function resetUIVotos() {
-    divVotos.style.display = 'none';
-    lista.innerHTML = "";
-    timerDiv.innerText = "";
-    currentDorsalGlobal = "";
-    yaVotoEnEstaRonda = false;
-  }
-
-  // --- MONITOR ESTADO PISTA ---
+  // MONITOR ESTADO PISTA
   onValue(ref(db, 'estado_pista'), s => {
     const p = s.val();
-    if (!p) return;
-    const b = document.getElementById('banner-estado');
-    b.innerText = String(p.mensaje || "").replace('🏎️ ', '');
-    b.style.background = p.color || "#222";
-  });
-
-  // --- MONITOR VOTACIÓN ACTIVA ---
-  onValue(ref(db, 'votacion_activa'), async s => {
-    const v = s.val();
-
-    if (v && v.activa) {
-      divVotos.style.display = 'block';
-
-      // Si cambia el piloto o ronda, comprobamos si este usuario ya votó
-      if (currentDorsalGlobal !== v.dorsal) {
-        currentDorsalGlobal = v.dorsal || "";
-        lista.innerHTML = ""; 
-        const check = await get(ref(db, `registro_votos/${currentDorsalGlobal}/${USER_ID}`));
-        yaVotoEnEstaRonda = check.exists();
-      }
-
-      // Dibujar tarjetas si no están creadas
-      if (v.items && lista.innerHTML === "") {
-        Object.entries(v.items).forEach(([id, data]) => {
-          crearTarjetaUI(id, data?.nombre || "", data?.coche || "");
-        });
-      }
-
-      // LÓGICA DE BLOQUEO: Solo bloqueamos si el usuario ya votó O si el timer es exactamente 0
-      // Nota: El controlador de pista manda 999 al inicio, por lo que NO se bloquea al salir el coche.
-      if (yaVotoEnEstaRonda || v.timer === 0) {
-        lista.classList.add('votos-bloqueados');
-      } else {
-        lista.classList.remove('votos-bloqueados');
-      }
-
-      // Mostrar cuenta atrás solo cuando sea real (ej. menor a 10 segundos)
-      if (v.timer !== undefined && v.timer > 0 && v.timer <= 5) {
-        timerDiv.style.display = "block";
-        timerDiv.innerText = `¡CIERRE EN ${v.timer}s!`;
-      } else {
-        timerDiv.style.display = "none";
-      }
-
-    } else {
-      resetUIVotos();
+    if (p) {
+        const b = document.getElementById('banner-estado');
+        b.innerText = String(p.mensaje || "").replace('🏎️ ', '');
+        b.style.background = p.color || "#222";
     }
   });
 
-  function crearTarjetaUI(id, nombre, coche) {
-    const card = document.createElement('div');
-    card.className = 'voto-card';
-    card.id = "card-" + id;
-    card.innerHTML = `
-      <div class="nombre-piloto">${nombre}</div>
-      <div class="coche-piloto">${coche}</div>
-      <div class="v-btns">
-        <span class="btn-voto v-ap" data-id="${id}" data-voto="ap">👏</span>
-        <span class="btn-voto v-up" data-id="${id}" data-voto="up">👍</span>
-        <span class="btn-voto v-dw" data-id="${id}" data-voto="dw">👎</span>
-      </div>
-    `;
-    
-    // Delegación de eventos para los botones
-    card.querySelectorAll('.btn-voto').forEach(btn => {
-        btn.onclick = () => {
-            const idV = btn.getAttribute('data-id');
-            const tipoV = btn.getAttribute('data-voto');
-            enviarVoto(idV, tipoV);
-        };
-    });
-    
-    lista.appendChild(card);
-  }
+  // MONITOR VOTACIÓN
+  onValue(ref(db, 'votacion_activa'), async s => {
+    const v = s.val();
+    if (!v || !v.activa) {
+      divVotos.style.display = 'none';
+      lista.innerHTML = "";
+      currentDorsalGlobal = "";
+      return;
+    }
 
-  async function enviarVoto(idVotable, tipoVoto) {
+    divVotos.style.display = 'block';
+
+    // CAMBIO DE RONDA / PILOTO
+    if (currentDorsalGlobal !== v.dorsal) {
+      console.log("Nueva ronda detectada:", v.dorsal);
+      currentDorsalGlobal = v.dorsal;
+      lista.innerHTML = ""; 
+      
+      // Verificamos si este usuario ya votó para ESTE DORSAL
+      const check = await get(ref(db, `registro_votos/${currentDorsalGlobal}/${USER_ID}`));
+      yaVotoEnEstaRonda = check.exists();
+      debug.innerText = `Ronda: ${currentDorsalGlobal} | Votado: ${yaVotoEnEstaRonda}`;
+    }
+
+    // Dibujar tarjetas si está vacío
+    if (v.items && lista.innerHTML === "") {
+      Object.entries(v.items).forEach(([id, data]) => {
+        const card = document.createElement('div');
+        card.className = 'voto-card';
+        card.id = "card-" + id;
+        card.innerHTML = `
+          <div class="nombre-piloto">${data.nombre}</div>
+          <div class="coche-piloto">${data.coche}</div>
+          <div class="v-btns">
+            <span class="btn-voto" onclick="mandarVoto('${id}','ap')">👏</span>
+            <span class="btn-voto" onclick="mandarVoto('${id}','up')">👍</span>
+            <span class="btn-voto" onclick="mandarVoto('${id}','dw')">👎</span>
+          </div>
+        `;
+        lista.appendChild(card);
+      });
+    }
+
+    // GESTIÓN DE BLOQUEO
+    // Bloqueamos si: ya votó O el timer es 0 (cierre). 
+    // NO bloqueamos si el timer es 999.
+    if (yaVotoEnEstaRonda || v.timer === 0) {
+      lista.classList.add('votos-bloqueados');
+    } else {
+      lista.classList.remove('votos-bloqueados');
+    }
+
+    // Timer visual (solo los 5 seg finales)
+    if (v.timer > 0 && v.timer <= 5) {
+      timerDiv.style.display = "block";
+      timerDiv.innerText = `¡CIERRE EN ${v.timer}s!`;
+    } else {
+      timerDiv.style.display = "none";
+    }
+  });
+
+  // FUNCIÓN GLOBAL PARA VOTAR
+  window.mandarVoto = async (idVotable, tipoVoto) => {
     if (!currentDorsalGlobal || yaVotoEnEstaRonda) return;
 
-    // Verificar si el timer ha cerrado (solo si es exactamente 0)
-    const snap = await get(ref(db, 'votacion_activa/timer'));
-    if (snap.exists() && snap.val() === 0) {
+    // Comprobar si cerró justo antes de clickar
+    const tSnap = await get(ref(db, 'votacion_activa/timer'));
+    if (tSnap.exists() && tSnap.val() === 0) {
         alert("¡Votación cerrada!");
         return;
     }
@@ -209,21 +195,16 @@
     updates[`votacion_activa/items/${idVotable}/${tipoVoto}`] = increment(1);
     updates[`registro_votos/${currentDorsalGlobal}/${USER_ID}`] = { voto: tipoVoto, ts: Date.now() };
     updates[`participantes_sorteo/${USER_ID}/votos_totales`] = increment(1);
-    updates[`participantes_sorteo/${USER_ID}/ultimo_voto`] = Date.now();
 
     try {
       await update(ref(db), updates);
       yaVotoEnEstaRonda = true;
       lista.classList.add('votos-bloqueados');
-      
-      const btn = document.querySelector(`#card-${idVotable} .v-${tipoVoto}`);
-      if (btn) btn.classList.add('seleccionado');
-      
-      alert("¡VOTO REGISTRADO!\nTu Nº para el sorteo: " + USER_ID);
+      alert("¡VOTO REGISTRADO!\nNº Sorteo: " + USER_ID);
     } catch (e) {
-      alert("Error de conexión al votar.");
+      alert("Error de red");
     }
-  }
+  };
 </script>
 </body>
 </html>

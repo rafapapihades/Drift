@@ -63,7 +63,7 @@
     </div>
 
     <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
-    <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">ESPERANDO...</div>
+    <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">CONECTANDO...</div>
 
     <input type="search" id="buscador" placeholder="🔍 BUSCAR TURNO O NOMBRE..." oninput="filtrar()">
 
@@ -89,17 +89,15 @@
             confirmAction = null;
         };
 
-        // Escuchar Estado Pista
         db.ref('estado_pista').on('value', s => {
             const d = s.val();
             if(d) {
                 const bar = document.getElementById('status-bar');
                 bar.innerText = d.mensaje; bar.style.background = d.color;
-                bar.style.color = (d.color === '#ffcc00') ? '#000' : '#fff';
+                bar.style.color = (d.color === '#ffcc00' || d.color === 'yellow') ? '#000' : '#fff';
             }
         });
 
-        // Escuchar Pilotos para el selector
         db.ref('inscritos_drift').on('value', s => {
             const data = s.val() || {};
             pilotosDisponibles = Object.entries(data).map(([d, p]) => `[#${d}] ${p.piloto} | ${p.coche}`);
@@ -127,7 +125,7 @@
                     <div id="cont-p-${id}">
                         <div class="matricula"><div class="m-bandera">E</div><div class="m-num">${num}</div></div>
                         <small style="color:#aaa;margin-left:5px">${nom}</small>
-                        ${esRecinto ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">✎ CAMBIAR PILOTO</button>` : ''}
+                        ${esRecinto ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">✎ CAMBIAR</button>` : ''}
                     </div>
                     ${esPista ? `<span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span></span>` : ''}
                 </td>
@@ -138,20 +136,18 @@
         window.activarSelector = (id, actual) => {
             const cont = document.getElementById(`cont-p-${id}`);
             const options = pilotosDisponibles.map(p => `<option value="${p}" ${p===actual?'selected':''}>${p}</option>`).join('');
-            cont.innerHTML = `<select class="selector-rapido" onchange="guardarPiloto('${id}', this.value)">
-                <option value="" disabled>Selecciona...</option>${options}
-                <option value="CANCEL">❌ CANCELAR</option></select>`;
+            cont.innerHTML = `<select class="selector-rapido" onchange="guardarPiloto('${id}', this.value)">${options}<option value="CANCEL">❌ CANCELAR</option></select>`;
         };
 
         window.guardarPiloto = (id, nuevo) => {
             if(nuevo !== "CANCEL") db.ref(`copilotajes/espera/${id}`).update({ piloto: nuevo });
-            else location.reload(); // Recarga rápida para restaurar UI
+            else location.reload();
         };
 
         window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: true });
         window.sacarDeRecinto = (id) => showConfirm("¿DEVOLVER A LA COLA?", () => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: false }));
 
-        // --- ACCIÓN A PISTA (Sincronizada con Master) ---
+        // --- A PISTA ---
         window.confirmarSubida = async (id) => {
             const snap = await db.ref(`copilotajes/espera/${id}`).once('value');
             if(!snap.exists()) return;
@@ -165,10 +161,10 @@
             items[dorsal] = { nombre: nombreLimpio + " & " + d.copiloto, coche: "TAXI DRIFT", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
 
             const updates = {};
-            // Sincronizar Votos
-            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 0, items: items };
+            // IMPORTANTE: Ponemos timer en false para que el público sepa que está ABIERTA
+            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: false, items: items };
             updates['estado_pista'] = { mensaje: '🏎️ EN PISTA: ' + dorsal, color: '#007bff', id: 'btn-coche' };
-            // Mover en copilotajes
+            
             const newK = db.ref('copilotajes/completados').push().key;
             updates[`copilotajes/completados/${newK}`] = { ...d, tsEntrada: Date.now(), finalizado: false };
             updates[`copilotajes/espera/${id}`] = null;
@@ -176,44 +172,46 @@
             await db.ref().update(updates);
         };
 
-        // --- ACCIÓN SALIDA (Sincronizada con Master) ---
+        // --- SALIDA (Sincronizada con Master 5 seg) ---
         window.confirmarSalidaRecinto = (id) => {
-            showConfirm("¿CONFIRMAR FIN DE VIAJE?", async () => {
+            showConfirm("¿TERMINAR VIAJE Y CERRAR VOTOS?", async () => {
                 await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
                 
                 const vSnap = await db.ref('votacion_activa').once('value');
                 const v = vSnap.val();
 
                 if(v && v.activa) {
-                    // Historial (igual que Master)
+                    // Guardar historial
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
                             db.ref('historial_votos').push({ dorsal: idItem, info: data.nombre, ap: data.ap||0, up: data.up||0, dw: data.dw||0, ts: Date.now() });
                         }
                     });
 
-                    // Cuenta atrás 5 seg
+                    // Cuenta atrás 5 segundos real
                     let count = 5;
                     await db.ref('votacion_activa').update({ timer: count });
                     const inv = setInterval(async () => {
                         count--;
-                        await db.ref('votacion_activa').update({ timer: count });
-                        if(count <= 0) { clearInterval(inv); await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" }); }
+                        if(count >= 0) {
+                            await db.ref('votacion_activa').update({ timer: count });
+                        }
+                        if(count <= 0) { 
+                            clearInterval(inv); 
+                            await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" }); 
+                        }
                     }, 1000);
                 }
                 await db.ref(`copilotajes/completados/${id}`).update({ finalizado: true, tsSalida: Date.now() });
             });
         };
 
-        // Renderizado Principal
         db.ref('copilotajes').on('value', snap => {
             const data = snap.val() || {};
             const tCola = document.getElementById('lista-cola-acceso');
             const tRecinto = document.getElementById('lista-espera-recinto');
             const tPista = document.getElementById('lista-pista-activa');
-            
             tCola.innerHTML = ""; tRecinto.innerHTML = ""; tPista.innerHTML = "";
-
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
                     if(!item.enRecinto) tCola.innerHTML += generarFilaHTML(id, item, false, false);
@@ -227,7 +225,6 @@
             }
         });
 
-        // Cronómetros
         setInterval(() => {
             document.querySelectorAll('.time-info').forEach(el => {
                 const ts = parseInt(el.getAttribute('data-ts'));

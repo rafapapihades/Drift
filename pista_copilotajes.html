@@ -22,9 +22,10 @@
         th { text-align: left; color: #888; font-size: 0.8em; padding: 10px; border-bottom: 2px solid #333; }
         td { padding: 12px 10px; border-bottom: 1px solid #222; font-size: 0.9em; }
 
-        .btn { padding: 10px 15px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.8em; width: 100%; }
+        .btn { padding: 10px 15px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.75em; width: 100%; }
         .btn-blue { background: var(--blue); }
         .btn-red { background: var(--red); }
+        .btn-gray { background: #444; color: #aaa; cursor: not-allowed; }
         .btn-confirm { background: var(--orange); color: #000; animation: parpadeo 0.5s infinite; }
         
         @keyframes parpadeo { 50% { opacity: 0.7; } }
@@ -32,7 +33,7 @@
         .time-info { color: var(--accent); font-family: monospace; font-size: 1.1em; }
         .ticket-num { background: #333; padding: 5px 10px; border-radius: 5px; font-weight: bold; color: var(--accent); }
         
-        #buscador { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #111; color: #fff; margin-bottom: 10px; }
+        #buscador { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #111; color: #fff; margin-bottom: 10px; font-family: sans-serif;}
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -42,12 +43,27 @@
 
     <div class="header">
         <img src="logo.png" class="header-logo">
-        <div style="margin-top:10px; color:var(--accent)">CONTROL PISTA - TIEMPOS Y SEGUIMIENTO</div>
+        <div style="margin-top:10px; color:var(--accent)">CONTROL PISTA - SEGUIMIENTO COMPLETO</div>
     </div>
 
     <input type="text" id="buscador" placeholder="BUSCAR POR NOMBRE O TICKET..." onkeyup="filtrar()">
 
     <div class="container">
+        
+        <div class="column" style="border-color: #555;">
+            <h2 style="color: #aaa;">📋 COLA DE ACCESO (MÓVIL)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>CO-PILOTO</th>
+                        <th>ESTADO</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-cola"></tbody>
+            </table>
+        </div>
+
         <div class="column">
             <h2>⏱️ ESPERANDO EN RECINTO</h2>
             <table>
@@ -76,6 +92,7 @@
                 <tbody id="tabla-pista"></tbody>
             </table>
         </div>
+
     </div>
 
     <script>
@@ -83,7 +100,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. ENTRAR PISTA
+        // MOVER A PISTA
         window.entrarPista = async (id, item) => {
             const ahora = Date.now();
             const horaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -93,24 +110,23 @@
             await db.ref().update(updates);
         };
 
-        // 2. CONFIRMACIÓN VISUAL (Sustituye al popup del navegador)
+        // CONFIRMACIÓN DE FIN (BOTÓN DINÁMICO)
         window.pedirConfirmacion = (btn, id, itemJson) => {
             const item = JSON.parse(decodeURIComponent(itemJson));
+            const originalText = "FIN ✅";
             btn.innerText = "¿ESTÁS SEGURO?";
             btn.className = "btn btn-confirm";
             btn.onclick = () => ejecutarFinalizar(id, item);
             
-            // Si no pulsa en 3 segundos, vuelve al estado normal
             setTimeout(() => {
-                if(btn) {
-                    btn.innerText = "FIN ✅";
+                if(btn && btn.innerText === "¿ESTÁS SEGURO?") {
+                    btn.innerText = originalText;
                     btn.className = "btn btn-red";
                     btn.onclick = () => pedirConfirmacion(btn, id, itemJson);
                 }
             }, 3000);
         };
 
-        // 3. FINALIZAR REAL
         async function ejecutarFinalizar(id, item) {
             const ahora = Date.now();
             const inicio = item.ts_entrada || ahora;
@@ -126,15 +142,26 @@
             await db.ref().update(updates);
         }
 
-        function generarFilaHTML(id, item, esRecinto) {
+        function generarFilaHTML(id, item, tipo) {
             const itemJson = encodeURIComponent(JSON.stringify(item));
-            if(esRecinto) {
+            
+            if(tipo === 'cola') {
+                return `<tr>
+                    <td><span class="ticket-num">${item.nPapel || 'S/N'}</span></td>
+                    <td><b>${item.copiloto}</b></td>
+                    <td><button class="btn btn-gray">VALIDAR EN MESA</button></td>
+                </tr>`;
+            }
+            
+            if(tipo === 'espera') {
                 return `<tr>
                     <td><span class="ticket-num">${item.nPapel}</span></td>
                     <td><b>${item.copiloto}</b><br><small>PILOTO: ${item.piloto || '---'}</small></td>
                     <td><button class="btn btn-blue" onclick='entrarPista("${id}", JSON.parse(decodeURIComponent("${itemJson}")))'>ENTRA PISTA ▶️</button></td>
                 </tr>`;
-            } else {
+            }
+
+            if(tipo === 'pista') {
                 return `<tr>
                     <td><span class="ticket-num">${item.nPapel}</span></td>
                     <td><b>${item.piloto}</b><br><small>CO-PILOTO: ${item.copiloto}</small></td>
@@ -146,12 +173,21 @@
 
         db.ref('copilotajes').on('value', snap => {
             const data = snap.val() || {};
+            const tCola = document.getElementById('tabla-cola');
             const tRecinto = document.getElementById('tabla-recinto');
             const tPista = document.getElementById('tabla-pista');
-            tRecinto.innerHTML = ""; tPista.innerHTML = "";
+            
+            tCola.innerHTML = ""; tRecinto.innerHTML = ""; tPista.innerHTML = "";
 
-            if(data.espera) Object.entries(data.espera).forEach(([id, item]) => { tRecinto.innerHTML += generarFilaHTML(id, item, true); });
-            if(data.pista) Object.entries(data.pista).forEach(([id, item]) => { tPista.innerHTML += generarFilaHTML(id, item, false); });
+            if(data.pre_inscritos) {
+                Object.entries(data.pre_inscritos).forEach(([id, item]) => { tCola.innerHTML += generarFilaHTML(id, item, 'cola'); });
+            }
+            if(data.espera) {
+                Object.entries(data.espera).forEach(([id, item]) => { tRecinto.innerHTML += generarFilaHTML(id, item, 'espera'); });
+            }
+            if(data.pista) {
+                Object.entries(data.pista).forEach(([id, item]) => { tPista.innerHTML += generarFilaHTML(id, item, 'pista'); });
+            }
             filtrar();
         });
 

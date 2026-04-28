@@ -6,70 +6,35 @@
     <title>LOGÍSTICA TAXI DRIFT</title>
     <style>
         :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
-        
-        body { 
-            background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg);
-            color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; 
-        }
-        
-        .header-top { 
-            display: flex; flex-direction: column; align-items: center; 
-            padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; 
-            border: 2px solid #333; margin-bottom: 15px; gap: 12px; 
-        }
-
+        body { background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg); color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; }
+        .header-top { display: flex; flex-direction: column; align-items: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border: 2px solid #333; margin-bottom: 15px; gap: 12px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
-        
-        .event-name-input { 
-            background: transparent; border: none; border-bottom: 2px solid #444; 
-            color: var(--accent); font-size: 1.2em; text-align: center; width: 90%; 
-            font-family: 'Arial Black', sans-serif; outline: none;
-        }
-
+        .event-name-input { background: transparent; border: none; border-bottom: 2px solid #444; color: var(--accent); font-size: 1.2em; text-align: center; width: 90%; font-family: 'Arial Black', sans-serif; outline: none; }
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        
         .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
         .btn-search { background: var(--accent); border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: 1.5em; transition: 0.2s; }
-
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
-        
         .extra-fields { display: none; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--accent); margin-bottom: 15px; }
         .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         .input-manual { width: 100%; height: 45px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 0 10px; box-sizing: border-box; font-family: sans-serif; font-size: 0.9em; }
         .label-mini { font-size: 0.65em; color: #888; text-transform: uppercase; margin-bottom: 4px; display: block; }
-
         .pago-container { display: flex; gap: 10px; margin-bottom: 20px; }
-        .pago-option { 
-            flex: 1; padding: 15px; text-align: center; border-radius: 10px; 
-            border: 2px solid #444; cursor: pointer; transition: 0.3s;
-            background: #000; font-size: 0.9em; opacity: 0.5; font-family: sans-serif; font-weight: bold;
-        }
+        .pago-option { flex: 1; padding: 15px; text-align: center; border-radius: 10px; border: 2px solid #444; cursor: pointer; transition: 0.3s; background: #000; font-size: 0.9em; opacity: 0.5; font-family: sans-serif; font-weight: bold; }
         .pago-option.selected { border-color: var(--accent); color: var(--accent); opacity: 1; background: rgba(255, 204, 0, 0.1); }
-
-        .asistente-aviso {
-            padding: 12px; border-radius: 10px; margin-bottom: 15px; display: none; font-size: 0.9em; 
-            border: 2px solid var(--accent); background: #2c2505; color: #fff; font-family: sans-serif; line-height: 1.4;
-        }
-
+        .asistente-aviso { padding: 12px; border-radius: 10px; margin-bottom: 15px; display: none; font-size: 0.9em; border: 2px solid var(--accent); background: #2c2505; color: #fff; font-family: sans-serif; line-height: 1.4; }
         .doc-box { background: #000; border: 1px solid var(--accent); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px; }
         .doc-box small { display: block; font-size: 0.6em; color: #666; font-family: sans-serif; margin-bottom: 2px; }
         .doc-box b { font-size: 2.8em; font-family: monospace; color: var(--accent); }
-
         .chk-massive { width: 100%; height: 65px; background: #1a1a1a; border-radius: 10px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 15px; cursor: pointer; margin-bottom: 20px; }
         .chk-massive input { transform: scale(2); }
-
         .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
         .btn-add-massive:disabled { background: #222; color: #555; box-shadow: none; opacity: 0.4; cursor: not-allowed; }
-
         .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 5px; border-bottom: 1px solid #222; }
-        
         .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
-        
         .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: 900; font-size: 0.7em; cursor: pointer; text-transform: uppercase; width: 100%; }
         .badge-recinto { background: #222; color: var(--blue); border: 1px solid var(--blue); padding: 5px; border-radius: 5px; font-size: 0.6em; font-weight: bold; text-align: center; display: block; }
-
         .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; }
         .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
     </style>
@@ -182,9 +147,7 @@
             document.getElementById('pago-tarjeta').classList.toggle('selected', tipo === 'TARJETA');
         };
 
-        const fnValidar = () => { 
-            btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); 
-        };
+        const fnValidar = () => { btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); };
 
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
@@ -198,8 +161,7 @@
             if(yaEsta) {
                 avisoBox.innerHTML = `⚠️ <b>REGISTRADO</b>: ${yaEsta.copiloto} (#${yaEsta.nPapel})`;
                 avisoBox.style.display = 'block'; avisoBox.style.borderColor = 'var(--red)';
-                seccionManual.style.display = 'none';
-                return;
+                seccionManual.style.display = 'none'; return;
             }
 
             const pre = Object.values(data.pre_inscritos || {}).find(r => r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda || r.nPapel.toString() === busqueda);
@@ -241,12 +203,7 @@
             if(data.espera) {
                 Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
                     count++;
-                    tEspera.insertRow().innerHTML = `
-                        <td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td>
-                        <td><strong>${item.copiloto}</strong><br><small>${item.piloto}</small></td>
-                        <td style="width:100px; text-align:right">
-                            ${item.enRecinto ? `<span class="badge-recinto">EN RECINTO</span>` : `<button class="btn-acceso" onclick="marcarAcceso('${id}')">ACCESO</button>`}
-                        </td>`;
+                    tEspera.insertRow().innerHTML = `<td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td><td><strong>${item.copiloto}</strong><br><small>${item.piloto}</small></td><td style="width:100px; text-align:right">${item.enRecinto ? `<span class="badge-recinto">EN RECINTO</span>` : `<button class="btn-acceso" onclick="marcarAcceso('${id}')">ACCESO</button>`}</td>`;
                 });
             }
             document.getElementById('contador-espera').innerText = `${count} personas`;
@@ -254,14 +211,8 @@
             const tHisto = document.getElementById('tabla-historial');
             tHisto.innerHTML = "";
             if(data.completados) {
-                // AQUÍ LA CLAVE: Mostramos la duración calculada que viene de PISTA
                 Object.values(data.completados).filter(x => x.finalizado).sort((a,b) => b.tsSalida - a.tsSalida).slice(0, 5).forEach(item => {
-                    tHisto.insertRow().innerHTML = `
-                        <td style="color:#aaa">#${item.nPapel}</td>
-                        <td>${item.copiloto}</td>
-                        <td style="text-align:right">
-                            <span style="color:var(--green); font-family:monospace">⏱ ${item.duracionTotal || '--:--'}</span>
-                        </td>`;
+                    tHisto.insertRow().innerHTML = `<td style="color:#aaa">#${item.nPapel}</td><td>${item.copiloto}</td><td style="text-align:right"><span style="color:var(--green); font-family:monospace">⏱ ${item.duracionTotal || '--:--'}</span></td>`;
                 });
             }
         });
@@ -270,14 +221,8 @@
 
         btnAdd.onclick = async () => {
             const numFinal = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
-            
             const datos = { 
-                nPapel: numFinal, 
-                copiloto: nombreInput.value.trim(), 
-                piloto: selPiloto.value, 
-                metodoPago: metodoPago, 
-                enRecinto: false, 
-                finalizado: false,
+                nPapel: numFinal, copiloto: nombreInput.value.trim(), piloto: selPiloto.value, metodoPago: metodoPago, enRecinto: false, finalizado: false,
                 horaFirma: new Date().toLocaleTimeString('es-ES'),
                 dni: registroRecuperado ? (registroRecuperado.dni || "") : document.getElementById('c-dni').value.trim(),
                 fechaNac: registroRecuperado ? (registroRecuperado.fechaNac || "") : document.getElementById('c-nac').value.trim(),
@@ -286,31 +231,50 @@
                 dniTutor: registroRecuperado ? (registroRecuperado.dniTutor || "") : document.getElementById('c-dni-tutor').value.trim(),
                 nombreTutor: registroRecuperado ? (registroRecuperado.nombreTutor || "") : document.getElementById('c-nombre-tutor').value.trim()
             };
-
             await push(ref(db, 'copilotajes/espera'), datos);
             if (registroRecuperado) await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
             else await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
-            
             nombreInput.value = ""; firmaChk.checked = false; registroRecuperado = null;
             document.querySelectorAll('.input-manual').forEach(i => i.value = "");
             document.getElementById('c-menor').checked = false; toggleMenor(false);
-            avisoBox.style.display = 'none'; seccionManual.style.display = 'none';
-            fnValidar();
+            avisoBox.style.display = 'none'; seccionManual.style.display = 'none'; fnValidar();
         };
 
-        // EXPORTACIÓN COMPLETA MEJORADA CON LAS NUEVAS COLUMNAS DE TIEMPO
+        // CARGA CSV PILOTOS
+        document.getElementById('csv-pilotos').onchange = (e) => {
+            const fr = new FileReader();
+            fr.onload = async () => {
+                const list = fr.result.split('\n').map(l => l.trim()).filter(l => l);
+                await set(ref(db, 'copilotajes/config_pilotos'), list);
+                alert("PILOTOS CARGADOS: " + list.length);
+            };
+            fr.readAsText(e.target.files[0]);
+        };
+
+        // GESTIÓN PILOTOS (BAJA/ALTA)
+        document.getElementById('btn-gestionar-pilotos').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            const config = snap.val().config_pilotos || [];
+            const bajas = snap.val().pilotos_baja || [];
+            let msg = "LISTA DE PILOTOS (Escribe nombre para dar de BAJA o ALTA):\n\n";
+            config.forEach(p => msg += `${bajas.includes(p) ? '❌ [BAJA]' : '✅ [OK]'} - ${p}\n`);
+            const pNom = prompt(msg);
+            if(pNom) {
+                const idx = bajas.indexOf(pNom);
+                if(idx > -1) bajas.splice(idx, 1); else bajas.push(pNom);
+                await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
+            }
+        };
+
+        // EXPORTACIÓN FINAL (AHORA SÍ, CON TODO)
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
-            const data = snap.val();
-            if(!data) return;
+            const data = snap.val(); if(!data) return;
             
-            // He añadido H_ENTRADA, H_SALIDA y DURACION al CSV
             let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO;H_ENTRADA;H_SALIDA;DURACION\n";
             const limpiar = (t) => t ? t.toString().replace(/;/g, ',').trim() : "";
             
-            const row = (i, e) => {
-                return `${limpiar(i.nPapel)};${limpiar(i.copiloto)};${limpiar(i.dni)};${limpiar(i.fechaNac)};${limpiar(i.redes)};${i.esMenor?'SI':'NO'};${limpiar(i.dniTutor)};${limpiar(i.nombreTutor)};${limpiar(i.piloto)};${limpiar(i.metodoPago)};${e};${limpiar(i.horaEntradaTexto)};${limpiar(i.horaSalidaTexto)};${limpiar(i.duracionTotal)}\n`;
-            };
+            const row = (i, e) => `${limpiar(i.nPapel)};${limpiar(i.copiloto)};${limpiar(i.dni)};${limpiar(i.fechaNac)};${limpiar(i.redes)};${i.esMenor?'SI':'NO'};${limpiar(i.dniTutor)};${limpiar(i.nombreTutor)};${limpiar(i.piloto)};${limpiar(i.metodoPago)};${e};${limpiar(i.horaEntradaTexto)};${limpiar(i.horaSalidaTexto)};${limpiar(i.duracionTotal)}\n`;
             
             if(data.espera) Object.values(data.espera).forEach(i => csv += row(i, "ESPERA"));
             if(data.completados) Object.values(data.completados).forEach(i => csv += row(i, "FINALIZADO"));
@@ -318,12 +282,9 @@
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `RESUMEN_EVENTO_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv`;
+            link.download = `RESUMEN_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv`;
             link.click();
-
-            setTimeout(async () => {
-                if(confirm("EXPORTADO. ¿Borrar base de datos?")) { await remove(ref(db, 'copilotajes')); location.reload(); }
-            }, 1000);
+            setTimeout(async () => { if(confirm("¿Borrar base de datos?")) { await remove(ref(db, 'copilotajes')); location.reload(); } }, 1000);
         };
 
         nombreInput.oninput = fnValidar;

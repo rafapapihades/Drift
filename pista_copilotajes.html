@@ -14,7 +14,10 @@
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
         
-        .pista-status-bar { width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-size: 1.2em; border: 2px solid #333; }
+        .pista-status-bar {
+            width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px;
+            text-align: center; font-size: 1.2em; border: 2px solid #333;
+        }
         
         .container { display: flex; flex-direction: column; gap: 20px; }
         .column { background: rgba(20,20,20,0.9); padding: 15px; border-radius: 15px; border: 1px solid #333; }
@@ -27,11 +30,19 @@
         .btn { padding: 10px 15px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.8em; }
         .btn-blue { background: var(--blue); }
         .btn-red { background: var(--red); }
+        .btn-orange { background: var(--orange); }
+        .btn-green { background: var(--green); }
         
         .time-info { color: var(--accent); font-family: monospace; font-size: 1.1em; }
         .ticket-num { background: #333; padding: 5px 10px; border-radius: 5px; font-weight: bold; color: var(--accent); }
         
-        #buscador { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #111; color: #fff; margin-bottom: 10px; }
+        #buscador {
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444;
+            background: #111; color: #fff; margin-bottom: 10px; font-family: sans-serif;
+        }
+
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7em; margin-left: 5px; }
+        .badge-pago { background: #333; color: var(--accent); }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -40,11 +51,11 @@
 <body>
 
     <div class="header">
-        <img src="logo.png" class="header-logo" alt="Logo">
-        <div style="margin-top:10px; color:var(--accent)">CONTROL DE TIEMPOS EN PISTA</div>
+        <img src="logo.png" class="header-logo">
+        <div style="margin-top:10px; color:var(--accent)">CONTROL PISTA - TIEMPOS Y SEGUIMIENTO</div>
     </div>
 
-    <input type="text" id="buscador" placeholder="🔍 BUSCAR CO-PILOTO O TICKET..." onkeyup="filtrar()">
+    <input type="text" id="buscador" placeholder="BUSCAR POR NOMBRE O TICKET..." onkeyup="filtrar()">
 
     <div class="container">
         <div class="column">
@@ -53,7 +64,7 @@
                 <thead>
                     <tr>
                         <th>TICKET</th>
-                        <th>CO-PILOTO</th>
+                        <th>CO-PILOTO / PILOTO</th>
                         <th>ACCIONES</th>
                     </tr>
                 </thead>
@@ -67,7 +78,7 @@
                 <thead>
                     <tr>
                         <th>TICKET</th>
-                        <th>PILOTO / CO-PILOTO</th>
+                        <th>INFO VIAJE</th>
                         <th>TIEMPO</th>
                         <th>ACCIONES</th>
                     </tr>
@@ -82,64 +93,59 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Función para dar formato de hora HH:MM
-        function formatoHora() {
-            return new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        // 1. PASAR DE RECINTO A PISTA
+        // 1. FUNCIÓN ENTRAR PISTA (REGISTRA HORA INICIO)
         window.entrarPista = async (id, item) => {
-            const updates = {};
             const ahora = Date.now();
+            const horaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
             
-            const itemActualizado = {
-                ...item,
-                ts_entrada: ahora,
-                horaEntradaTexto: formatoHora(),
-                estado: "EN PISTA"
+            const updates = {};
+            const nuevoItem = { 
+                ...item, 
+                ts_entrada: ahora, 
+                horaEntradaTexto: horaTexto,
+                estado: "EN PISTA" 
             };
-
-            updates[`copilotajes/pista/${id}`] = itemActualizado;
-            updates[`copilotajes/espera/${id}`] = null;
             
+            updates[`copilotajes/pista/${id}`] = nuevoItem;
+            updates[`copilotajes/espera/${id}`] = null;
             await db.ref().update(updates);
         };
 
-        // 2. FINALIZAR VIAJE (CALCULA DURACIÓN Y HORA SALIDA)
+        // 2. FUNCIÓN FINALIZAR (CALCULA DURACIÓN Y HORA FIN)
         window.finalizarViaje = async (id, item) => {
             const ahora = Date.now();
             const inicio = item.ts_entrada || ahora;
             const diff = ahora - inicio;
             
-            // Calcular minutos y segundos
+            // Cálculo de duración
             const m = Math.floor(diff / 60000);
             const s = Math.floor((diff % 60000) / 1000);
-            const duracionStr = `${m}:${s.toString().padStart(2, '0')}`;
+            const duracionStr = m + ":" + s.toString().padStart(2, '0');
+            const horaFinTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-            const itemFinal = {
-                ...item,
-                ts_salida: ahora,
-                horaSalidaTexto: formatoHora(),
-                duracionTotal: duracionStr,
-                estado: "FINALIZADO",
-                finalizado: true
-            };
-
-            const updates = {};
-            updates[`copilotajes/completados/${id}`] = itemFinal;
-            updates[`copilotajes/pista/${id}`] = null;
-
-            if(confirm(`¿Finalizar viaje de ${item.copiloto}? Duración: ${duracionStr}`)) {
+            if(confirm("¿FINALIZAR VIAJE DE " + item.copiloto + "?")) {
+                const updates = {};
+                const itemFinal = {
+                    ...item,
+                    ts_salida: ahora,
+                    horaSalidaTexto: horaFinTexto,
+                    duracionTotal: duracionStr,
+                    estado: "FINALIZADO",
+                    finalizado: true
+                };
+                
+                updates[`copilotajes/completados/${id}`] = itemFinal;
+                updates[`copilotajes/pista/${id}`] = null;
                 await db.ref().update(updates);
             }
         };
 
         function generarFilaHTML(id, item, esRecinto) {
-            if (esRecinto) {
+            if(esRecinto) {
                 return `
                     <tr>
                         <td><span class="ticket-num">${item.nPapel}</span></td>
-                        <td><b>${item.copiloto}</b><br><small>${item.piloto || 'Sin asignar'}</small></td>
+                        <td><b>${item.copiloto}</b><br><small>PILOTO: ${item.piloto || '---'}</small></td>
                         <td><button class="btn btn-blue" onclick='entrarPista("${id}", ${JSON.stringify(item)})'>ENTRA PISTA ▶️</button></td>
                     </tr>
                 `;
@@ -147,48 +153,51 @@
                 return `
                     <tr>
                         <td><span class="ticket-num">${item.nPapel}</span></td>
-                        <td><b>${item.piloto}</b><br><small>con ${item.copiloto}</small></td>
+                        <td><b>${item.piloto}</b><br><small>CO-PILOTO: ${item.copiloto}</small></td>
                         <td class="time-info" data-ts="${item.ts_entrada}">
                             <span class="cronometro">0:00</span>
                         </td>
-                        <td><button class="btn btn-red" onclick='finalizarViaje("${id}", ${JSON.stringify(item)})'>FIN ✅</button></td>
+                        <td><button class="btn btn-red" onclick='finalizarViaje("${id}", ${JSON.stringify(item)})'>FINALIZAR ✅</button></td>
                     </tr>
                 `;
             }
         }
 
-        function renderizarTodo(snap) {
-            const data = snap.val() || {};
-            const tRecinto = document.getElementById('tabla-recinto');
-            const tPista = document.getElementById('tabla-pista');
-            
-            tRecinto.innerHTML = "";
-            tPista.innerHTML = "";
+        function renderizarTodo() {
+            db.ref('copilotajes').on('value', snap => {
+                const data = snap.val() || {};
+                const tRecinto = document.getElementById('tabla-recinto');
+                const tPista = document.getElementById('tabla-pista');
+                
+                tRecinto.innerHTML = "";
+                tPista.innerHTML = "";
 
-            if(data.espera) {
-                Object.entries(data.espera).forEach(([id, item]) => {
-                    tRecinto.innerHTML += generarFilaHTML(id, item, true);
-                });
-            }
+                if(data.espera) {
+                    Object.entries(data.espera).forEach(([id, item]) => {
+                        tRecinto.innerHTML += generarFilaHTML(id, item, true);
+                    });
+                }
 
-            if(data.pista) {
-                Object.entries(data.pista).forEach(([id, item]) => {
-                    tPista.innerHTML += generarFilaHTML(id, item, false);
-                });
-            }
-            filtrar();
+                if(data.pista) {
+                    Object.entries(data.pista).forEach(([id, item]) => {
+                        tPista.innerHTML += generarFilaHTML(id, item, false);
+                    });
+                }
+                filtrar();
+            });
         }
 
-        db.ref('copilotajes').on('value', renderizarTodo);
+        renderizarTodo();
 
-        // Cronómetro visual para la tabla
+        // Cronómetro (Solo visual)
         setInterval(() => {
             document.querySelectorAll('.time-info').forEach(el => {
                 const ts = parseInt(el.getAttribute('data-ts'));
+                if(!ts) return;
                 const diff = Date.now() - ts;
                 const m = Math.floor(diff/60000);
                 const s = Math.floor((diff%60000)/1000);
-                el.querySelector('.cronometro').innerText = `${m}:${s.toString().padStart(2,'0')}`;
+                el.querySelector('.cronometro').innerText = m + ":" + s.toString().padStart(2,'0');
             });
         }, 1000);
 

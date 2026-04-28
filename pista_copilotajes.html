@@ -23,7 +23,6 @@
         .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
         .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
         
-        /* Elementos de Fila */
         .n-doc { background: var(--accent); color: #000; padding: 8px 12px; border-radius: 8px; font-weight: 900; margin-right: 10px; font-size: 2.2em; display: inline-block; line-height: 1; }
         .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; border: 1px solid #fff; margin-top: 5px; }
         .m-bandera { background: #003399; color: white; padding: 4px 5px; font-size: 0.6em; }
@@ -33,7 +32,6 @@
         table { width: 100%; border-collapse: collapse; }
         td { padding: 15px 8px; border-bottom: 1px solid #222; }
 
-        /* Botones */
         .btn-recinto { background: #003399; color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
         .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #155d27; }
         .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
@@ -44,7 +42,6 @@
 
         #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; font-size: 1.1em; }
 
-        /* Modal */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
         .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
@@ -88,14 +85,12 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN FIREBASE
         firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
         const db = firebase.database();
 
         let confirmAction = null;
         let pilotosDisponibles = [];
 
-        // Funciones del Modal
         window.showConfirm = (texto, cb) => {
             document.getElementById('confirm-text').innerText = texto;
             document.getElementById('custom-confirm').style.display = 'flex';
@@ -107,7 +102,6 @@
             confirmAction = null;
         };
 
-        // Escuchar estado de pista global
         db.ref('estado_pista').on('value', s => {
             const d = s.val();
             if(d) {
@@ -118,7 +112,6 @@
             }
         });
 
-        // Cargar Pilotos para el selector rápido
         db.ref('inscritos_drift').on('value', s => {
             const data = s.val() || {};
             pilotosDisponibles = Object.entries(data).map(([dorsal, p]) => {
@@ -126,9 +119,7 @@
             });
         });
 
-        // GENERADOR DE FILAS (RESTAURADO)
         function generarFilaHTML(id, item, esRecinto, esPista) {
-            // Extraer dorsal para la matrícula
             const dMatch = item.piloto.match(/\[#(\d+)\]/) || item.piloto.match(/^(\d+)/);
             const num = dMatch ? dMatch[1] : "??";
             const nom = item.piloto.replace(/\[#\d+\]/, "").split('|')[0].trim();
@@ -167,8 +158,6 @@
             `;
         }
 
-        // --- FUNCIONES DE ACCIÓN ---
-
         window.activarSelector = (id, actual) => {
             const cont = document.getElementById(`cont-p-${id}`);
             let opts = pilotosDisponibles.map(p => `<option value="${p.label}" ${p.label === actual ? 'selected' : ''}>${p.label}</option>`).join('');
@@ -193,7 +182,6 @@
             });
         };
 
-        // SALIDA A PISTA (Votaciones abiertas desde aquí)
         window.confirmarSubida = async (id) => {
             const snap = await db.ref(`copilotajes/espera/${id}`).once('value');
             if(!snap.exists()) return;
@@ -203,6 +191,10 @@
             const dorsal = dMatch ? dMatch[1] : "0";
             const nombreLimpio = d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim();
 
+            // CAPTURA DE TIEMPO DE ENTRADA
+            const ahora = Date.now();
+            const horaEntradaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
             const items = {};
             items[dorsal] = { 
                 nombre: nombreLimpio + " & " + d.copiloto, 
@@ -210,27 +202,45 @@
             };
 
             const updates = {};
-            // TIMER 999: Esto engaña a la web del público para que crea que hay tiempo y habilite el voto
             updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 999, items: items };
             updates['estado_pista'] = { mensaje: '🏎️ EN PISTA: ' + dorsal, color: '#007bff', id: 'btn-coche' };
             
             const newK = db.ref('copilotajes/completados').push().key;
-            updates[`copilotajes/completados/${newK}`] = { ...d, tsEntrada: Date.now(), finalizado: false };
+            // Guardamos los campos de tiempo adicionales para el CSV
+            updates[`copilotajes/completados/${newK}`] = { 
+                ...d, 
+                tsEntrada: ahora, 
+                horaEntradaTexto: horaEntradaTexto, 
+                finalizado: false 
+            };
             updates[`copilotajes/espera/${id}`] = null;
 
             await db.ref().update(updates);
         };
 
-        // FINALIZAR VIAJE (Cuenta atrás de 5 segundos)
         window.confirmarSalidaRecinto = (id) => {
             showConfirm("¿CONFIRMAR FIN DE VIAJE?", async () => {
+                const ahora = Date.now();
+                const horaSalidaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                
+                // Obtener datos para calcular duración total
+                const snap = await db.ref(`copilotajes/completados/${id}`).once('value');
+                const item = snap.val();
+                let duracionStr = "0:00";
+                
+                if(item && item.tsEntrada) {
+                    const diff = ahora - item.tsEntrada;
+                    const m = Math.floor(diff / 60000);
+                    const s = Math.floor((diff % 60000) / 1000);
+                    duracionStr = m + ":" + s.toString().padStart(2, '0');
+                }
+
                 await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
                 
                 const vSnap = await db.ref('votacion_activa').once('value');
                 const v = vSnap.val();
 
                 if(v && v.activa) {
-                    // Guardar en historial antes de borrar
                     Object.entries(v.items).forEach(([idItem, data]) => {
                         if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
                             db.ref('historial_votos').push({ 
@@ -240,7 +250,6 @@
                         }
                     });
 
-                    // Cuenta atrás real de 5 seg para cerrar
                     let count = 5;
                     await db.ref('votacion_activa').update({ timer: count });
                     const inv = setInterval(async () => {
@@ -252,11 +261,16 @@
                         }
                     }, 1000);
                 }
-                await db.ref(`copilotajes/completados/${id}`).update({ finalizado: true, tsSalida: Date.now() });
+
+                // Guardamos hora de salida y duración calculada
+                await db.ref(`copilotajes/completados/${id}`).update({ 
+                    finalizado: true, 
+                    tsSalida: ahora,
+                    horaSalidaTexto: horaSalidaTexto,
+                    duracionTotal: duracionStr
+                });
             });
         };
-
-        // --- RENDERIZADO Y FILTROS ---
 
         function renderizarTodo() {
             db.ref('copilotajes').once('value', snap => {
@@ -278,17 +292,16 @@
                         tPista.innerHTML += generarFilaHTML(id, item, false, true);
                     });
                 }
-                filtrar(); // Aplicar búsqueda si hay algo escrito
+                filtrar();
             });
         }
 
-        // Escuchar cambios en tiempo real
         db.ref('copilotajes').on('value', renderizarTodo);
 
-        // Cronómetros de tiempo en pista
         setInterval(() => {
             document.querySelectorAll('.time-info').forEach(el => {
                 const ts = parseInt(el.getAttribute('data-ts'));
+                if(!ts) return;
                 const diff = Date.now() - ts;
                 const m = Math.floor(diff/60000);
                 const s = Math.floor((diff%60000)/1000);
@@ -305,4 +318,3 @@
     </script>
 </body>
 </html>
-

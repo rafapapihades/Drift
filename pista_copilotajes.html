@@ -33,7 +33,7 @@
         .time-info { color: var(--accent); font-family: monospace; font-size: 1.1em; }
         .ticket-num { background: #333; padding: 5px 10px; border-radius: 5px; font-weight: bold; color: var(--accent); }
         
-        #buscador { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #111; color: #fff; margin-bottom: 10px; font-family: sans-serif;}
+        #buscador { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #111; color: #fff; margin-bottom: 10px; font-family: sans-serif; }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -43,7 +43,7 @@
 
     <div class="header">
         <img src="logo.png" class="header-logo">
-        <div style="margin-top:10px; color:var(--accent)">CONTROL PISTA - SEGUIMIENTO COMPLETO</div>
+        <div style="margin-top:10px; color:var(--accent)">CONTROL PISTA - TIEMPOS Y SEGUIMIENTO</div>
     </div>
 
     <input type="text" id="buscador" placeholder="BUSCAR POR NOMBRE O TICKET..." onkeyup="filtrar()">
@@ -100,44 +100,65 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // MOVER A PISTA
+        // 1. PASAR A PISTA (Registra Hora de Inicio)
         window.entrarPista = async (id, item) => {
             const ahora = Date.now();
             const horaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            
             const updates = {};
-            updates[`copilotajes/pista/${id}`] = { ...item, ts_entrada: ahora, horaEntradaTexto: horaTexto, estado: "EN PISTA" };
+            const itemActualizado = { 
+                ...item, 
+                ts_entrada: ahora, 
+                horaEntradaTexto: horaTexto, 
+                estado: "EN PISTA" 
+            };
+            
+            updates[`copilotajes/pista/${id}`] = itemActualizado;
             updates[`copilotajes/espera/${id}`] = null;
             await db.ref().update(updates);
         };
 
-        // CONFIRMACIÓN DE FIN (BOTÓN DINÁMICO)
-        window.pedirConfirmacion = (btn, id, itemJson) => {
+        // 2. CONFIRMACIÓN DE FIN (Cambio de botón dinámico)
+        window.confirmarFin = (btn, id, itemJson) => {
             const item = JSON.parse(decodeURIComponent(itemJson));
-            const originalText = "FIN ✅";
+            const textoOriginal = "FIN ✅";
+            
             btn.innerText = "¿ESTÁS SEGURO?";
             btn.className = "btn btn-confirm";
             btn.onclick = () => ejecutarFinalizar(id, item);
             
+            // Si no se pulsa en 3 segundos, vuelve al estado normal
             setTimeout(() => {
-                if(btn && btn.innerText === "¿ESTÁS SEGURO?") {
-                    btn.innerText = originalText;
+                if (btn && btn.innerText === "¿ESTÁS SEGURO?") {
+                    btn.innerText = textoOriginal;
                     btn.className = "btn btn-red";
-                    btn.onclick = () => pedirConfirmacion(btn, id, itemJson);
+                    btn.onclick = () => confirmarFin(btn, id, itemJson);
                 }
             }, 3000);
         };
 
+        // 3. FINALIZAR VIAJE (Calcula duración y guarda para CSV)
         async function ejecutarFinalizar(id, item) {
             const ahora = Date.now();
             const inicio = item.ts_entrada || ahora;
             const diff = ahora - inicio;
+            
             const m = Math.floor(diff / 60000);
             const s = Math.floor((diff % 60000) / 1000);
             const duracionStr = m + ":" + s.toString().padStart(2, '0');
             const horaFinTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
+            const itemFinal = {
+                ...item,
+                ts_salida: ahora,
+                horaSalidaTexto: horaFinTexto,
+                duracionTotal: duracionStr,
+                estado: "FINALIZADO",
+                finalizado: true
+            };
+
             const updates = {};
-            updates[`copilotajes/completados/${id}`] = { ...item, ts_salida: ahora, horaSalidaTexto: horaFinTexto, duracionTotal: duracionStr, estado: "FINALIZADO", finalizado: true };
+            updates[`copilotajes/completados/${id}`] = itemFinal;
             updates[`copilotajes/pista/${id}`] = null;
             await db.ref().update(updates);
         }
@@ -145,7 +166,7 @@
         function generarFilaHTML(id, item, tipo) {
             const itemJson = encodeURIComponent(JSON.stringify(item));
             
-            if(tipo === 'cola') {
+            if (tipo === 'cola') {
                 return `<tr>
                     <td><span class="ticket-num">${item.nPapel || 'S/N'}</span></td>
                     <td><b>${item.copiloto}</b></td>
@@ -153,7 +174,7 @@
                 </tr>`;
             }
             
-            if(tipo === 'espera') {
+            if (tipo === 'espera') {
                 return `<tr>
                     <td><span class="ticket-num">${item.nPapel}</span></td>
                     <td><b>${item.copiloto}</b><br><small>PILOTO: ${item.piloto || '---'}</small></td>
@@ -161,12 +182,12 @@
                 </tr>`;
             }
 
-            if(tipo === 'pista') {
+            if (tipo === 'pista') {
                 return `<tr>
                     <td><span class="ticket-num">${item.nPapel}</span></td>
                     <td><b>${item.piloto}</b><br><small>CO-PILOTO: ${item.copiloto}</small></td>
                     <td class="time-info" data-ts="${item.ts_entrada}"><span class="cronometro">0:00</span></td>
-                    <td><button class="btn btn-red" onclick='pedirConfirmacion(this, "${id}", "${itemJson}")'>FIN ✅</button></td>
+                    <td><button class="btn btn-red" onclick='confirmarFin(this, "${id}", "${itemJson}")'>FIN ✅</button></td>
                 </tr>`;
             }
         }
@@ -179,22 +200,23 @@
             
             tCola.innerHTML = ""; tRecinto.innerHTML = ""; tPista.innerHTML = "";
 
-            if(data.pre_inscritos) {
+            if (data.pre_inscritos) {
                 Object.entries(data.pre_inscritos).forEach(([id, item]) => { tCola.innerHTML += generarFilaHTML(id, item, 'cola'); });
             }
-            if(data.espera) {
+            if (data.espera) {
                 Object.entries(data.espera).forEach(([id, item]) => { tRecinto.innerHTML += generarFilaHTML(id, item, 'espera'); });
             }
-            if(data.pista) {
+            if (data.pista) {
                 Object.entries(data.pista).forEach(([id, item]) => { tPista.innerHTML += generarFilaHTML(id, item, 'pista'); });
             }
             filtrar();
         });
 
+        // Cronómetro visual en tiempo real
         setInterval(() => {
             document.querySelectorAll('.time-info').forEach(el => {
                 const ts = parseInt(el.getAttribute('data-ts'));
-                if(!ts) return;
+                if (!ts) return;
                 const diff = Date.now() - ts;
                 const m = Math.floor(diff/60000);
                 const s = Math.floor((diff%60000)/1000);

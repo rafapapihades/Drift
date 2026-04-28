@@ -14,11 +14,6 @@
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
         
-        .pista-status-bar {
-            width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 15px;
-            text-align: center; font-size: 1.2em; border: 2px solid #333;
-        }
-        
         .container { display: flex; flex-direction: column; gap: 20px; }
         .column { background: rgba(20,20,20,0.9); padding: 15px; border-radius: 15px; border: 1px solid #333; }
         h2 { color: var(--accent); text-transform: uppercase; font-size: 1.1em; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; }
@@ -27,22 +22,17 @@
         th { text-align: left; color: #888; font-size: 0.8em; padding: 10px; border-bottom: 2px solid #333; }
         td { padding: 12px 10px; border-bottom: 1px solid #222; font-size: 0.9em; }
 
-        .btn { padding: 10px 15px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.8em; }
+        .btn { padding: 10px 15px; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.8em; width: 100%; }
         .btn-blue { background: var(--blue); }
         .btn-red { background: var(--red); }
-        .btn-orange { background: var(--orange); }
-        .btn-green { background: var(--green); }
+        .btn-confirm { background: var(--orange); color: #000; animation: parpadeo 0.5s infinite; }
         
+        @keyframes parpadeo { 50% { opacity: 0.7; } }
+
         .time-info { color: var(--accent); font-family: monospace; font-size: 1.1em; }
         .ticket-num { background: #333; padding: 5px 10px; border-radius: 5px; font-weight: bold; color: var(--accent); }
         
-        #buscador {
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444;
-            background: #111; color: #fff; margin-bottom: 10px; font-family: sans-serif;
-        }
-
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7em; margin-left: 5px; }
-        .badge-pago { background: #333; color: var(--accent); }
+        #buscador { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #111; color: #fff; margin-bottom: 10px; }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -93,103 +83,78 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. FUNCIÓN ENTRAR PISTA (REGISTRA HORA INICIO)
+        // 1. ENTRAR PISTA
         window.entrarPista = async (id, item) => {
             const ahora = Date.now();
             const horaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-            
             const updates = {};
-            const nuevoItem = { 
-                ...item, 
-                ts_entrada: ahora, 
-                horaEntradaTexto: horaTexto,
-                estado: "EN PISTA" 
-            };
-            
-            updates[`copilotajes/pista/${id}`] = nuevoItem;
+            updates[`copilotajes/pista/${id}`] = { ...item, ts_entrada: ahora, horaEntradaTexto: horaTexto, estado: "EN PISTA" };
             updates[`copilotajes/espera/${id}`] = null;
             await db.ref().update(updates);
         };
 
-        // 2. FUNCIÓN FINALIZAR (CALCULA DURACIÓN Y HORA FIN)
-        window.finalizarViaje = async (id, item) => {
+        // 2. CONFIRMACIÓN VISUAL (Sustituye al popup del navegador)
+        window.pedirConfirmacion = (btn, id, itemJson) => {
+            const item = JSON.parse(decodeURIComponent(itemJson));
+            btn.innerText = "¿ESTÁS SEGURO?";
+            btn.className = "btn btn-confirm";
+            btn.onclick = () => ejecutarFinalizar(id, item);
+            
+            // Si no pulsa en 3 segundos, vuelve al estado normal
+            setTimeout(() => {
+                if(btn) {
+                    btn.innerText = "FIN ✅";
+                    btn.className = "btn btn-red";
+                    btn.onclick = () => pedirConfirmacion(btn, id, itemJson);
+                }
+            }, 3000);
+        };
+
+        // 3. FINALIZAR REAL
+        async function ejecutarFinalizar(id, item) {
             const ahora = Date.now();
             const inicio = item.ts_entrada || ahora;
             const diff = ahora - inicio;
-            
-            // Cálculo de duración
             const m = Math.floor(diff / 60000);
             const s = Math.floor((diff % 60000) / 1000);
             const duracionStr = m + ":" + s.toString().padStart(2, '0');
             const horaFinTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-            if(confirm("¿FINALIZAR VIAJE DE " + item.copiloto + "?")) {
-                const updates = {};
-                const itemFinal = {
-                    ...item,
-                    ts_salida: ahora,
-                    horaSalidaTexto: horaFinTexto,
-                    duracionTotal: duracionStr,
-                    estado: "FINALIZADO",
-                    finalizado: true
-                };
-                
-                updates[`copilotajes/completados/${id}`] = itemFinal;
-                updates[`copilotajes/pista/${id}`] = null;
-                await db.ref().update(updates);
-            }
-        };
+            const updates = {};
+            updates[`copilotajes/completados/${id}`] = { ...item, ts_salida: ahora, horaSalidaTexto: horaFinTexto, duracionTotal: duracionStr, estado: "FINALIZADO", finalizado: true };
+            updates[`copilotajes/pista/${id}`] = null;
+            await db.ref().update(updates);
+        }
 
         function generarFilaHTML(id, item, esRecinto) {
+            const itemJson = encodeURIComponent(JSON.stringify(item));
             if(esRecinto) {
-                return `
-                    <tr>
-                        <td><span class="ticket-num">${item.nPapel}</span></td>
-                        <td><b>${item.copiloto}</b><br><small>PILOTO: ${item.piloto || '---'}</small></td>
-                        <td><button class="btn btn-blue" onclick='entrarPista("${id}", ${JSON.stringify(item)})'>ENTRA PISTA ▶️</button></td>
-                    </tr>
-                `;
+                return `<tr>
+                    <td><span class="ticket-num">${item.nPapel}</span></td>
+                    <td><b>${item.copiloto}</b><br><small>PILOTO: ${item.piloto || '---'}</small></td>
+                    <td><button class="btn btn-blue" onclick='entrarPista("${id}", JSON.parse(decodeURIComponent("${itemJson}")))'>ENTRA PISTA ▶️</button></td>
+                </tr>`;
             } else {
-                return `
-                    <tr>
-                        <td><span class="ticket-num">${item.nPapel}</span></td>
-                        <td><b>${item.piloto}</b><br><small>CO-PILOTO: ${item.copiloto}</small></td>
-                        <td class="time-info" data-ts="${item.ts_entrada}">
-                            <span class="cronometro">0:00</span>
-                        </td>
-                        <td><button class="btn btn-red" onclick='finalizarViaje("${id}", ${JSON.stringify(item)})'>FINALIZAR ✅</button></td>
-                    </tr>
-                `;
+                return `<tr>
+                    <td><span class="ticket-num">${item.nPapel}</span></td>
+                    <td><b>${item.piloto}</b><br><small>CO-PILOTO: ${item.copiloto}</small></td>
+                    <td class="time-info" data-ts="${item.ts_entrada}"><span class="cronometro">0:00</span></td>
+                    <td><button class="btn btn-red" onclick='pedirConfirmacion(this, "${id}", "${itemJson}")'>FIN ✅</button></td>
+                </tr>`;
             }
         }
 
-        function renderizarTodo() {
-            db.ref('copilotajes').on('value', snap => {
-                const data = snap.val() || {};
-                const tRecinto = document.getElementById('tabla-recinto');
-                const tPista = document.getElementById('tabla-pista');
-                
-                tRecinto.innerHTML = "";
-                tPista.innerHTML = "";
+        db.ref('copilotajes').on('value', snap => {
+            const data = snap.val() || {};
+            const tRecinto = document.getElementById('tabla-recinto');
+            const tPista = document.getElementById('tabla-pista');
+            tRecinto.innerHTML = ""; tPista.innerHTML = "";
 
-                if(data.espera) {
-                    Object.entries(data.espera).forEach(([id, item]) => {
-                        tRecinto.innerHTML += generarFilaHTML(id, item, true);
-                    });
-                }
+            if(data.espera) Object.entries(data.espera).forEach(([id, item]) => { tRecinto.innerHTML += generarFilaHTML(id, item, true); });
+            if(data.pista) Object.entries(data.pista).forEach(([id, item]) => { tPista.innerHTML += generarFilaHTML(id, item, false); });
+            filtrar();
+        });
 
-                if(data.pista) {
-                    Object.entries(data.pista).forEach(([id, item]) => {
-                        tPista.innerHTML += generarFilaHTML(id, item, false);
-                    });
-                }
-                filtrar();
-            });
-        }
-
-        renderizarTodo();
-
-        // Cronómetro (Solo visual)
         setInterval(() => {
             document.querySelectorAll('.time-info').forEach(el => {
                 const ts = parseInt(el.getAttribute('data-ts'));

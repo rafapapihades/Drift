@@ -21,20 +21,15 @@
         .pago-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .pago-option { flex: 1; padding: 15px; text-align: center; border-radius: 10px; border: 2px solid #444; cursor: pointer; transition: 0.3s; background: #000; font-size: 0.9em; opacity: 0.5; font-family: sans-serif; font-weight: bold; }
         .pago-option.selected { border-color: var(--accent); color: var(--accent); opacity: 1; background: rgba(255, 204, 0, 0.1); }
-        .asistente-aviso { padding: 12px; border-radius: 10px; margin-bottom: 15px; display: none; font-size: 0.9em; border: 2px solid var(--accent); background: #2c2505; color: #fff; font-family: sans-serif; line-height: 1.4; }
         .doc-box { background: #000; border: 1px solid var(--accent); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px; }
-        .doc-box small { display: block; font-size: 0.6em; color: #666; font-family: sans-serif; margin-bottom: 2px; }
         .doc-box b { font-size: 2.8em; font-family: monospace; color: var(--accent); }
         .chk-massive { width: 100%; height: 65px; background: #1a1a1a; border-radius: 10px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 15px; cursor: pointer; margin-bottom: 20px; }
-        .chk-massive input { transform: scale(2); }
         .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
         .btn-add-massive:disabled { background: #222; color: #555; box-shadow: none; opacity: 0.4; cursor: not-allowed; }
         .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 5px; border-bottom: 1px solid #222; }
         .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
-        .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: 900; font-size: 0.7em; cursor: pointer; text-transform: uppercase; width: 100%; }
-        .badge-recinto { background: #222; color: var(--blue); border: 1px solid var(--blue); padding: 5px; border-radius: 5px; font-size: 0.6em; font-weight: bold; text-align: center; display: block; }
         .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; }
         .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
     </style>
@@ -47,7 +42,7 @@
     </div>
 
     <div class="main-card">
-        <div id="aviso-repetido" class="asistente-aviso"></div>
+        <div id="aviso-repetido" class="asistente-aviso" style="display:none; padding:10px; border:2px solid red; margin-bottom:10px; border-radius:10px;"></div>
         
         <div class="search-container">
             <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o Nº" autocomplete="off">
@@ -55,22 +50,13 @@
         </div>
 
         <div id="seccion-manual" class="extra-fields">
-            <div style="font-size: 0.7em; color: var(--accent); margin-bottom: 10px; font-weight: bold;">📝 DATOS MANUALES (CLIENTE NUEVO)</div>
-            
             <div class="input-group">
                 <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual" placeholder="DNI"></div>
                 <div><span class="label-mini">Fecha Nacimiento</span><input type="text" id="c-nac" class="input-manual" placeholder="DD/MM/AAAA"></div>
             </div>
-
-            <div style="margin-bottom: 10px;">
-                <span class="label-mini">Instagram / TikTok</span>
-                <input type="text" id="c-redes" class="input-manual" placeholder="@usuario">
-            </div>
-
+            <div style="margin-bottom: 10px;"><span class="label-mini">Instagram / TikTok</span><input type="text" id="c-redes" class="input-manual" placeholder="@usuario"></div>
             <div style="background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333;">
-                <label style="display: flex; align-items: center; gap: 10px; font-size: 0.8em; cursor: pointer;">
-                    <input type="checkbox" id="c-menor" onchange="toggleMenor(this.checked)"> ¿ES MENOR DE EDAD?
-                </label>
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 0.8em; cursor: pointer;"><input type="checkbox" id="c-menor" onchange="toggleMenor(this.checked)"> ¿ES MENOR DE EDAD?</label>
                 <div id="box-menor" style="display:none; margin-top: 10px; border-top: 1px solid #222; padding-top: 10px;">
                     <div class="input-group">
                         <div><span class="label-mini" style="color:var(--orange)">DNI TUTOR</span><input type="text" id="c-dni-tutor" class="input-manual" placeholder="DNI"></div>
@@ -87,30 +73,18 @@
             <div id="pago-tarjeta" class="pago-option" onclick="seleccionarPago('TARJETA')">💳 TARJETA</div>
         </div>
 
-        <div class="doc-box">
-            <small>Nº DOCUMENTO CORRELATIVO</small>
-            <b id="v-proximo-numero">001</b>
-        </div>
+        <div class="doc-box"><small>Nº DOCUMENTO CORRELATIVO</small><br><b id="v-proximo-numero">001</b></div>
 
-        <label class="chk-massive">
-            <input type="checkbox" id="c-firma"> 
-            <span style="font-family: sans-serif; font-weight: bold;">RESPONSABILIDAD FIRMADA</span>
-        </label>
-
+        <label class="chk-massive"><input type="checkbox" id="c-firma"> <span style="font-family: sans-serif; font-weight: bold;">RESPONSABILIDAD FIRMADA</span></label>
         <button id="btn-add" class="btn-add-massive" disabled>CONFIRMAR REGISTRO</button>
     </div>
 
     <div class="table-card">
         <div style="font-size:0.85em; color:var(--accent); font-weight:bold; margin-bottom:15px; text-transform: uppercase; display: flex; justify-content: space-between;">
             <span>📋 Cola de Acceso</span>
-            <span id="contador-espera" style="color:#666">0 personas</span>
+            <span id="contador-espera">0 personas</span>
         </div>
         <table id="tabla-espera"></table>
-    </div>
-
-    <div class="table-card" style="border-color: #333; opacity: 0.8;">
-        <div style="font-size:0.75em; color:#888; font-weight:bold; margin-bottom:10px; text-transform: uppercase;">🏁 Últimos completados</div>
-        <table id="tabla-historial"></table>
     </div>
 
     <div class="controls-row">
@@ -138,190 +112,143 @@
         const btnAdd = document.getElementById('btn-add');
         const selPiloto = document.getElementById('c-piloto');
         const proximoNumTxt = document.getElementById('v-proximo-numero');
-        const seccionManual = document.getElementById('seccion-manual');
 
+        // --- FUNCIONES ÚTILES ---
+        const limpiar = (t) => t ? t.toString().replace(/;/g, ',').replace(/"/g, "'").trim() : "";
         window.toggleMenor = (val) => { document.getElementById('box-menor').style.display = val ? 'block' : 'none'; };
         window.seleccionarPago = (tipo) => {
             metodoPago = tipo;
             document.getElementById('pago-efectivo').classList.toggle('selected', tipo === 'EFECTIVO');
             document.getElementById('pago-tarjeta').classList.toggle('selected', tipo === 'TARJETA');
         };
-
         const fnValidar = () => { btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked); };
 
+        // --- BUSCADOR ---
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
             if (!busqueda) return;
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val() || {};
             
-            let yaEsta = Object.values(data.espera || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
-            if(!yaEsta) yaEsta = Object.values(data.completados || {}).find(r => r.nPapel.toString() === busqueda || r.copiloto.toLowerCase().includes(busqueda));
-            
-            if(yaEsta) {
-                avisoBox.innerHTML = `⚠️ <b>REGISTRADO</b>: ${yaEsta.copiloto} (#${yaEsta.nPapel})`;
-                avisoBox.style.display = 'block'; avisoBox.style.borderColor = 'var(--red)';
-                seccionManual.style.display = 'none'; return;
-            }
-
-            const pre = Object.values(data.pre_inscritos || {}).find(r => r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda || r.nPapel.toString() === busqueda);
+            const pre = Object.values(data.pre_inscritos || {}).find(r => r.copiloto.toLowerCase().includes(busqueda) || r.dni?.toLowerCase() === busqueda);
             if (pre) {
                 avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN</b>: ${pre.copiloto}`;
-                avisoBox.style.display = 'block'; avisoBox.style.borderColor = 'var(--accent)';
+                avisoBox.style.display = 'block';
                 nombreInput.value = pre.copiloto;
                 proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
-                if(pre.piloto && pre.piloto !== "CUALQUIERA") selPiloto.value = pre.piloto;
-                seleccionarPago(pre.metodoPago || 'EFECTIVO');
                 registroRecuperado = pre;
-                seccionManual.style.display = 'none';
+                document.getElementById('seccion-manual').style.display = 'none';
             } else {
                 avisoBox.style.display = 'none';
                 registroRecuperado = null;
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
-                seccionManual.style.display = 'block';
+                document.getElementById('seccion-manual').style.display = 'block';
             }
             fnValidar();
         };
 
+        // --- CARGAR PILOTOS DESDE CSV (CORREGIDO PARA SEPARAR COMAS) ---
+        document.getElementById('csv-pilotos').onchange = (e) => {
+            const fr = new FileReader();
+            fr.onload = async () => {
+                const lineas = fr.result.split('\n').map(l => l.trim()).filter(l => l);
+                const listaLimpia = lineas.map(linea => {
+                    const columnas = linea.split(',');
+                    // Suponiendo formato: DORSAL,NOMBRE,COCHE. Cogemos Nombre y Coche.
+                    if(columnas.length >= 2) return `${columnas[1]} - ${columnas[2] || ''}`.trim();
+                    return linea;
+                });
+                await set(ref(db, 'copilotajes/config_pilotos'), listaLimpia);
+                alert("Pilotos cargados correctamente");
+            };
+            fr.readAsText(e.target.files[0]);
+        };
+
+        // --- GESTIÓN DE PILOTOS (MODAL CHECKS) ---
+        document.getElementById('btn-gestionar-pilotos').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            const config = snap.val().config_pilotos || [];
+            const bajas = snap.val().pilotos_baja || [];
+            
+            let html = config.map(p => `
+                <div style="display:flex; justify-content:space-between; background:#222; padding:10px; margin-bottom:5px; border-radius:5px;">
+                    <span>${p}</span>
+                    <input type="checkbox" style="transform:scale(1.5)" ${bajas.includes(p) ? '' : 'checked'} onchange="window.toggleEstado('${p}')">
+                </div>`).join('');
+
+            const modal = document.createElement('div');
+            modal.style = "position:fixed; top:10%; left:5%; width:90%; height:80%; background:rgba(0,0,0,0.95); border:2px solid gold; z-index:1000; padding:20px; overflow-y:auto; border-radius:15px;";
+            modal.innerHTML = `<h2 style="color:gold">ESTADO PILOTOS</h2>${html}<button onclick="this.parentElement.remove()" style="width:100%; padding:15px; margin-top:10px; background:gold; border:none; font-weight:bold;">CERRAR</button>`;
+            document.body.appendChild(modal);
+        };
+
+        window.toggleEstado = async (p) => {
+            const snap = await get(ref(db, 'copilotajes/pilotos_baja'));
+            let bajas = snap.val() || [];
+            const idx = bajas.indexOf(p);
+            if(idx > -1) bajas.splice(idx, 1); else bajas.push(p);
+            await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
+        };
+
+        // --- SINCRONIZACIÓN TIEMPO REAL ---
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
             if(!registroRecuperado) proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             
-            const config = data.config_pilotos ? Object.values(data.config_pilotos) : [];
-            const bajas = data.pilotos_baja ? Object.values(data.pilotos_baja) : [];
-            const pilotosOK = config.filter(p => !bajas.includes(p));
-            document.getElementById('count-tag').innerText = pilotosOK.length;
-            const currentVal = selPiloto.value;
-            selPiloto.innerHTML = pilotosOK.map(p => `<option value="${p}">${p}</option>`).join('');
-            if(registroRecuperado && registroRecuperado.piloto) selPiloto.value = registroRecuperado.piloto;
-            else if(currentVal) selPiloto.value = currentVal;
+            const config = data.config_pilotos || [];
+            const bajas = data.pilotos_baja || [];
+            const activos = config.filter(p => !bajas.includes(p));
+            
+            document.getElementById('count-tag').innerText = activos.length;
+            selPiloto.innerHTML = activos.map(p => `<option value="${p}">${p}</option>`).join('');
 
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
-            let count = 0;
             if(data.espera) {
-                Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                    count++;
-                    tEspera.insertRow().innerHTML = `<td><span class="n-papel-cola">${item.nPapel.toString().padStart(3, '0')}</span></td><td><strong>${item.copiloto}</strong><br><small>${item.piloto}</small></td><td style="width:100px; text-align:right">${item.enRecinto ? `<span class="badge-recinto">EN RECINTO</span>` : `<button class="btn-acceso" onclick="marcarAcceso('${id}')">ACCESO</button>`}</td>`;
-                });
-            }
-            document.getElementById('contador-espera').innerText = `${count} personas`;
-
-            const tHisto = document.getElementById('tabla-historial');
-            tHisto.innerHTML = "";
-            if(data.completados) {
-                Object.values(data.completados).filter(x => x.finalizado).sort((a,b) => b.tsSalida - a.tsSalida).slice(0, 5).forEach(item => {
-                    tHisto.insertRow().innerHTML = `<td style="color:#aaa">#${item.nPapel}</td><td>${item.copiloto}</td><td style="text-align:right"><span style="color:var(--green); font-family:monospace">⏱ ${item.duracionTotal || '--:--'}</span></td>`;
+                Object.entries(data.espera).forEach(([id, item]) => {
+                    tEspera.insertRow().innerHTML = `<td><span class="n-papel-cola">${item.nPapel}</span></td><td>${item.copiloto}<br><small>${item.piloto}</small></td>`;
                 });
             }
         });
 
-        window.marcarAcceso = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
-
+        // --- BOTÓN REGISTRAR ---
         btnAdd.onclick = async () => {
-            const numFinal = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
-            const datos = { 
-                nPapel: numFinal, copiloto: nombreInput.value.trim(), piloto: selPiloto.value, metodoPago: metodoPago, enRecinto: false, finalizado: false,
-                horaFirma: new Date().toLocaleTimeString('es-ES'),
-                dni: registroRecuperado ? (registroRecuperado.dni || "") : document.getElementById('c-dni').value.trim(),
-                fechaNac: registroRecuperado ? (registroRecuperado.fechaNac || "") : document.getElementById('c-nac').value.trim(),
-                redes: registroRecuperado ? (registroRecuperado.redes || "") : document.getElementById('c-redes').value.trim(),
-                esMenor: registroRecuperado ? (registroRecuperado.esMenor || false) : document.getElementById('c-menor').checked,
-                dniTutor: registroRecuperado ? (registroRecuperado.dniTutor || "") : document.getElementById('c-dni-tutor').value.trim(),
-                nombreTutor: registroRecuperado ? (registroRecuperado.nombreTutor || "") : document.getElementById('c-nombre-tutor').value.trim()
+            const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
+            const d = {
+                nPapel: num, copiloto: nombreInput.value.trim(), piloto: selPiloto.value, metodoPago: metodoPago,
+                dni: registroRecuperado?.dni || document.getElementById('c-dni').value,
+                fechaNac: registroRecuperado?.fechaNac || document.getElementById('c-nac').value,
+                redes: registroRecuperado?.redes || document.getElementById('c-redes').value,
+                esMenor: registroRecuperado?.esMenor || document.getElementById('c-menor').checked,
+                dniTutor: registroRecuperado?.dniTutor || document.getElementById('c-dni-tutor').value,
+                nombreTutor: registroRecuperado?.nombreTutor || document.getElementById('c-nombre-tutor').value,
+                finalizado: false
             };
-            await push(ref(db, 'copilotajes/espera'), datos);
-            if (registroRecuperado) await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.nPapel}`));
-            else await set(ref(db, 'copilotajes/ultimo_numero'), numFinal);
-            nombreInput.value = ""; firmaChk.checked = false; registroRecuperado = null;
-            document.querySelectorAll('.input-manual').forEach(i => i.value = "");
-            document.getElementById('c-menor').checked = false; toggleMenor(false);
-            avisoBox.style.display = 'none'; seccionManual.style.display = 'none'; fnValidar();
+            await push(ref(db, 'copilotajes/espera'), d);
+            if(!registroRecuperado) await set(ref(db, 'copilotajes/ultimo_numero'), num);
+            location.reload();
         };
 
-        // CARGA CSV PILOTOS (Procesando columnas para evitar errores de comas)
-document.getElementById('csv-pilotos').onchange = (e) => {
-    const fr = new FileReader();
-    fr.onload = async () => {
-        // Separamos por líneas y luego por comas para pillar solo las columnas necesarias
-        const lineas = fr.result.split('\n').map(l => l.trim()).filter(l => l);
-        
-        const listaLimpia = lineas.map(linea => {
-            const columnas = linea.split(',');
-            // Si tu CSV es "DORSAL,NOMBRE,COCHE", esto une Nombre y Coche. 
-            // Si solo quieres el nombre, usa: return columnas[1].trim();
-            return columnas.length > 1 ? `${columnas[1].trim()} (${columnas[2]?.trim() || ''})` : linea;
-        });
+        // --- EXPORTACIÓN (CORREGIDA AL 100%) ---
+        document.getElementById('btn-reset').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            const data = snap.val();
+            if(!data) return alert("Sin datos");
 
-        await set(ref(db, 'copilotajes/config_pilotos'), listaLimpia);
-        alert("PILOTOS CARGADOS: " + listaLimpia.length);
-    };
-    fr.readAsText(e.target.files[0]);
-};
+            let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO;DURACION\n";
+            const row = (i, est) => [i.nPapel, i.copiloto, i.dni, i.fechaNac, i.redes, i.esMenor?'SI':'NO', i.dniTutor, i.nombreTutor, i.piloto, i.metodoPago, est, i.duracionTotal||''].map(f => `"${limpiar(f)}"`).join(';') + "\n";
 
-        // GESTIÓN PILOTOS (Interfaz de Checks)
-document.getElementById('btn-gestionar-pilotos').onclick = async () => {
-    const snap = await get(ref(db, 'copilotajes'));
-    const config = snap.val().config_pilotos || [];
-    const bajas = snap.val().pilotos_baja || [];
-    
-    // Creamos un modal sencillo rápido
-    let htmlModal = config.map(p => {
-        const estaBaja = bajas.includes(p);
-        return `
-            <div style="display:flex; align-items:center; justify-content:space-between; background:#222; padding:10px; margin-bottom:5px; border-radius:5px;">
-                <span style="color:${estaBaja ? '#666' : '#fff'}">${p}</span>
-                <input type="checkbox" style="transform:scale(1.5)" ${estaBaja ? '' : 'checked'} 
-                    onchange="window.toggleEstadoPiloto('${p}')">
-            </div>
-        `;
-    }).join('');
+            if(data.espera) Object.values(data.espera).forEach(i => csv += row(i, "ESPERA"));
+            if(data.completados) Object.values(data.completados).forEach(i => csv += row(i, "FINALIZADO"));
 
-    const panel = document.createElement('div');
-    panel.id = "panel-pilotos";
-    panel.style = "position:fixed; top:10%; left:5%; width:90%; height:80%; background:rgba(0,0,0,0.95); border:2px solid var(--accent); z-index:1000; padding:20px; overflow-y:auto; border-radius:15px;";
-    panel.innerHTML = `
-        <h2 style="color:var(--accent); margin-top:0;">ESTADO PILOTOS (Check = ACTIVO)</h2>
-        <div style="margin-bottom:20px;">${htmlModal}</div>
-        <button onclick="this.parentElement.remove()" style="width:100%; height:50px; background:var(--accent); border:none; font-weight:bold; border-radius:10px;">CERRAR Y GUARDAR</button>
-    `;
-    document.body.appendChild(panel);
-};
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: 'text/csv' }));
+            link.download = "RESUMEN_EVENTO.csv";
+            link.click();
 
-// Función global para los checks
-window.toggleEstadoPiloto = async (nombre) => {
-    const snap = await get(ref(db, 'copilotajes/pilotos_baja'));
-    let bajas = snap.val() || [];
-    const idx = bajas.indexOf(nombre);
-    
-    if (idx > -1) {
-        bajas.splice(idx, 1); // Si estaba en bajas, lo quitamos (activar)
-    } else {
-        bajas.push(nombre); // Si no estaba, lo añadimos (desactivar)
-    }
-    await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
-};
-
-        const row = (i, e) => {
-    // IMPORTANTE: limpiar() quita cualquier punto y coma que el usuario haya escrito
-    return [
-        i.nPapel,
-        i.copiloto,
-        i.dni,
-        i.fechaNac,
-        i.redes,
-        i.esMenor ? 'SI' : 'NO',
-        i.dniTutor,
-        i.nombreTutor,
-        i.piloto,
-        i.metodoPago,
-        e,
-        i.horaEntradaTexto || '',
-        i.horaSalidaTexto || '',
-        i.duracionTotal || ''
-    ].map(campo => `"${limpiar(campo)}"`).join(';') + "\n";
-};
+            setTimeout(async () => { if(confirm("¿Borrar base de datos?")) await remove(ref(db, 'copilotajes')); }, 2000);
+        };
 
         nombreInput.oninput = fnValidar;
         firmaChk.onchange = fnValidar;

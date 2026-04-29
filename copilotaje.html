@@ -240,52 +240,88 @@
             avisoBox.style.display = 'none'; seccionManual.style.display = 'none'; fnValidar();
         };
 
-        // CARGA CSV PILOTOS
-        document.getElementById('csv-pilotos').onchange = (e) => {
-            const fr = new FileReader();
-            fr.onload = async () => {
-                const list = fr.result.split('\n').map(l => l.trim()).filter(l => l);
-                await set(ref(db, 'copilotajes/config_pilotos'), list);
-                alert("PILOTOS CARGADOS: " + list.length);
-            };
-            fr.readAsText(e.target.files[0]);
-        };
+        // CARGA CSV PILOTOS (Procesando columnas para evitar errores de comas)
+document.getElementById('csv-pilotos').onchange = (e) => {
+    const fr = new FileReader();
+    fr.onload = async () => {
+        // Separamos por líneas y luego por comas para pillar solo las columnas necesarias
+        const lineas = fr.result.split('\n').map(l => l.trim()).filter(l => l);
+        
+        const listaLimpia = lineas.map(linea => {
+            const columnas = linea.split(',');
+            // Si tu CSV es "DORSAL,NOMBRE,COCHE", esto une Nombre y Coche. 
+            // Si solo quieres el nombre, usa: return columnas[1].trim();
+            return columnas.length > 1 ? `${columnas[1].trim()} (${columnas[2]?.trim() || ''})` : linea;
+        });
 
-        // GESTIÓN PILOTOS (BAJA/ALTA)
-        document.getElementById('btn-gestionar-pilotos').onclick = async () => {
-            const snap = await get(ref(db, 'copilotajes'));
-            const config = snap.val().config_pilotos || [];
-            const bajas = snap.val().pilotos_baja || [];
-            let msg = "LISTA DE PILOTOS (Escribe nombre para dar de BAJA o ALTA):\n\n";
-            config.forEach(p => msg += `${bajas.includes(p) ? '❌ [BAJA]' : '✅ [OK]'} - ${p}\n`);
-            const pNom = prompt(msg);
-            if(pNom) {
-                const idx = bajas.indexOf(pNom);
-                if(idx > -1) bajas.splice(idx, 1); else bajas.push(pNom);
-                await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
-            }
-        };
+        await set(ref(db, 'copilotajes/config_pilotos'), listaLimpia);
+        alert("PILOTOS CARGADOS: " + listaLimpia.length);
+    };
+    fr.readAsText(e.target.files[0]);
+};
 
-        // EXPORTACIÓN FINAL (AHORA SÍ, CON TODO)
-        document.getElementById('btn-reset').onclick = async () => {
-            const snap = await get(ref(db, 'copilotajes'));
-            const data = snap.val(); if(!data) return;
-            
-            let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO;H_ENTRADA;H_SALIDA;DURACION\n";
-            const limpiar = (t) => t ? t.toString().replace(/;/g, ',').trim() : "";
-            
-            const row = (i, e) => `${limpiar(i.nPapel)};${limpiar(i.copiloto)};${limpiar(i.dni)};${limpiar(i.fechaNac)};${limpiar(i.redes)};${i.esMenor?'SI':'NO'};${limpiar(i.dniTutor)};${limpiar(i.nombreTutor)};${limpiar(i.piloto)};${limpiar(i.metodoPago)};${e};${limpiar(i.horaEntradaTexto)};${limpiar(i.horaSalidaTexto)};${limpiar(i.duracionTotal)}\n`;
-            
-            if(data.espera) Object.values(data.espera).forEach(i => csv += row(i, "ESPERA"));
-            if(data.completados) Object.values(data.completados).forEach(i => csv += row(i, "FINALIZADO"));
-            
-            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `RESUMEN_${new Date().toLocaleDateString().replace(/\//g,'_')}.csv`;
-            link.click();
-            setTimeout(async () => { if(confirm("¿Borrar base de datos?")) { await remove(ref(db, 'copilotajes')); location.reload(); } }, 1000);
-        };
+        // GESTIÓN PILOTOS (Interfaz de Checks)
+document.getElementById('btn-gestionar-pilotos').onclick = async () => {
+    const snap = await get(ref(db, 'copilotajes'));
+    const config = snap.val().config_pilotos || [];
+    const bajas = snap.val().pilotos_baja || [];
+    
+    // Creamos un modal sencillo rápido
+    let htmlModal = config.map(p => {
+        const estaBaja = bajas.includes(p);
+        return `
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#222; padding:10px; margin-bottom:5px; border-radius:5px;">
+                <span style="color:${estaBaja ? '#666' : '#fff'}">${p}</span>
+                <input type="checkbox" style="transform:scale(1.5)" ${estaBaja ? '' : 'checked'} 
+                    onchange="window.toggleEstadoPiloto('${p}')">
+            </div>
+        `;
+    }).join('');
+
+    const panel = document.createElement('div');
+    panel.id = "panel-pilotos";
+    panel.style = "position:fixed; top:10%; left:5%; width:90%; height:80%; background:rgba(0,0,0,0.95); border:2px solid var(--accent); z-index:1000; padding:20px; overflow-y:auto; border-radius:15px;";
+    panel.innerHTML = `
+        <h2 style="color:var(--accent); margin-top:0;">ESTADO PILOTOS (Check = ACTIVO)</h2>
+        <div style="margin-bottom:20px;">${htmlModal}</div>
+        <button onclick="this.parentElement.remove()" style="width:100%; height:50px; background:var(--accent); border:none; font-weight:bold; border-radius:10px;">CERRAR Y GUARDAR</button>
+    `;
+    document.body.appendChild(panel);
+};
+
+// Función global para los checks
+window.toggleEstadoPiloto = async (nombre) => {
+    const snap = await get(ref(db, 'copilotajes/pilotos_baja'));
+    let bajas = snap.val() || [];
+    const idx = bajas.indexOf(nombre);
+    
+    if (idx > -1) {
+        bajas.splice(idx, 1); // Si estaba en bajas, lo quitamos (activar)
+    } else {
+        bajas.push(nombre); // Si no estaba, lo añadimos (desactivar)
+    }
+    await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
+};
+
+        const row = (i, e) => {
+    // IMPORTANTE: limpiar() quita cualquier punto y coma que el usuario haya escrito
+    return [
+        i.nPapel,
+        i.copiloto,
+        i.dni,
+        i.fechaNac,
+        i.redes,
+        i.esMenor ? 'SI' : 'NO',
+        i.dniTutor,
+        i.nombreTutor,
+        i.piloto,
+        i.metodoPago,
+        e,
+        i.horaEntradaTexto || '',
+        i.horaSalidaTexto || '',
+        i.duracionTotal || ''
+    ].map(campo => `"${limpiar(campo)}"`).join(';') + "\n";
+};
 
         nombreInput.oninput = fnValidar;
         firmaChk.onchange = fnValidar;

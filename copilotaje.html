@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGÍSTICA TAXI DRIFT</title>
+    <title>LOGÍSTICA TAXI DRIFT - SISTEMA INTEGRAL</title>
     <style>
         :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
         body { background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg); color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; }
         
+        /* Header */
         .header-top { display: flex; flex-direction: column; align-items: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border: 2px solid #333; margin-bottom: 15px; gap: 12px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
         .event-name-input { background: transparent; border: none; border-bottom: 2px solid #444; color: var(--accent); font-size: 1.2em; text-align: center; width: 90%; font-family: 'Arial Black', sans-serif; outline: none; }
         
+        /* Main Card & Inputs */
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        
         .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
         .btn-search { background: var(--accent); border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: 1.5em; transition: 0.2s; }
+        .btn-search:active { transform: scale(0.95); }
         
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
         
@@ -24,31 +26,34 @@
         .input-manual { width: 100%; height: 45px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 0 10px; box-sizing: border-box; font-family: sans-serif; font-size: 0.9em; }
         .label-mini { font-size: 0.65em; color: #888; text-transform: uppercase; margin-bottom: 4px; display: block; }
         
+        /* Pago */
         .pago-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .pago-option { flex: 1; padding: 15px; text-align: center; border-radius: 10px; border: 2px solid #444; cursor: pointer; transition: 0.3s; background: #000; font-size: 0.9em; opacity: 0.5; font-family: sans-serif; font-weight: bold; }
         .pago-option.selected { border-color: var(--accent); color: var(--accent); opacity: 1; background: rgba(255, 204, 0, 0.1); }
         
+        /* Numero Turno */
         .doc-box { background: #000; border: 1px solid var(--accent); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px; }
         .doc-box b { font-size: 2.8em; font-family: monospace; color: var(--accent); }
         
+        /* Botones de Acción */
         .chk-massive { width: 100%; height: 65px; background: #1a1a1a; border-radius: 10px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 15px; cursor: pointer; margin-bottom: 20px; }
         .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
         .btn-add-massive:disabled { background: #222; color: #555; box-shadow: none; opacity: 0.4; cursor: not-allowed; }
 
+        /* Tabla Cola */
         .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 5px; border-bottom: 1px solid #222; font-family: sans-serif; font-size: 0.85em;}
-        
         .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
-        .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.8em; }
+        .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .badge-recinto { background: #111; color: var(--blue); border: 1px solid var(--blue); padding: 5px; border-radius: 5px; font-size: 0.7em; font-weight: bold; }
         
-        .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; }
-        .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
+        /* Modal Pilotos */
+        #modal-pilotos { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; box-sizing:border-box; }
+        .piloto-row { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: #222; margin-bottom: 8px; border-radius: 8px; border: 1px solid #333; }
         
-        /* Modal Gestión Pilotos */
-        #modal-pilotos { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; padding:20px; box-sizing:border-box; overflow-y:auto; }
-        .piloto-item { display:flex; justify-content:space-between; align-items:center; padding:15px; background:#222; margin-bottom:8px; border-radius:8px; }
+        .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap; margin-bottom: 30px; }
+        .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
     </style>
 </head>
 <body>
@@ -59,25 +64,25 @@
     </div>
 
     <div class="main-card">
-        <div id="aviso-repetido" style="padding:12px; border-radius:10px; margin-bottom:15px; display:none; font-size:0.9em; border:2px solid var(--accent); background:#2c2505; color:#fff; font-family:sans-serif; text-align:center;"></div>
+        <div id="aviso-repetido" style="display:none; padding:15px; border-radius:10px; margin-bottom:15px; border:2px solid var(--accent); background:#2c2505; color:#fff; text-align:center; font-family:sans-serif;"></div>
         
         <div class="search-container">
-            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o TURNO" autocomplete="off">
+            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o TURNO">
             <button class="btn-search" onclick="buscarParticipante()">🔍</button>
         </div>
 
-        <div id="seccion-manual" class="extra-fields">
+        <div class="extra-fields">
             <div class="input-group">
-                <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual" placeholder="DNI"></div>
+                <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual"></div>
                 <div><span class="label-mini">Fecha Nacimiento</span><input type="text" id="c-nac" class="input-manual" placeholder="DD/MM/AAAA" oninput="validarEdad(this.value)"></div>
             </div>
-            <div style="margin-bottom: 10px;"><span class="label-mini">Instagram / TikTok</span><input type="text" id="c-redes" class="input-manual" placeholder="@usuario"></div>
+            <div style="margin-bottom: 10px;"><span class="label-mini">Instagram / TikTok</span><input type="text" id="c-redes" class="input-manual"></div>
             
-            <div id="box-menor" style="display:none; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--orange);">
+            <div id="box-menor" style="display:none; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--orange); margin-top: 10px;">
                 <div style="color:var(--orange); font-size:0.7em; font-weight:bold; margin-bottom:8px;">AUTORIZACIÓN MENOR DE EDAD</div>
                 <div class="input-group">
-                    <div><span class="label-mini" style="color:var(--orange)">DNI TUTOR</span><input type="text" id="c-dni-tutor" class="input-manual" placeholder="DNI"></div>
-                    <div><span class="label-mini" style="color:var(--orange)">NOMBRE TUTOR</span><input type="text" id="c-nombre-tutor" class="input-manual" placeholder="Nombre completo"></div>
+                    <div><span class="label-mini">DNI TUTOR</span><input type="text" id="c-dni-tutor" class="input-manual"></div>
+                    <div><span class="label-mini">NOMBRE TUTOR</span><input type="text" id="c-nombre-tutor" class="input-manual"></div>
                 </div>
             </div>
         </div>
@@ -105,19 +110,17 @@
 
     <div class="controls-row">
         <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS</button>
-        <button class="btn-mini" id="btn-gestionar-pilotos" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS</button>
+        <button class="btn-mini" onclick="document.getElementById('modal-pilotos').style.display='block'" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS</button>
         <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">EXPORTAR Y REINICIAR</button>
     </div>
     <input type="file" id="csv-pilotos" hidden accept=".csv">
 
-    <!-- Modal Gestión Pilotos -->
+    <!-- Modal Pilotos -->
     <div id="modal-pilotos">
-        <div style="max-width:500px; margin:auto; background:#111; padding:20px; border-radius:15px; border:1px solid var(--accent);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color:var(--accent); margin:0;">ESTADO PILOTOS</h2>
-                <button onclick="document.getElementById('modal-pilotos').style.display='none'" style="background:none; border:none; color:white; font-size:2em; cursor:pointer;">&times;</button>
-            </div>
-            <div id="lista-pilotos-gestion"></div>
+        <div style="max-width: 500px; margin: auto; background: #111; padding: 20px; border-radius: 15px; border: 1px solid var(--accent); max-height: 80vh; overflow-y: auto;">
+            <h2 style="color:var(--accent); margin-top:0;">PILOTOS DISPONIBLES</h2>
+            <div id="lista-check-pilotos"></div>
+            <button class="btn-add-massive" style="height:50px; margin-top:20px; font-size:1em;" onclick="document.getElementById('modal-pilotos').style.display='none'">CERRAR PANEL</button>
         </div>
     </div>
 
@@ -134,16 +137,16 @@
         let proximoNumeroLibre = 1;
         let esMenorFlag = false;
 
-        const getTime = () => new Date().toLocaleTimeString();
+        const getTime = () => new Date().toLocaleTimeString('es-ES');
 
-        // --- BUSCADOR ---
+        // BÚSQUEDA EN PRE-INSCRITOS
         window.buscarParticipante = async () => {
             const busqueda = document.getElementById('c-nombre').value.trim().toLowerCase();
             if (!busqueda) return;
             
             const snap = await get(ref(db, 'copilotajes/pre_inscritos'));
             const preData = snap.val() || {};
-
+            
             const preKey = Object.keys(preData).find(key => 
                 (preData[key].copiloto && preData[key].copiloto.toLowerCase().includes(busqueda)) || 
                 (preData[key].dni && preData[key].dni.toLowerCase() === busqueda) ||
@@ -153,26 +156,26 @@
             if (preKey) {
                 const pre = preData[preKey];
                 registroRecuperado = { ...pre, firebaseKey: preKey };
-                const aviso = document.getElementById('aviso-repetido');
-                aviso.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN HALLADA</b>: #${pre.nPapel} - ${pre.copiloto}`;
-                aviso.style.display = 'block';
+                document.getElementById('aviso-repetido').innerHTML = `⚡ PRE-INSCRIPCIÓN HALLADA: #${pre.nPapel} - ${pre.copiloto}`;
+                document.getElementById('aviso-repetido').style.display = 'block';
                 
-                document.getElementById('c-nombre').value = pre.copiloto || "";
+                document.getElementById('c-nombre').value = pre.copiloto;
                 document.getElementById('c-dni').value = pre.dni || "";
                 document.getElementById('c-nac').value = pre.fecha_nac || "";
                 document.getElementById('c-redes').value = pre.insta || "";
                 
-                if(pre.fecha_nac) validarEdad(pre.fecha_nac);
+                validarEdad(pre.fecha_nac || "");
                 if(pre.tutor_dni) document.getElementById('c-dni-tutor').value = pre.tutor_dni;
                 if(pre.tutor) document.getElementById('c-nombre-tutor').value = pre.tutor;
-                if(pre.metodoPago) seleccionarPago(pre.metodoPago);
-
+                
                 document.getElementById('v-proximo-numero').innerText = pre.nPapel.toString().padStart(3, '0');
+            } else {
+                alert("No se encontró ninguna pre-inscripción con esos datos.");
             }
             fnValidar();
         };
 
-        // --- REGISTRAR ---
+        // REGISTRAR Y PASAR A COLA
         window.registrar = async () => {
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
             
@@ -189,9 +192,13 @@
                 dniTutor: esMenorFlag ? document.getElementById('c-dni-tutor').value : "",
                 enRecinto: false,
                 finalizado: false,
-                // Tiempos para el CSV
-                horaRegistro: registroRecuperado ? new Date(registroRecuperado.ts).toLocaleTimeString() : getTime(),
-                horaEntradaRecinto: "" 
+                // Tiempos para el reporte
+                horaPreRegistro: registroRecuperado ? (registroRecuperado.ts ? new Date(registroRecuperado.ts).toLocaleTimeString() : "WEB") : "MANUAL",
+                horaRegistroLogistica: getTime(),
+                horaEntradaRecinto: "",
+                horaEntradaPista: "",
+                horaSalida: "",
+                duracion: ""
             };
 
             await push(ref(db, 'copilotajes/espera'), payload);
@@ -204,72 +211,48 @@
             location.reload(); 
         };
 
-        // --- SINCRONIZACIÓN ---
+        // ESCUCHA DE DATOS (PILOTOS Y TABLA)
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
+            
+            // Turnos
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
             if(!registroRecuperado) document.getElementById('v-proximo-numero').innerText = proximoNumeroLibre.toString().padStart(3, '0');
             
+            // Pilotos
             const config = data.config_pilotos || [];
             const bajas = data.pilotos_baja || [];
             const activos = config.filter(p => !bajas.includes(p));
+            
             document.getElementById('c-piloto').innerHTML = activos.map(p => `<option value="${p}">${p}</option>`).join('');
+            document.getElementById('lista-check-pilotos').innerHTML = config.map(p => `
+                <div class="piloto-row">
+                    <span style="font-weight:bold; color:${bajas.includes(p)?'#555':'#fff'}">${p}</span>
+                    <input type="checkbox" ${!bajas.includes(p)?'checked':''} onchange="window.togglePiloto('${p}', this.checked)" style="transform:scale(1.8)">
+                </div>
+            `).join('');
 
+            // Tabla de Espera
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             const espera = data.espera || {};
-            Object.entries(espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                tEspera.insertRow().innerHTML = `
+            const itemsEspera = Object.entries(espera).sort((a,b)=>a[1].nPapel - b[1].nPapel);
+            
+            itemsEspera.forEach(([id, item]) => {
+                const row = tEspera.insertRow();
+                row.innerHTML = `
                     <td><span class="n-papel-cola">${item.nPapel}</span></td>
-                    <td><b>${item.copiloto}</b><br><small>${item.piloto}</small></td>
+                    <td><b>${item.copiloto}</b><br><small style="color:var(--accent)">${item.piloto}</small></td>
                     <td style="text-align:right">
-                        ${item.enRecinto ? '<span class="badge-recinto">RECINTO</span>' : `<button class="btn-acceso" onclick="window.marcarAcceso('${id}')">ACCESO</button>`}
+                        ${item.enRecinto 
+                            ? '<span class="badge-recinto">EN RECINTO</span>' 
+                            : `<button class="btn-acceso" onclick="window.marcarAcceso('${id}')">ACCESO</button>`}
                     </td>`;
             });
-            document.getElementById('contador-espera').innerText = `${Object.keys(espera).length} personas`;
-
-            const listaG = document.getElementById('lista-pilotos-gestion');
-            listaG.innerHTML = config.map(p => `
-                <div class="piloto-item">
-                    <span>${p}</span>
-                    <input type="checkbox" ${!bajas.includes(p)?'checked':''} onchange="window.togglePiloto('${p}', this.checked)" style="transform:scale(1.5)">
-                </div>`).join('');
+            document.getElementById('contador-espera').innerText = `${itemsEspera.length} personas`;
         });
 
-        // --- EXPORTAR ---
-        document.getElementById('btn-reset').onclick = async () => {
-            const snap = await get(ref(db, 'copilotajes'));
-            const d = snap.val();
-            if(!d) return;
-
-            let csv = "\ufeffTURNO;NOMBRE;DNI;NACIMIENTO;REDES;PAGO;PILOTO;H_REGISTRO;H_ACCESO;H_SALIDA;DURACION\n";
-            const proc = (lista) => {
-                if(!lista) return;
-                Object.values(lista).forEach(i => {
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.fechaNac || ''}";"${i.redes || ''}";"${i.metodoPago}";"${i.piloto}";"${i.horaRegistro || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaSalida || ''}";"${i.duracion || ''}"\n`;
-                });
-            };
-            proc(d.espera);
-            proc(d.completados);
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `REPORTE_EVENTO.csv`;
-            link.click();
-
-            setTimeout(() => {
-                if(confirm("¿Quieres borrar los datos de la nube y reiniciar?")) {
-                    set(ref(db, 'copilotajes/espera'), null);
-                    set(ref(db, 'copilotajes/completados'), null);
-                    set(ref(db, 'copilotajes/ultimo_numero'), 0);
-                    location.reload();
-                }
-            }, 1000);
-        };
-
-        window.marcarAcceso = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true, horaEntradaRecinto: getTime() });
-        
+        // FUNCIONES AUXILIARES
         window.togglePiloto = async (nombre, activa) => {
             const snap = await get(ref(db, 'copilotajes/pilotos_baja'));
             let bajas = snap.val() || [];
@@ -278,10 +261,18 @@
             await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
         };
 
+        window.marcarAcceso = (id) => {
+            update(ref(db, `copilotajes/espera/${id}`), { 
+                enRecinto: true, 
+                horaEntradaRecinto: getTime() 
+            });
+        };
+
         window.validarEdad = (f) => {
             if(f.length < 10) return;
-            const y = f.split('/')[2];
-            const edad = new Date().getFullYear() - parseInt(y);
+            const parts = f.split('/');
+            const year = parseInt(parts[2]);
+            const edad = new Date().getFullYear() - year;
             esMenorFlag = edad < 18;
             document.getElementById('box-menor').style.display = esMenorFlag ? 'block' : 'none';
         };
@@ -292,16 +283,56 @@
             document.getElementById('pago-tarjeta').classList.toggle('selected', t === 'TARJETA');
         };
 
-        window.fnValidar = () => { document.getElementById('btn-add').disabled = !document.getElementById('c-firma').checked; };
-        document.getElementById('btn-gestionar-pilotos').onclick = () => document.getElementById('modal-pilotos').style.display='block';
-        
+        window.fnValidar = () => {
+            document.getElementById('btn-add').disabled = !document.getElementById('c-firma').checked;
+        };
+
+        // EXPORTACIÓN COMPLETA CSV
+        document.getElementById('btn-reset').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            const d = snap.val();
+            if(!d) return;
+
+            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION\n";
+            
+            const procesarLista = (lista) => {
+                if(!lista) return;
+                Object.values(lista).forEach(i => {
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${i.horaPreRegistro || ''}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || ''}";"${i.horaSalida || ''}";"${i.duracion || ''}"\n`;
+                });
+            };
+
+            procesarLista(d.espera);
+            procesarLista(d.completados);
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `REPORTE_TIEMPOS_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+
+            setTimeout(() => {
+                if(confirm("¿Deseas BORRAR todos los datos de la nube y empezar un nuevo evento?")) {
+                    set(ref(db, 'copilotajes/espera'), null);
+                    set(ref(db, 'copilotajes/completados'), null);
+                    set(ref(db, 'copilotajes/ultimo_numero'), 0);
+                    location.reload();
+                }
+            }, 1500);
+        };
+
+        // CARGA DE PILOTOS DESDE CSV
         document.getElementById('csv-pilotos').onchange = (e) => {
+            const file = e.target.files[0];
             const fr = new FileReader();
             fr.onload = async () => {
-                const list = fr.result.split('\n').map(l => l.trim()).filter(l => l && !l.toLowerCase().includes('piloto'));
+                const list = fr.result.split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l && !l.toLowerCase().includes('piloto'));
                 await set(ref(db, 'copilotajes/config_pilotos'), list);
+                alert("Lista de pilotos actualizada.");
             };
-            fr.readAsText(e.target.files[0]);
+            fr.readAsText(file);
         };
     </script>
 </body>

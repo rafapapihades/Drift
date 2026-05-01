@@ -3,38 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGÍSTICA TAXI DRIFT</title>
+    <title>LOGÍSTICA TAXI DRIFT - SISTEMA INTEGRAL</title>
     <style>
         :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
         body { background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg); color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; }
+        
         .header-top { display: flex; flex-direction: column; align-items: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border: 2px solid #333; margin-bottom: 15px; gap: 12px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
         .event-name-input { background: transparent; border: none; border-bottom: 2px solid #444; color: var(--accent); font-size: 1.2em; text-align: center; width: 90%; font-family: 'Arial Black', sans-serif; outline: none; }
+        
         .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        
         .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
         .btn-search { background: var(--accent); border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: 1.5em; transition: 0.2s; }
+        .btn-search:active { transform: scale(0.95); }
+
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
+        
         .extra-fields { display: block; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--accent); margin-bottom: 15px; }
         .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         .input-manual { width: 100%; height: 45px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 0 10px; box-sizing: border-box; font-family: sans-serif; font-size: 0.9em; }
         .label-mini { font-size: 0.65em; color: #888; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        
         .pago-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .pago-option { flex: 1; padding: 15px; text-align: center; border-radius: 10px; border: 2px solid #444; cursor: pointer; transition: 0.3s; background: #000; font-size: 0.9em; opacity: 0.5; font-family: sans-serif; font-weight: bold; }
         .pago-option.selected { border-color: var(--accent); color: var(--accent); opacity: 1; background: rgba(255, 204, 0, 0.1); }
+        
         .doc-box { background: #000; border: 1px solid var(--accent); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px; }
         .doc-box b { font-size: 2.8em; font-family: monospace; color: var(--accent); }
+        
         .chk-massive { width: 100%; height: 65px; background: #1a1a1a; border-radius: 10px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 15px; cursor: pointer; margin-bottom: 20px; }
+        .chk-massive input { transform: scale(1.8); }
+
         .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
         .btn-add-massive:disabled { background: #222; color: #555; box-shadow: none; opacity: 0.4; cursor: not-allowed; }
+        .btn-add-massive:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #155d27; }
+
         .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 5px; border-bottom: 1px solid #222; font-family: sans-serif; font-size: 0.85em;}
+        
         .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
         .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.8em; }
         .badge-recinto { background: #111; color: var(--blue); border: 1px solid var(--blue); padding: 5px; border-radius: 5px; font-size: 0.7em; font-weight: bold; }
+        
         .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; }
         .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px 16px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
-        .asistente-aviso { padding: 12px; border-radius: 10px; margin-bottom: 15px; display: none; font-size: 0.9em; border: 2px solid var(--accent); background: #2c2505; color: #fff; font-family: sans-serif; }
+        
+        .asistente-aviso { padding: 15px; border-radius: 10px; margin-bottom: 15px; display: none; font-size: 0.95em; border: 2px solid var(--accent); background: #2c2505; color: #fff; font-family: sans-serif; text-align: center; }
+
+        /* Estilos Modal Pilotos */
+        #modal-pilotos { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; padding:20px; box-sizing:border-box; overflow-y:auto; }
+        .piloto-item { display:flex; justify-content:space-between; align-items:center; padding:15px; background:#222; margin-bottom:8px; border-radius:8px; }
+        .btn-baja { background:var(--red); color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; }
+        .btn-alta { background:var(--green); color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -48,7 +70,7 @@
         <div id="aviso-repetido" class="asistente-aviso"></div>
         
         <div class="search-container">
-            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o TURNO" autocomplete="off">
+            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="NOMBRE, DNI o TURNO..." autocomplete="off">
             <button class="btn-search" onclick="buscarParticipante()">🔍</button>
         </div>
 
@@ -96,6 +118,17 @@
     </div>
     <input type="file" id="csv-pilotos" hidden accept=".csv">
 
+    <!-- Modal Gestión Pilotos -->
+    <div id="modal-pilotos">
+        <div style="max-width:500px; margin:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:var(--accent); margin:0;">ESTADO PILOTOS</h2>
+                <button onclick="document.getElementById('modal-pilotos').style.display='none'" style="background:none; border:none; color:white; font-size:2em; cursor:pointer;">&times;</button>
+            </div>
+            <div id="lista-pilotos-gestion"></div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, push, remove, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -116,6 +149,7 @@
         const selPiloto = document.getElementById('c-piloto');
         const proximoNumTxt = document.getElementById('v-proximo-numero');
 
+        // --- LÓGICA EDAD ---
         window.validarEdad = (fecha) => {
             if(!fecha || fecha.length < 10) return;
             const parts = fecha.split('/');
@@ -138,7 +172,7 @@
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked);
         };
 
-        // --- BUSCADOR CORREGIDO PARA COMPATIBILIDAD CON PRE-REGISTRO ---
+        // --- BUSCADOR CORREGIDO (Nombres exactos del Pre-registro) ---
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
             if (!busqueda) return;
@@ -156,14 +190,14 @@
                 const pre = preData[preKey];
                 registroRecuperado = { ...pre, firebaseKey: preKey };
                 
-                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b>: ${pre.copiloto}`;
+                avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN #${pre.nPapel} ENCONTRADA</b><br>${pre.copiloto}`;
                 avisoBox.style.display = 'block';
                 
-                // MAPEADO CORRECTO DESDE PRE-REGISTRO
+                // Mapeo exhaustivo de campos del pre-registro
                 nombreInput.value = pre.copiloto || "";
                 document.getElementById('c-dni').value = pre.dni || "";
-                document.getElementById('c-nac').value = pre.fecha_nac || ""; // Corregido
-                document.getElementById('c-redes').value = pre.insta || ""; // Corregido
+                document.getElementById('c-nac').value = pre.fecha_nac || "";
+                document.getElementById('c-redes').value = pre.insta || "";
                 
                 if(pre.fecha_nac) validarEdad(pre.fecha_nac);
                 if(pre.tutor_dni) document.getElementById('c-dni-tutor').value = pre.tutor_dni;
@@ -181,11 +215,11 @@
             fnValidar();
         };
 
-        // --- REGISTRAR ---
+        // --- REGISTRO FINAL ---
         window.registrar = async () => {
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
             
-            const d = {
+            const payload = {
                 nPapel: num,
                 copiloto: nombreInput.value.trim(),
                 piloto: selPiloto.value,
@@ -201,7 +235,7 @@
                 ts: Date.now()
             };
 
-            await push(ref(db, 'copilotajes/espera'), d);
+            await push(ref(db, 'copilotajes/espera'), payload);
             
             if(registroRecuperado && registroRecuperado.firebaseKey) {
                 await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.firebaseKey}`));
@@ -211,46 +245,56 @@
             location.reload(); 
         };
 
-        // --- EXPORTAR Y LIMPIAR ---
+        // --- EXPORTAR Y REINICIAR ---
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val();
             if(!data) return;
 
-            let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO\n";
-            const procesar = (lista, estado) => {
+            let csv = "\ufeffTICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO\n";
+            const proc = (lista, est) => {
                 if(!lista) return;
                 Object.values(lista).forEach(i => {
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.fechaNac || ''}";"${i.redes || ''}";"${i.esMenor?'SI':'NO'}";"${i.dniTutor || ''}";"${i.nombreTutor || ''}";"${i.piloto}";"${i.metodoPago}";"${estado}"\n`;
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.fechaNac || ''}";"${i.redes || ''}";"${i.esMenor?'SI':'NO'}";"${i.dniTutor || ''}";"${i.nombreTutor || ''}";"${i.piloto}";"${i.metodoPago}";"${est}"\n`;
                 });
             };
-            procesar(data.espera, "ESPERA");
-            procesar(data.completados, "FINALIZADO");
+            proc(data.espera, "ESPERA");
+            proc(data.completados, "FINALIZADO");
 
-            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `LOG_EVENTO.csv`;
+            link.download = `TAXI_DRIFT_LOG.csv`;
             link.click();
 
             setTimeout(async () => {
-                if(confirm("¿Quieres BORRAR todos los datos de la base de datos ahora?")) {
+                if(confirm("⚠ ATENCIÓN: El archivo se ha descargado.\n\n¿Quieres BORRAR toda la base de datos y empezar de cero?\n(Esta acción es irreversible)")) {
                     await set(ref(db, 'copilotajes/espera'), null);
                     await set(ref(db, 'copilotajes/completados'), null);
                     await set(ref(db, 'copilotajes/ultimo_numero'), 0);
+                    alert("Base de datos reiniciada.");
                     location.reload();
                 }
             }, 1000);
         };
 
+        // --- SINCRONIZACIÓN Y PILOTOS ---
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
+            
+            // Contador tickets
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
             if(!registroRecuperado) proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             
+            // Lógica Pilotos (Incluye bajas)
             const config = data.config_pilotos || [];
-            selPiloto.innerHTML = config.map(p => `<option value="${p}">${p}</option>`).join('');
+            const bajas = data.pilotos_baja || [];
+            const activos = config.filter(p => !bajas.includes(p));
+            
+            document.getElementById('count-tag').innerText = activos.length;
+            selPiloto.innerHTML = activos.map(p => `<option value="${p}">${p}</option>`).join('');
 
+            // Tabla Cola
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";
             if(data.espera) {
@@ -264,9 +308,47 @@
                 });
             }
             document.getElementById('contador-espera').innerText = `${Object.keys(data.espera || {}).length} personas`;
+
+            // Modal Pilotos
+            const listaG = document.getElementById('lista-pilotos-gestion');
+            listaG.innerHTML = config.map(p => {
+                const esBaja = bajas.includes(p);
+                return `<div class="piloto-item">
+                    <span>${p}</span>
+                    <button class="${esBaja?'btn-alta':'btn-baja'}" onclick="window.togglePiloto('${p}', ${esBaja})">
+                        ${esBaja?'DAR DE ALTA':'DAR DE BAJA'}
+                    </button>
+                </div>`;
+            }).join('');
         });
 
+        // --- FUNCIONES EXTRA ---
         window.marcarAcceso = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
+        
+        window.togglePiloto = async (nombre, esBaja) => {
+            const snap = await get(ref(db, 'copilotajes/pilotos_baja'));
+            let bajas = snap.val() || [];
+            if(esBaja) bajas = bajas.filter(b => b !== nombre);
+            else bajas.push(nombre);
+            await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
+        };
+
+        document.getElementById('btn-gestionar-pilotos').onclick = () => document.getElementById('modal-pilotos').style.display='block';
+
+        document.getElementById('csv-pilotos').onchange = (e) => {
+            const fr = new FileReader();
+            fr.onload = async () => {
+                let lines = fr.result.split('\n').map(l => l.trim()).filter(l => l);
+                lines = lines.filter(l => !l.toLowerCase().includes('piloto'));
+                const list = lines.map(l => {
+                    const c = l.split(',');
+                    return c.length >= 2 ? `${c[0]} - ${c[1]} (${c[2]||''})` : l;
+                });
+                await set(ref(db, 'copilotajes/config_pilotos'), list);
+            };
+            fr.readAsText(e.target.files[0]);
+        };
+
         nombreInput.oninput = fnValidar;
     </script>
 </body>

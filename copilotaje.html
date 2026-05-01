@@ -48,7 +48,7 @@
         <div id="aviso-repetido" class="asistente-aviso"></div>
         
         <div class="search-container">
-            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o TICKET" autocomplete="off">
+            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o TURNO" autocomplete="off">
             <button class="btn-search" onclick="buscarParticipante()">🔍</button>
         </div>
 
@@ -116,11 +116,11 @@
         const selPiloto = document.getElementById('c-piloto');
         const proximoNumTxt = document.getElementById('v-proximo-numero');
 
-        // --- VALIDACIÓN DE EDAD ---
         window.validarEdad = (fecha) => {
             if(!fecha || fecha.length < 10) return;
-            const parts = fecha.includes('/') ? fecha.split('/') : fecha.split('-');
-            const [d, m, y] = parts.map(Number);
+            const parts = fecha.split('/');
+            if(parts.length < 3) return;
+            const d = parseInt(parts[0]), m = parseInt(parts[1]), y = parseInt(parts[2]);
             const hoy = new Date();
             let edad = hoy.getFullYear() - y;
             if (hoy.getMonth() + 1 < m || (hoy.getMonth() + 1 === m && hoy.getDate() < d)) edad--;
@@ -138,7 +138,7 @@
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked);
         };
 
-        // --- BUSCADOR CORREGIDO ---
+        // --- BUSCADOR CORREGIDO PARA COMPATIBILIDAD CON PRE-REGISTRO ---
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
             if (!busqueda) return;
@@ -159,19 +159,17 @@
                 avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b>: ${pre.copiloto}`;
                 avisoBox.style.display = 'block';
                 
-                // Autocompletado forzado
+                // MAPEADO CORRECTO DESDE PRE-REGISTRO
                 nombreInput.value = pre.copiloto || "";
                 document.getElementById('c-dni').value = pre.dni || "";
-                document.getElementById('c-nac').value = pre.fechaNac || "";
-                document.getElementById('c-redes').value = pre.redes || "";
+                document.getElementById('c-nac').value = pre.fecha_nac || ""; // Corregido
+                document.getElementById('c-redes').value = pre.insta || ""; // Corregido
                 
-                if(pre.fechaNac) validarEdad(pre.fechaNac);
-                if(pre.dniTutor) document.getElementById('c-dni-tutor').value = pre.dniTutor;
-                if(pre.nombreTutor) document.getElementById('c-nombre-tutor').value = pre.nombreTutor;
+                if(pre.fecha_nac) validarEdad(pre.fecha_nac);
+                if(pre.tutor_dni) document.getElementById('c-dni-tutor').value = pre.tutor_dni;
+                if(pre.tutor) document.getElementById('c-nombre-tutor').value = pre.tutor;
 
-                if(pre.metodoPago) {
-                    seleccionarPago(pre.metodoPago.toUpperCase().includes("TARJETA") ? "TARJETA" : "EFECTIVO");
-                }
+                if(pre.metodoPago) seleccionarPago(pre.metodoPago);
                 if(pre.piloto) setTimeout(() => { selPiloto.value = pre.piloto; }, 200);
 
                 proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
@@ -183,22 +181,7 @@
             fnValidar();
         };
 
-        // --- GESTIÓN DE PILOTOS (Ignora cabecera CSV) ---
-        document.getElementById('csv-pilotos').onchange = (e) => {
-            const fr = new FileReader();
-            fr.onload = async () => {
-                let lineas = fr.result.split('\n').map(l => l.trim()).filter(l => l);
-                lineas = lineas.filter(l => !l.toLowerCase().includes('dorsal') && !l.toLowerCase().includes('piloto'));
-                const listaLimpia = lineas.map(linea => {
-                    const columnas = linea.split(',');
-                    return columnas.length >= 2 ? `${columnas[0]} - ${columnas[1]} (${columnas[2] || ''})` : linea;
-                });
-                await set(ref(db, 'copilotajes/config_pilotos'), listaLimpia);
-            };
-            fr.readAsText(e.target.files[0]);
-        };
-
-        // --- REGISTRAR (Sin Popups) ---
+        // --- REGISTRAR ---
         window.registrar = async () => {
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
             
@@ -225,11 +208,10 @@
             } else {
                 await set(ref(db, 'copilotajes/ultimo_numero'), num);
             }
-
             location.reload(); 
         };
 
-        // --- EXPORTAR Y PREGUNTAR REINICIO ---
+        // --- EXPORTAR Y LIMPIAR ---
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const data = snap.val();
@@ -242,39 +224,32 @@
                     csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.fechaNac || ''}";"${i.redes || ''}";"${i.esMenor?'SI':'NO'}";"${i.dniTutor || ''}";"${i.nombreTutor || ''}";"${i.piloto}";"${i.metodoPago}";"${estado}"\n`;
                 });
             };
-
             procesar(data.espera, "ESPERA");
             procesar(data.completados, "FINALIZADO");
 
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `TAXI_DRIFT_LOG.csv`;
+            link.download = `LOG_EVENTO.csv`;
             link.click();
 
-            // Pregunta de borrado tras exportar
             setTimeout(async () => {
-                if(confirm("¿Quieres BORRAR todos los datos de la base de datos ahora? (Esto reiniciará la cola y el contador)")) {
+                if(confirm("¿Quieres BORRAR todos los datos de la base de datos ahora?")) {
                     await set(ref(db, 'copilotajes/espera'), null);
                     await set(ref(db, 'copilotajes/completados'), null);
                     await set(ref(db, 'copilotajes/ultimo_numero'), 0);
                     location.reload();
                 }
-            }, 1500);
+            }, 1000);
         };
 
-        // Sincronización inicial
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
             if(!registroRecuperado) proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
             
             const config = data.config_pilotos || [];
-            const bajas = data.pilotos_baja || [];
-            const activos = config.filter(p => !bajas.includes(p));
-            
-            document.getElementById('count-tag').innerText = activos.length;
-            selPiloto.innerHTML = activos.map(p => `<option value="${p}">${p}</option>`).join('');
+            selPiloto.innerHTML = config.map(p => `<option value="${p}">${p}</option>`).join('');
 
             const tEspera = document.getElementById('tabla-espera');
             tEspera.innerHTML = "";

@@ -14,7 +14,7 @@
         .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
         .btn-search { background: var(--accent); border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: 1.5em; transition: 0.2s; }
         .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
-        .extra-fields { display: none; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--accent); margin-bottom: 15px; }
+        .extra-fields { display: block; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--accent); margin-bottom: 15px; }
         .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         .input-manual { width: 100%; height: 45px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 0 10px; box-sizing: border-box; font-family: sans-serif; font-size: 0.9em; }
         .label-mini { font-size: 0.65em; color: #888; text-transform: uppercase; margin-bottom: 4px; display: block; }
@@ -52,8 +52,7 @@
             <button class="btn-search" onclick="buscarParticipante()">🔍</button>
         </div>
 
-        <!-- SECCIÓN DE DATOS (Se muestra siempre para asegurar que los datos estén ahí antes de registrar) -->
-        <div id="seccion-manual" class="extra-fields" style="display: block;">
+        <div id="seccion-manual" class="extra-fields">
             <div class="input-group">
                 <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual" placeholder="DNI"></div>
                 <div><span class="label-mini">Fecha Nacimiento</span><input type="text" id="c-nac" class="input-manual" placeholder="DD/MM/AAAA" oninput="validarEdad(this.value)"></div>
@@ -120,7 +119,8 @@
         // --- VALIDACIÓN DE EDAD ---
         window.validarEdad = (fecha) => {
             if(!fecha || fecha.length < 10) return;
-            const [d, m, y] = fecha.split('/').map(Number);
+            const parts = fecha.includes('/') ? fecha.split('/') : fecha.split('-');
+            const [d, m, y] = parts.map(Number);
             const hoy = new Date();
             let edad = hoy.getFullYear() - y;
             if (hoy.getMonth() + 1 < m || (hoy.getMonth() + 1 === m && hoy.getDate() < d)) edad--;
@@ -138,17 +138,16 @@
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked);
         };
 
-        // --- BUSCADOR CORREGIDO (UNIFICACIÓN DE CAMPOS) ---
+        // --- BUSCADOR CORREGIDO ---
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
             if (!busqueda) return;
             
-            const snap = await get(ref(db, 'copilotajes'));
-            const data = snap.val() || {};
-            const preData = data.pre_inscritos || {};
+            const snap = await get(ref(db, 'copilotajes/pre_inscritos'));
+            const preData = snap.val() || {};
 
             const preKey = Object.keys(preData).find(key => 
-                preData[key].copiloto.toLowerCase().includes(busqueda) || 
+                (preData[key].copiloto && preData[key].copiloto.toLowerCase().includes(busqueda)) || 
                 (preData[key].dni && preData[key].dni.toLowerCase() === busqueda) ||
                 (preData[key].nPapel && preData[key].nPapel.toString() === busqueda)
             );
@@ -160,25 +159,20 @@
                 avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b>: ${pre.copiloto}`;
                 avisoBox.style.display = 'block';
                 
-                // RELLENO FORZADO DE CAMPOS (Unificados con pre-registro)
+                // Autocompletado forzado
                 nombreInput.value = pre.copiloto || "";
                 document.getElementById('c-dni').value = pre.dni || "";
                 document.getElementById('c-nac').value = pre.fechaNac || "";
                 document.getElementById('c-redes').value = pre.redes || "";
                 
                 if(pre.fechaNac) validarEdad(pre.fechaNac);
-                
                 if(pre.dniTutor) document.getElementById('c-dni-tutor').value = pre.dniTutor;
                 if(pre.nombreTutor) document.getElementById('c-nombre-tutor').value = pre.nombreTutor;
 
                 if(pre.metodoPago) {
-                    const p = pre.metodoPago.toUpperCase();
-                    seleccionarPago(p.includes("TARJETA") ? "TARJETA" : "EFECTIVO");
+                    seleccionarPago(pre.metodoPago.toUpperCase().includes("TARJETA") ? "TARJETA" : "EFECTIVO");
                 }
-
-                if(pre.piloto) {
-                    setTimeout(() => { selPiloto.value = pre.piloto; }, 200);
-                }
+                if(pre.piloto) setTimeout(() => { selPiloto.value = pre.piloto; }, 200);
 
                 proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
             } else {
@@ -189,7 +183,7 @@
             fnValidar();
         };
 
-        // --- CARGAR PILOTOS ---
+        // --- GESTIÓN DE PILOTOS (Ignora cabecera CSV) ---
         document.getElementById('csv-pilotos').onchange = (e) => {
             const fr = new FileReader();
             fr.onload = async () => {
@@ -200,39 +194,76 @@
                     return columnas.length >= 2 ? `${columnas[0]} - ${columnas[1]} (${columnas[2] || ''})` : linea;
                 });
                 await set(ref(db, 'copilotajes/config_pilotos'), listaLimpia);
-                alert("Pilotos cargados");
             };
             fr.readAsText(e.target.files[0]);
         };
 
-        // --- GESTIÓN PILOTOS ---
-        document.getElementById('btn-gestionar-pilotos').onclick = async () => {
-            const snap = await get(ref(db, 'copilotajes'));
-            const data = snap.val() || {};
-            const config = data.config_pilotos || [];
-            const bajas = data.pilotos_baja || [];
+        // --- REGISTRAR (Sin Popups) ---
+        window.registrar = async () => {
+            const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
             
-            let html = config.map(p => `
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:12px; margin-bottom:8px; border-radius:8px; border:1px solid #444;">
-                    <span style="font-size:0.9em; font-family:sans-serif;">${p}</span>
-                    <input type="checkbox" style="transform:scale(1.6); cursor:pointer;" ${bajas.includes(p) ? '' : 'checked'} onchange="window.toggleEstado('${p}')">
-                </div>`).join('');
+            const d = {
+                nPapel: num,
+                copiloto: nombreInput.value.trim(),
+                piloto: selPiloto.value,
+                metodoPago: metodoPago,
+                dni: document.getElementById('c-dni').value.trim(),
+                fechaNac: document.getElementById('c-nac').value.trim(),
+                redes: document.getElementById('c-redes').value.trim(),
+                esMenor: esMenorFlag,
+                dniTutor: esMenorFlag ? document.getElementById('c-dni-tutor').value.trim() : "",
+                nombreTutor: esMenorFlag ? document.getElementById('c-nombre-tutor').value.trim() : "",
+                enRecinto: false,
+                finalizado: false,
+                ts: Date.now()
+            };
 
-            const modal = document.createElement('div');
-            modal.style = "position:fixed; top:5%; left:5%; width:90%; height:90%; background:rgba(0,0,0,0.98); border:2px solid var(--accent); z-index:1000; padding:20px; overflow-y:auto; border-radius:15px; box-sizing:border-box;";
-            modal.innerHTML = `<h2 style="color:var(--accent); margin-top:0;">ESTADO PILOTOS</h2>${html}<button onclick="this.parentElement.remove()" style="width:100%; padding:18px; background:var(--accent); border:none; font-weight:bold; margin-top:10px; border-radius:10px;">CERRAR</button>`;
-            document.body.appendChild(modal);
+            await push(ref(db, 'copilotajes/espera'), d);
+            
+            if(registroRecuperado && registroRecuperado.firebaseKey) {
+                await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.firebaseKey}`));
+            } else {
+                await set(ref(db, 'copilotajes/ultimo_numero'), num);
+            }
+
+            location.reload(); 
         };
 
-        window.toggleEstado = async (p) => {
-            const snap = await get(ref(db, 'copilotajes/pilotos_baja'));
-            let bajas = snap.val() || [];
-            const idx = bajas.indexOf(p);
-            if(idx > -1) bajas.splice(idx, 1); else bajas.push(p);
-            await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
+        // --- EXPORTAR Y PREGUNTAR REINICIO ---
+        document.getElementById('btn-reset').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
+            const data = snap.val();
+            if(!data) return;
+
+            let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO\n";
+            const procesar = (lista, estado) => {
+                if(!lista) return;
+                Object.values(lista).forEach(i => {
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.fechaNac || ''}";"${i.redes || ''}";"${i.esMenor?'SI':'NO'}";"${i.dniTutor || ''}";"${i.nombreTutor || ''}";"${i.piloto}";"${i.metodoPago}";"${estado}"\n`;
+                });
+            };
+
+            procesar(data.espera, "ESPERA");
+            procesar(data.completados, "FINALIZADO");
+
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `TAXI_DRIFT_LOG.csv`;
+            link.click();
+
+            // Pregunta de borrado tras exportar
+            setTimeout(async () => {
+                if(confirm("¿Quieres BORRAR todos los datos de la base de datos ahora? (Esto reiniciará la cola y el contador)")) {
+                    await set(ref(db, 'copilotajes/espera'), null);
+                    await set(ref(db, 'copilotajes/completados'), null);
+                    await set(ref(db, 'copilotajes/ultimo_numero'), 0);
+                    location.reload();
+                }
+            }, 1500);
         };
 
-        // --- SINCRONIZACIÓN COLA ---
+        // Sincronización inicial
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
@@ -261,66 +292,6 @@
         });
 
         window.marcarAcceso = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
-
-        // --- REGISTRAR FINAL (AQUÍ SE ASEGURAN LOS DATOS) ---
-        window.registrar = async () => {
-            const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
-            
-            // Recogemos los datos DIRECTAMENTE de los inputs de la pantalla de logística
-            const d = {
-                nPapel: num,
-                copiloto: nombreInput.value.trim(),
-                piloto: selPiloto.value,
-                metodoPago: metodoPago,
-                dni: document.getElementById('c-dni').value.trim(),
-                fechaNac: document.getElementById('c-nac').value.trim(),
-                redes: document.getElementById('c-redes').value.trim(),
-                esMenor: esMenorFlag,
-                dniTutor: esMenorFlag ? document.getElementById('c-dni-tutor').value.trim() : "",
-                nombreTutor: esMenorFlag ? document.getElementById('c-nombre-tutor').value.trim() : "",
-                enRecinto: false,
-                finalizado: false,
-                ts: Date.now()
-            };
-
-            // Guardar en cola de espera
-            await push(ref(db, 'copilotajes/espera'), d);
-            
-            // Si venía de pre-registro, eliminarlo
-            if(registroRecuperado && registroRecuperado.firebaseKey) {
-                await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.firebaseKey}`));
-            } else {
-                await set(ref(db, 'copilotajes/ultimo_numero'), num);
-            }
-
-            alert("Registro completado con éxito");
-            location.reload(); 
-        };
-
-        // --- EXPORTAR ---
-        document.getElementById('btn-reset').onclick = async () => {
-            const snap = await get(ref(db, 'copilotajes'));
-            const data = snap.val();
-            if(!data) return alert("Sin datos");
-
-            let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO\n";
-            const procesar = (lista, estado) => {
-                if(!lista) return;
-                Object.values(lista).forEach(i => {
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni}";"${i.fechaNac}";"${i.redes}";"${i.esMenor?'SI':'NO'}";"${i.dniTutor || ''}";"${i.nombreTutor || ''}";"${i.piloto}";"${i.metodoPago}";"${estado}"\n`;
-                });
-            };
-
-            procesar(data.espera, "ESPERA");
-            procesar(data.completados, "FINALIZADO");
-
-            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `TAXI_DRIFT_LOG.csv`;
-            link.click();
-        };
-
         nombreInput.oninput = fnValidar;
     </script>
 </body>

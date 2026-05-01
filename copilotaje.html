@@ -52,7 +52,8 @@
             <button class="btn-search" onclick="buscarParticipante()">🔍</button>
         </div>
 
-        <div id="seccion-manual" class="extra-fields">
+        <!-- SECCIÓN DE DATOS (Se muestra siempre para asegurar que los datos estén ahí antes de registrar) -->
+        <div id="seccion-manual" class="extra-fields" style="display: block;">
             <div class="input-group">
                 <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual" placeholder="DNI"></div>
                 <div><span class="label-mini">Fecha Nacimiento</span><input type="text" id="c-nac" class="input-manual" placeholder="DD/MM/AAAA" oninput="validarEdad(this.value)"></div>
@@ -116,16 +117,15 @@
         const selPiloto = document.getElementById('c-piloto');
         const proximoNumTxt = document.getElementById('v-proximo-numero');
 
-        // --- FUNCIONES INTERFAZ ---
+        // --- VALIDACIÓN DE EDAD ---
         window.validarEdad = (fecha) => {
-            if(fecha.length === 10) {
-                const [d, m, y] = fecha.split('/').map(Number);
-                const hoy = new Date();
-                let edad = hoy.getFullYear() - y;
-                if (hoy.getMonth() + 1 < m || (hoy.getMonth() + 1 === m && hoy.getDate() < d)) edad--;
-                esMenorFlag = edad < 18;
-                document.getElementById('box-menor').style.display = esMenorFlag ? 'block' : 'none';
-            }
+            if(!fecha || fecha.length < 10) return;
+            const [d, m, y] = fecha.split('/').map(Number);
+            const hoy = new Date();
+            let edad = hoy.getFullYear() - y;
+            if (hoy.getMonth() + 1 < m || (hoy.getMonth() + 1 === m && hoy.getDate() < d)) edad--;
+            esMenorFlag = edad < 18;
+            document.getElementById('box-menor').style.display = esMenorFlag ? 'block' : 'none';
         };
 
         window.seleccionarPago = (tipo) => {
@@ -138,7 +138,7 @@
             btnAdd.disabled = !(nombreInput.value.trim() && firmaChk.checked);
         };
 
-        // --- BUSCADOR CORREGIDO (AUTORELLENO TOTAL) ---
+        // --- BUSCADOR CORREGIDO (UNIFICACIÓN DE CAMPOS) ---
         window.buscarParticipante = async () => {
             const busqueda = nombreInput.value.trim().toLowerCase();
             if (!busqueda) return;
@@ -147,7 +147,6 @@
             const data = snap.val() || {};
             const preData = data.pre_inscritos || {};
 
-            // Buscar por nombre, DNI o Ticket (nPapel)
             const preKey = Object.keys(preData).find(key => 
                 preData[key].copiloto.toLowerCase().includes(busqueda) || 
                 (preData[key].dni && preData[key].dni.toLowerCase() === busqueda) ||
@@ -156,65 +155,62 @@
 
             if (preKey) {
                 const pre = preData[preKey];
-                registroRecuperado = { ...pre, firebaseKey: keySiExiste(preData, preKey) || preKey };
+                registroRecuperado = { ...pre, firebaseKey: preKey };
                 
-                // Rellenar Interfaz
                 avisoBox.innerHTML = `⚡ <b>PRE-INSCRIPCIÓN ENCONTRADA</b>: ${pre.copiloto}`;
                 avisoBox.style.display = 'block';
                 
-                nombreInput.value = pre.copiloto;
-                proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
-                
-                // Rellenar campos ocultos si existen
+                // RELLENO FORZADO DE CAMPOS (Unificados con pre-registro)
+                nombreInput.value = pre.copiloto || "";
                 document.getElementById('c-dni').value = pre.dni || "";
                 document.getElementById('c-nac').value = pre.fechaNac || "";
                 document.getElementById('c-redes').value = pre.redes || "";
                 
-                // Validar edad para mostrar tutor
                 if(pre.fechaNac) validarEdad(pre.fechaNac);
+                
                 if(pre.dniTutor) document.getElementById('c-dni-tutor').value = pre.dniTutor;
                 if(pre.nombreTutor) document.getElementById('c-nombre-tutor').value = pre.nombreTutor;
 
-                // Forma de pago y Piloto
-                if(pre.metodoPago) seleccionarPago(pre.metodoPago.toUpperCase());
-                if(pre.piloto) setTimeout(() => { selPiloto.value = pre.piloto; }, 100);
+                if(pre.metodoPago) {
+                    const p = pre.metodoPago.toUpperCase();
+                    seleccionarPago(p.includes("TARJETA") ? "TARJETA" : "EFECTIVO");
+                }
 
-                document.getElementById('seccion-manual').style.display = 'block'; // Mostrar para verificar
+                if(pre.piloto) {
+                    setTimeout(() => { selPiloto.value = pre.piloto; }, 200);
+                }
+
+                proximoNumTxt.innerText = pre.nPapel.toString().padStart(3, '0');
             } else {
                 avisoBox.style.display = 'none';
                 registroRecuperado = null;
                 proximoNumTxt.innerText = proximoNumeroLibre.toString().padStart(3, '0');
-                document.getElementById('seccion-manual').style.display = 'block';
             }
             fnValidar();
         };
 
-        function keySiExiste(obj, k) { return obj.hasOwnProperty(k) ? k : null; }
-
-        // --- CARGAR PILOTOS (IGNORANDO CABECERA) ---
+        // --- CARGAR PILOTOS ---
         document.getElementById('csv-pilotos').onchange = (e) => {
             const fr = new FileReader();
             fr.onload = async () => {
                 let lineas = fr.result.split('\n').map(l => l.trim()).filter(l => l);
-                
-                // FILTRO CRÍTICO: Si la línea contiene "Dorsal" o "Piloto", es la cabecera. La borramos.
                 lineas = lineas.filter(l => !l.toLowerCase().includes('dorsal') && !l.toLowerCase().includes('piloto'));
-
                 const listaLimpia = lineas.map(linea => {
                     const columnas = linea.split(',');
                     return columnas.length >= 2 ? `${columnas[0]} - ${columnas[1]} (${columnas[2] || ''})` : linea;
                 });
                 await set(ref(db, 'copilotajes/config_pilotos'), listaLimpia);
-                alert("Pilotos cargados correctamente (cabecera ignorada)");
+                alert("Pilotos cargados");
             };
             fr.readAsText(e.target.files[0]);
         };
 
-        // --- GESTIÓN PILOTOS (DISEÑO LIMPIO) ---
+        // --- GESTIÓN PILOTOS ---
         document.getElementById('btn-gestionar-pilotos').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
-            const config = snap.val().config_pilotos || [];
-            const bajas = snap.val().pilotos_baja || [];
+            const data = snap.val() || {};
+            const config = data.config_pilotos || [];
+            const bajas = data.pilotos_baja || [];
             
             let html = config.map(p => `
                 <div style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:12px; margin-bottom:8px; border-radius:8px; border:1px solid #444;">
@@ -224,11 +220,7 @@
 
             const modal = document.createElement('div');
             modal.style = "position:fixed; top:5%; left:5%; width:90%; height:90%; background:rgba(0,0,0,0.98); border:2px solid var(--accent); z-index:1000; padding:20px; overflow-y:auto; border-radius:15px; box-sizing:border-box;";
-            modal.innerHTML = `
-                <h2 style="color:var(--accent); margin-top:0; border-bottom:1px solid #333; padding-bottom:10px;">ESTADO PILOTOS</h2>
-                <div style="margin-bottom:20px;">${html}</div>
-                <button onclick="this.parentElement.remove()" style="width:100%; padding:18px; background:var(--accent); border:none; font-weight:bold; border-radius:10px; cursor:pointer;">CERRAR</button>
-            `;
+            modal.innerHTML = `<h2 style="color:var(--accent); margin-top:0;">ESTADO PILOTOS</h2>${html}<button onclick="this.parentElement.remove()" style="width:100%; padding:18px; background:var(--accent); border:none; font-weight:bold; margin-top:10px; border-radius:10px;">CERRAR</button>`;
             document.body.appendChild(modal);
         };
 
@@ -240,7 +232,7 @@
             await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
         };
 
-        // --- SINCRONIZACIÓN ---
+        // --- SINCRONIZACIÓN COLA ---
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
@@ -270,9 +262,11 @@
 
         window.marcarAcceso = (id) => update(ref(db, `copilotajes/espera/${id}`), { enRecinto: true });
 
-        // --- REGISTRAR ---
+        // --- REGISTRAR FINAL (AQUÍ SE ASEGURAN LOS DATOS) ---
         window.registrar = async () => {
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
+            
+            // Recogemos los datos DIRECTAMENTE de los inputs de la pantalla de logística
             const d = {
                 nPapel: num,
                 copiloto: nombreInput.value.trim(),
@@ -289,16 +283,17 @@
                 ts: Date.now()
             };
 
+            // Guardar en cola de espera
             await push(ref(db, 'copilotajes/espera'), d);
             
+            // Si venía de pre-registro, eliminarlo
             if(registroRecuperado && registroRecuperado.firebaseKey) {
-                // Borrar de pre-inscritos por su clave real
                 await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.firebaseKey}`));
             } else {
                 await set(ref(db, 'copilotajes/ultimo_numero'), num);
             }
 
-            // Reset
+            alert("Registro completado con éxito");
             location.reload(); 
         };
 
@@ -309,12 +304,10 @@
             if(!data) return alert("Sin datos");
 
             let csv = "TICKET;NOMBRE;DNI;NACIMIENTO;REDES;MENOR;DNI_TUTOR;NOMBRE_TUTOR;PILOTO;PAGO;ESTADO\n";
-            const limpiar = (t) => t ? t.toString().replace(/;/g, ',').replace(/"/g, "'").trim() : "";
-            
             const procesar = (lista, estado) => {
                 if(!lista) return;
                 Object.values(lista).forEach(i => {
-                    csv += [i.nPapel, i.copiloto, i.dni, i.fechaNac, i.redes, i.esMenor?'SI':'NO', i.dniTutor, i.nombreTutor, i.piloto, i.metodoPago, estado].map(f => `"${limpiar(f)}"`).join(';') + "\n";
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni}";"${i.fechaNac}";"${i.redes}";"${i.esMenor?'SI':'NO'}";"${i.dniTutor || ''}";"${i.nombreTutor || ''}";"${i.piloto}";"${i.metodoPago}";"${estado}"\n`;
                 });
             };
 
@@ -326,15 +319,6 @@
             link.href = URL.createObjectURL(blob);
             link.download = `TAXI_DRIFT_LOG.csv`;
             link.click();
-
-            setTimeout(async () => {
-                if(confirm("¿Se descargó? ¿BORRAR TODO?")) {
-                    await set(ref(db, 'copilotajes/espera'), null);
-                    await set(ref(db, 'copilotajes/completados'), null);
-                    await set(ref(db, 'copilotajes/ultimo_numero'), 0);
-                    location.reload();
-                }
-            }, 1000);
         };
 
         nombreInput.oninput = fnValidar;

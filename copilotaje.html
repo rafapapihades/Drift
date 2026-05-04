@@ -209,7 +209,8 @@
                 enRecinto: false,
                 finalizado: false,
                 // Tiempos para el reporte
-                horaPreRegistro: registroRecuperado ? (registroRecuperado.ts ? new Date(registroRecuperado.ts).toLocaleTimeString() : "WEB") : "MANUAL",
+                origenRegistro: registroRecuperado ? "PRE-REGISTRO" : "TAQUILLA",
+                horaPreRegistro: registroRecuperado ? (registroRecuperado.ts ? new Date(registroRecuperado.ts).toLocaleTimeString() : "") : "",
                 horaRegistroLogistica: getTime(),
                 horaEntradaRecinto: "",
                 horaEntradaPista: "",
@@ -341,14 +342,16 @@
             const d = snap.val();
             if(!d) return;
 
-            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;ES_MENOR;TUTOR;DNI_TUTOR;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION\n";
+            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;ORIGEN;ES_MENOR;TUTOR;DNI_TUTOR;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION\n";
             
             const procesarLista = (lista) => {
                 if(!lista) return;
                 Object.values(lista).forEach(i => {
                     const tutorNombre = i.nombreTutor || i.tutor || "";
                     const tutorDni = i.dniTutor || i.tutor_dni || "";
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${(i.esMenor || tutorNombre || tutorDni) ? 'SI' : 'NO'}";"${tutorNombre}";"${tutorDni}";"${i.horaPreRegistro || ''}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}"\n`;
+                    const origen = i.origenRegistro || ((i.horaPreRegistro && i.horaPreRegistro !== 'MANUAL') ? 'PRE-REGISTRO' : 'TAQUILLA');
+                    const horaPre = (i.horaPreRegistro && i.horaPreRegistro !== 'MANUAL') ? i.horaPreRegistro : '';
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${origen}";"${(i.esMenor || tutorNombre || tutorDni) ? 'SI' : 'NO'}";"${tutorNombre}";"${tutorDni}";"${horaPre}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}"\n`;
                 });
             };
 

@@ -261,7 +261,7 @@
             const itemVoto = itemSnap.val();
             if(!itemVoto) return;
 
-            let count = 5;
+            let count = 10;
             await db.ref(`votacion_activa/items/${dorsalSalida}`).update({ cerrando: true, timer: count });
             const inv = setInterval(async () => {
                 count--;
@@ -399,5 +399,6 @@
     </script>
 </body>
 </html>
+
 
 

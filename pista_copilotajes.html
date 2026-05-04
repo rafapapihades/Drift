@@ -3,399 +3,485 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CONTROL PISTA - TAXI DRIFT</title>
+    <title>LOGÍSTICA TAXI DRIFT - SISTEMA INTEGRAL</title>
     <style>
-        :root { --accent: #ffcc00; --bg: #000; --card: #1a1a1a; --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
-        * { box-sizing: border-box; }
-        body { 
-            background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg);
-            color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; 
-        }
-        .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
-        .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
+        :root { --accent: #ffcc00; --bg: #111; --card: rgba(25, 25, 25, 0.95); --green: #28a745; --red: #ff0000; --blue: #007bff; --orange: #fd7e14; }
+        body { background-image: url('Fibra3.png'); background-repeat: repeat; background-color: var(--bg); color: #fff; font-family: 'Arial Black', Gadget, sans-serif; padding: 10px; margin: 0; }
         
-        .pista-status-bar {
-            width: 100%; padding: 15px; border-radius: 10px; text-align: center;
-            font-size: 1.2em; font-weight: 900; text-transform: uppercase;
-            margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .card { background: rgba(25, 25, 25, 0.95); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
-        .section-title { font-size: 0.85em; color: var(--accent); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
+        /* Header */
+        .header-top { display: flex; flex-direction: column; align-items: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border: 2px solid #333; margin-bottom: 15px; gap: 12px; }
+        .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; object-fit: contain; }
+        .event-name-input { background: transparent; border: none; border-bottom: 2px solid #444; color: var(--accent); font-size: 1.2em; text-align: center; width: 90%; font-family: 'Arial Black', sans-serif; outline: none; }
         
-        .n-doc { background: var(--accent); color: #000; padding: 8px 12px; border-radius: 8px; font-weight: 900; margin-right: 10px; font-size: 2.2em; display: inline-block; line-height: 1; }
-        .matricula { display: inline-flex; align-items: center; background: #fff; color: #000; border-radius: 4px; overflow: hidden; border: 1px solid #fff; margin-top: 5px; }
-        .m-bandera { background: #003399; color: white; padding: 4px 5px; font-size: 0.6em; }
-        .m-num { padding: 2px 12px; font-size: 1.4em; font-weight: 900; }
-        .time-info { font-size: 0.75em; color: #00ff99; display: block; margin-top: 8px; font-family: sans-serif; font-weight: bold; }
+        /* Main Card & Inputs */
+        .main-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-search { background: var(--accent); border: none; border-radius: 10px; padding: 0 20px; cursor: pointer; font-size: 1.5em; transition: 0.2s; }
+        .btn-search:active { transform: scale(0.95); }
+        
+        .input-huge { width: 100%; height: 60px; background: #000; border: 1px solid #444; border-radius: 10px; color: #fff; font-size: 1.2em; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; font-family: sans-serif; }
+        
+        .extra-fields { display: block; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--accent); margin-bottom: 15px; }
+        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .input-manual { width: 100%; height: 45px; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 0 10px; box-sizing: border-box; font-family: sans-serif; font-size: 0.9em; }
+        .label-mini { font-size: 0.65em; color: #888; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        
+        /* Pago */
+        .pago-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .pago-option { flex: 1; padding: 15px; text-align: center; border-radius: 10px; border: 2px solid #444; cursor: pointer; transition: 0.3s; background: #000; font-size: 0.9em; opacity: 0.5; font-family: sans-serif; font-weight: bold; }
+        .pago-option.selected { border-color: var(--accent); color: var(--accent); opacity: 1; background: rgba(255, 204, 0, 0.1); }
+        
+        /* Numero Turno */
+        .doc-box { background: #000; border: 1px solid var(--accent); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px; }
+        .doc-box b { font-size: 2.8em; font-family: monospace; color: var(--accent); }
+        
+        /* Botones de Acción */
+        .chk-massive { width: 100%; height: 65px; background: #1a1a1a; border-radius: 10px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 15px; cursor: pointer; margin-bottom: 20px; }
+        .btn-add-massive { width: 100%; height: 75px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 #155d27; }
+        .btn-add-massive:disabled { background: #222; color: #555; box-shadow: none; opacity: 0.4; cursor: not-allowed; }
 
+        /* Tabla Cola */
+        .table-card { background: rgba(0,0,0,0.95); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
         table { width: 100%; border-collapse: collapse; }
-        td { padding: 15px 8px; border-bottom: 1px solid #222; }
-
-        .btn-recinto { background: #003399; color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #002266; }
-        .btn-pista { background: var(--green); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #155d27; }
-        .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
-        .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; width: 100%; }
-        .btn-reasignar { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer; margin-top: 8px; }
+        td { padding: 12px 5px; border-bottom: 1px solid #222; font-family: sans-serif; font-size: 0.85em;}
+        .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
+        .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .badge-recinto { background: #111; color: var(--blue); border: 1px solid var(--blue); padding: 5px; border-radius: 5px; font-size: 0.7em; font-weight: bold; }
         
-        .selector-rapido { background: #000; color: var(--accent); border: 1px solid var(--accent); padding: 5px; border-radius: 5px; width: 100%; margin-top: 5px; font-size: 0.9em; }
-
-        #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; font-size: 1.1em; }
-
-        #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: #111; padding: 25px; border-radius: 15px; border: 2px solid var(--accent); width: 90%; max-width: 400px; text-align: center; }
-        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-modal { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; color: white; }
+        /* Modal Pilotos */
+        #modal-pilotos { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; box-sizing:border-box; }
+        #modal-sorteo { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1001; padding:20px; box-sizing:border-box; }
+        .piloto-row { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: #222; margin-bottom: 8px; border-radius: 8px; border: 1px solid #333; }
+        .sorteo-numero { color: var(--accent); font-family: monospace; font-size: 4.5em; line-height: 1; margin: 18px 0; text-shadow: 0 0 25px rgba(255,204,0,0.35); }
+        .sorteo-info { color:#aaa; font-family:sans-serif; font-size:0.9em; line-height:1.5; }
+        
+        .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap; margin-bottom: 30px; }
+        .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
     </style>
-
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
 
-    <div id="custom-confirm">
-        <div class="modal-content">
-            <h2 id="confirm-text" style="color:white; margin:0; font-size: 1.1em;">¿CONFIRMAR?</h2>
-            <div class="modal-btns">
-                <button class="btn-modal" style="background:#444;" onclick="handleConfirm(false)">CANCELAR</button>
-                <button class="btn-modal" style="background:var(--orange);" onclick="handleConfirm(true)">CONFIRMAR</button>
+    <div class="header-top">
+        <img src="logotaxi.jpg" alt="Logo" class="header-logo">
+        <input type="text" id="nombre-evento" class="event-name-input" placeholder="NOMBRE DEL EVENTO">
+    </div>
+
+    <div class="main-card">
+        <div id="aviso-repetido" style="display:none; padding:15px; border-radius:10px; margin-bottom:15px; border:2px solid var(--accent); background:#2c2505; color:#fff; text-align:center; font-family:sans-serif;"></div>
+        
+        <div class="search-container">
+            <input type="text" id="c-nombre" class="input-huge" style="margin-bottom:0" placeholder="BUSCAR NOMBRE, DNI o TURNO">
+            <button class="btn-search" onclick="buscarParticipante()">🔍</button>
+        </div>
+
+        <div class="extra-fields">
+            <div class="input-group">
+                <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual"></div>
+                <div><span class="label-mini">Fecha Nacimiento</span><input type="text" id="c-nac" class="input-manual" placeholder="DD/MM/AAAA" oninput="validarEdad(this.value)"></div>
             </div>
+            <div style="margin-bottom: 10px;"><span class="label-mini">Instagram / TikTok</span><input type="text" id="c-redes" class="input-manual"></div>
+            
+            <div id="box-menor" style="display:none; background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--orange); margin-top: 10px;">
+                <div style="color:var(--orange); font-size:0.7em; font-weight:bold; margin-bottom:8px;">AUTORIZACIÓN MENOR DE EDAD</div>
+                <div class="input-group">
+                    <div><span class="label-mini">DNI TUTOR</span><input type="text" id="c-dni-tutor" class="input-manual"></div>
+                    <div><span class="label-mini">NOMBRE TUTOR</span><input type="text" id="c-nombre-tutor" class="input-manual"></div>
+                </div>
+            </div>
+        </div>
+        
+        <select id="c-piloto" class="input-huge"></select>
+
+        <div class="pago-container">
+            <div id="pago-efectivo" class="pago-option selected" onclick="seleccionarPago('EFECTIVO')">💵 EFECTIVO</div>
+            <div id="pago-tarjeta" class="pago-option" onclick="seleccionarPago('TARJETA')">💳 TARJETA</div>
+        </div>
+
+        <div class="doc-box"><small>Nº DOCUMENTO CORRELATIVO</small><br><b id="v-proximo-numero">001</b></div>
+
+        <label class="chk-massive"><input type="checkbox" id="c-firma" onchange="fnValidar()"> <span style="font-family: sans-serif; font-weight: bold; margin-left:10px;">RESPONSABILIDAD FIRMADA</span></label>
+        <button id="btn-add" class="btn-add-massive" disabled onclick="registrar()">CONFIRMAR REGISTRO</button>
+    </div>
+
+    <div class="table-card">
+        <div style="font-size:0.85em; color:var(--accent); font-weight:bold; margin-bottom:15px; text-transform: uppercase; display: flex; justify-content: space-between;">
+            <span>📋 Cola de Acceso</span>
+            <span id="contador-espera">0 personas</span>
+        </div>
+        <table id="tabla-espera"></table>
+
+        <div style="font-size:0.75em; color:#888; font-weight:bold; margin:18px 0 10px; text-transform: uppercase;">
+            ÚLTIMOS COPILOTOS SALIDOS DEL RECINTO
+        </div>
+        <table id="tabla-ultimos"></table>
+    </div>
+
+    <div class="controls-row">
+        <button class="btn-mini" id="btn-cargar-pilotos" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (0)</button>
+        <button class="btn-mini" id="btn-estado-pilotos" onclick="document.getElementById('modal-pilotos').style.display='block'" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS (0)</button>
+        <button class="btn-mini" id="btn-sorteo" onclick="abrirSorteo()" style="color:var(--accent); border-color:var(--accent);">SORTEO VOTANTES</button>
+        <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">EXPORTAR Y REINICIAR</button>
+    </div>
+    <input type="file" id="csv-pilotos" hidden accept=".csv">
+
+    <!-- Modal Pilotos -->
+    <div id="modal-pilotos">
+        <div style="max-width: 500px; margin: auto; background: #111; padding: 20px; border-radius: 15px; border: 1px solid var(--accent); max-height: 80vh; overflow-y: auto;">
+            <h2 style="color:var(--accent); margin-top:0;">PILOTOS DISPONIBLES</h2>
+            <div id="lista-check-pilotos"></div>
+            <button class="btn-add-massive" style="height:50px; margin-top:20px; font-size:1em;" onclick="document.getElementById('modal-pilotos').style.display='none'">CERRAR PANEL</button>
         </div>
     </div>
 
-    <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
-    
-    <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">ESTADO: CONECTANDO...</div>
-
-    <input type="search" id="buscador" placeholder="🔍 BUSCAR TURNO O NOMBRE..." oninput="filtrar()">
-
-    <div class="card">
-        <div class="section-title">⏳ 1. COLA DE ACCESO (PENDIENTES)</div>
-        <table id="lista-cola-acceso"></table>
+    <!-- Modal Sorteo -->
+    <div id="modal-sorteo">
+        <div style="max-width: 500px; margin: auto; background: #111; padding: 24px; border-radius: 15px; border: 1px solid var(--accent); text-align:center;">
+            <h2 style="color:var(--accent); margin-top:0;">SORTEO DE VOTANTES</h2>
+            <div class="sorteo-info" id="sorteo-total">Participantes cargados: 0</div>
+            <div class="sorteo-numero" id="sorteo-numero">---</div>
+            <div class="sorteo-info" id="sorteo-detalle">Pulsa sortear para elegir un participante.</div>
+            <button class="btn-add-massive" style="height:60px; margin-top:20px; font-size:1em;" onclick="sortearParticipante()">SORTEAR</button>
+            <button class="btn-mini" style="width:100%; margin-top:15px;" onclick="document.getElementById('modal-sorteo').style.display='none'">CERRAR PANEL</button>
+        </div>
     </div>
 
-    <div class="card" style="border-color: var(--orange);">
-        <div class="section-title" style="color: var(--orange);">📍 2. ESPERA EN RECINTO (LISTOS)</div>
-        <table id="lista-espera-recinto"></table>
-    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, remove, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    <div class="card" style="border-color: var(--green);">
-        <div class="section-title" style="color: var(--green);">🏁 3. EN PISTA / RETORNO</div>
-        <table id="lista-pista-activa"></table>
-    </div>
+        const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-    <script>
-        firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
-        const db = firebase.database();
+        let registroRecuperado = null;
+        let metodoPago = "EFECTIVO";
+        let proximoNumeroLibre = 1;
+        let esMenorFlag = false;
+        let pilotoPreseleccionado = "";
 
-        let confirmAction = null;
-        let pilotosDisponibles = [];
+        const getTime = () => new Date().toLocaleTimeString('es-ES');
 
-        window.showConfirm = (texto, cb) => {
-            document.getElementById('confirm-text').innerText = texto;
-            document.getElementById('custom-confirm').style.display = 'flex';
-            confirmAction = cb;
-        };
-        window.handleConfirm = (v) => {
-            document.getElementById('custom-confirm').style.display = 'none';
-            if(v && confirmAction) confirmAction();
-            confirmAction = null;
-        };
+        // BÚSQUEDA EN PRE-INSCRITOS
+        window.buscarParticipante = async () => {
+            const busqueda = document.getElementById('c-nombre').value.trim().toLowerCase();
+            if (!busqueda) return;
+            
+            const snap = await get(ref(db, 'copilotajes/pre_inscritos'));
+            const preData = snap.val() || {};
+            
+            const preKey = Object.keys(preData).find(key => 
+                (preData[key].copiloto && preData[key].copiloto.toLowerCase().includes(busqueda)) || 
+                (preData[key].dni && preData[key].dni.toLowerCase() === busqueda) ||
+                (preData[key].nPapel && preData[key].nPapel.toString() === busqueda)
+            );
 
-        db.ref('estado_pista').on('value', s => {
-            const d = s.val();
-            if(d) {
-                const bar = document.getElementById('status-bar');
-                bar.innerText = d.mensaje; 
-                bar.style.background = d.color;
-                bar.style.color = (d.color === '#ffcc00' || d.color === 'yellow') ? '#000' : '#fff';
+            if (preKey) {
+                const pre = preData[preKey];
+                registroRecuperado = { ...pre, firebaseKey: preKey };
+                document.getElementById('aviso-repetido').innerHTML = `⚡ PRE-INSCRIPCIÓN HALLADA: #${pre.nPapel} - ${pre.copiloto}`;
+                document.getElementById('aviso-repetido').style.display = 'block';
+                
+                document.getElementById('c-nombre').value = pre.copiloto;
+                document.getElementById('c-dni').value = pre.dni || "";
+                document.getElementById('c-nac').value = pre.fecha_nac || "";
+                document.getElementById('c-redes').value = pre.insta || "";
+                pilotoPreseleccionado = pre.piloto || "";
+                aplicarPilotoPreseleccionado();
+                seleccionarPago(pre.metodoPago || "EFECTIVO");
+                
+                validarEdad(pre.fecha_nac || "");
+                if(pre.tutor_dni) document.getElementById('c-dni-tutor').value = pre.tutor_dni;
+                if(pre.tutor) document.getElementById('c-nombre-tutor').value = pre.tutor;
+                if(pre.tutor || pre.tutor_dni || pre.nombreTutor || pre.dniTutor) {
+                    esMenorFlag = true;
+                    document.getElementById('box-menor').style.display = 'block';
+                }
+                
+                document.getElementById('v-proximo-numero').innerText = pre.nPapel.toString().padStart(3, '0');
+            } else {
+                alert("No se encontró ninguna pre-inscripción con esos datos.");
             }
-        });
+            fnValidar();
+        };
 
-        db.ref('inscritos_drift').on('value', s => {
-            const data = s.val() || {};
-            pilotosDisponibles = Object.entries(data).map(([dorsal, p]) => {
-                return { dorsal, label: `[#${dorsal}] ${p.piloto} | ${p.coche}` };
+        // REGISTRAR Y PASAR A COLA
+        window.registrar = async () => {
+            const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
+            const nombreTutor = document.getElementById('c-nombre-tutor').value.trim() || registroRecuperado?.tutor || registroRecuperado?.nombreTutor || "";
+            const dniTutor = document.getElementById('c-dni-tutor').value.trim() || registroRecuperado?.tutor_dni || registroRecuperado?.dniTutor || "";
+            const esMenorFinal = esMenorFlag || !!nombreTutor || !!dniTutor;
+            
+            const payload = {
+                nPapel: num,
+                copiloto: document.getElementById('c-nombre').value.trim(),
+                dni: document.getElementById('c-dni').value.trim(),
+                fechaNac: document.getElementById('c-nac').value.trim(),
+                redes: document.getElementById('c-redes').value.trim(),
+                piloto: document.getElementById('c-piloto').value,
+                metodoPago: metodoPago,
+                esMenor: esMenorFinal,
+                nombreTutor: esMenorFinal ? nombreTutor : "",
+                dniTutor: esMenorFinal ? dniTutor : "",
+                enRecinto: false,
+                finalizado: false,
+                // Tiempos para el reporte
+                origenRegistro: registroRecuperado ? "PRE-REGISTRO" : "TAQUILLA",
+                horaPreRegistro: registroRecuperado ? (registroRecuperado.ts ? new Date(registroRecuperado.ts).toLocaleTimeString() : "") : "",
+                horaRegistroLogistica: getTime(),
+                horaEntradaRecinto: "",
+                horaEntradaPista: "",
+                horaSalida: "",
+                duracion: ""
+            };
+
+            await push(ref(db, 'copilotajes/espera'), payload);
+            
+            if(registroRecuperado) {
+                await remove(ref(db, `copilotajes/pre_inscritos/${registroRecuperado.firebaseKey}`));
+            } else {
+                await set(ref(db, 'copilotajes/ultimo_numero'), num);
+            }
+            location.reload(); 
+        };
+
+        // ESCUCHA DE DATOS (PILOTOS Y TABLA)
+        onValue(ref(db, 'copilotajes'), (snap) => {
+            const data = snap.val() || {};
+            
+            // Turnos
+            proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
+            if(!registroRecuperado) document.getElementById('v-proximo-numero').innerText = proximoNumeroLibre.toString().padStart(3, '0');
+            
+            // Pilotos
+            const config = data.config_pilotos || [];
+            const bajas = data.pilotos_baja || [];
+            const activos = config.filter(p => !bajas.includes(p));
+            
+            document.getElementById('c-piloto').innerHTML = activos.map(p => `<option value="${p}">${p}</option>`).join('');
+            aplicarPilotoPreseleccionado();
+            document.getElementById('lista-check-pilotos').innerHTML = config.map(p => `
+                <div class="piloto-row">
+                    <span style="font-weight:bold; color:${bajas.includes(p)?'#555':'#fff'}">${p}</span>
+                    <input type="checkbox" ${!bajas.includes(p)?'checked':''} onchange="window.togglePiloto('${p}', this.checked)" style="transform:scale(1.8)">
+                </div>
+            `).join('');
+            document.getElementById('btn-cargar-pilotos').innerText = `CARGAR PILOTOS (${config.length})`;
+            document.getElementById('btn-estado-pilotos').innerText = `ESTADO PILOTOS (${activos.length})`;
+
+            // Tabla de Espera
+            const tEspera = document.getElementById('tabla-espera');
+            tEspera.innerHTML = "";
+            const espera = data.espera || {};
+            const itemsEspera = Object.entries(espera).sort((a,b)=>a[1].nPapel - b[1].nPapel);
+            
+            itemsEspera.forEach(([id, item]) => {
+                const row = tEspera.insertRow();
+                row.innerHTML = `
+                    <td><span class="n-papel-cola">${item.nPapel}</span></td>
+                    <td><b>${item.copiloto}</b><br><small style="color:var(--accent)">${item.piloto}</small></td>
+                    <td style="text-align:right">
+                        ${item.enRecinto 
+                            ? '<span class="badge-recinto">EN RECINTO</span>' 
+                            : `<button class="btn-acceso" onclick="window.marcarAcceso('${id}')">ACCESO</button>`}
+                    </td>`;
+            });
+            document.getElementById('contador-espera').innerText = `${itemsEspera.length} personas`;
+
+            const tUltimos = document.getElementById('tabla-ultimos');
+            const completados = data.completados || {};
+            const ultimos = Object.values(completados)
+                .filter(i => i.finalizado)
+                .sort((a,b) => (b.tsSalida || 0) - (a.tsSalida || 0))
+                .slice(0, 8);
+            tUltimos.innerHTML = ultimos.length ? "" : '<tr><td style="color:#555; padding:10px;">Todavía no hay viajes finalizados.</td></tr>';
+            ultimos.forEach(item => {
+                const row = tUltimos.insertRow();
+                row.innerHTML = `
+                    <td><span class="n-papel-cola" style="background:#333">${item.nPapel}</span></td>
+                    <td><b>${item.copiloto}</b><br><small style="color:var(--accent)">${item.piloto || ''}</small></td>
+                    <td style="text-align:right"><small>${item.horaRegistroLogistica || '-'}</small><br><b>${item.duracion || item.duracionTotal || '-'}</b></td>`;
             });
         });
 
-        function generarFilaHTML(id, item, esRecinto, esPista) {
-            const dMatch = item.piloto.match(/\[#(\d+)\]/) || item.piloto.match(/^(\d+)/);
-            const num = dMatch ? dMatch[1] : "??";
-            const nom = item.piloto.replace(/\[#\d+\]/, "").split('|')[0].trim();
+        // FUNCIONES AUXILIARES
+        window.togglePiloto = async (nombre, activa) => {
+            const snap = await get(ref(db, 'copilotajes/pilotos_baja'));
+            let bajas = snap.val() || [];
+            if(activa) bajas = bajas.filter(b => b !== nombre);
+            else if(!bajas.includes(nombre)) bajas.push(nombre);
+            await set(ref(db, 'copilotajes/pilotos_baja'), bajas);
+        };
 
-            let botones = "";
-            if (esPista) {
-                botones = `<button class="btn-salida" onclick="confirmarSalidaRecinto('${id}')">FINALIZAR</button>`;
-            } else if (esRecinto) {
-                botones = `
-                    <button class="btn-pista" onclick="confirmarSubida('${id}')">SALIR PISTA</button>
-                    <button class="btn-devolver" onclick="sacarDeRecinto('${id}')">↩ COLA</button>
-                `;
-            } else {
-                botones = `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGER</button>`;
-            }
+        window.marcarAcceso = (id) => {
+            update(ref(db, `copilotajes/espera/${id}`), { 
+                enRecinto: true, 
+                horaEntradaRecinto: getTime() 
+            });
+        };
 
-            return `
-                <tr id="row-${id}">
-                    <td>
-                        <span class="n-doc" ${esPista ? 'style="background:#444;color:#fff"' : ''}>
-                            ${item.nPapel.toString().padStart(3, '0')}
-                        </span>
-                        <b style="font-size:1.1em">${item.copiloto}</b><br>
-                        <div id="cont-p-${id}">
-                            <div class="matricula">
-                                <div class="m-bandera">E</div>
-                                <div class="m-num">${num}</div>
-                            </div>
-                            <small style="color:#aaa;margin-left:5px">${nom}</small>
-                            ${esRecinto ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">✎ REASIGNAR</button>` : ''}
-                        </div>
-                        ${esPista ? `<span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span></span>` : ''}
-                    </td>
-                    <td style="width:115px">${botones}</td>
-                </tr>
-            `;
+        window.validarEdad = (f) => {
+            if(f.length < 10) return;
+            const parts = f.split('/');
+            const year = parseInt(parts[2]);
+            const edad = new Date().getFullYear() - year;
+            esMenorFlag = edad < 18;
+            document.getElementById('box-menor').style.display = esMenorFlag ? 'block' : 'none';
+        };
+
+        window.seleccionarPago = (t) => {
+            metodoPago = t;
+            document.getElementById('pago-efectivo').classList.toggle('selected', t === 'EFECTIVO');
+            document.getElementById('pago-tarjeta').classList.toggle('selected', t === 'TARJETA');
+        };
+
+        window.fnValidar = () => {
+            document.getElementById('btn-add').disabled = !document.getElementById('c-firma').checked;
+        };
+
+        window.abrirSorteo = async () => {
+            document.getElementById('modal-sorteo').style.display = 'block';
+            document.getElementById('sorteo-numero').innerText = '---';
+            document.getElementById('sorteo-detalle').innerText = 'Pulsa sortear para elegir un participante.';
+            await actualizarTotalSorteo();
+        };
+
+        async function actualizarTotalSorteo() {
+            const participantes = await cargarParticipantesSorteo();
+            document.getElementById('sorteo-total').innerText = `Participantes cargados: ${participantes.length}`;
+            return participantes;
         }
 
-        window.activarSelector = (id, actual) => {
-            const cont = document.getElementById(`cont-p-${id}`);
-            let opts = pilotosDisponibles.map(p => `<option value="${p.label}" ${p.label === actual ? 'selected' : ''}>${p.label}</option>`).join('');
-            cont.innerHTML = `
-                <select class="selector-rapido" onchange="guardarPiloto('${id}', this.value)">
-                    <option value="" disabled>Selecciona Piloto...</option>
-                    ${opts}
-                    <option value="CANCEL">❌ CANCELAR</option>
-                </select>`;
+        async function cargarParticipantesSorteo() {
+            const snap = await get(ref(db, 'participantes_sorteo'));
+            const data = snap.val() || {};
+            return Object.entries(data)
+                .filter(([id, p]) => id && ((p.votos_totales || 0) > 0 || p.ultimo_voto))
+                .map(([id, p]) => ({ id, ...p }));
+        }
+
+        window.sortearParticipante = async () => {
+            const participantes = await actualizarTotalSorteo();
+            if(!participantes.length) {
+                document.getElementById('sorteo-numero').innerText = '---';
+                document.getElementById('sorteo-detalle').innerText = 'Todavía no hay participantes con votos registrados.';
+                return;
+            }
+            const ganador = participantes[Math.floor(Math.random() * participantes.length)];
+            const votos = ganador.votos_totales || 0;
+            const ultimo = ganador.ultimo_voto ? new Date(ganador.ultimo_voto).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }) : '-';
+            document.getElementById('sorteo-numero').innerText = ganador.id;
+            document.getElementById('sorteo-detalle').innerText = `Votos registrados: ${votos} · Último voto: ${ultimo}`;
         };
 
-        window.guardarPiloto = (id, nuevo) => {
-            if(nuevo === "CANCEL") { renderizarTodo(); return; }
-            db.ref(`copilotajes/espera/${id}`).update({ piloto: nuevo });
-        };
+        function aplicarPilotoPreseleccionado() {
+            if(!pilotoPreseleccionado) return;
+            const sel = document.getElementById('c-piloto');
+            if(!sel) return;
+            const existe = Array.from(sel.options).some(o => o.value === pilotoPreseleccionado);
+            if(!existe) {
+                const opt = document.createElement('option');
+                opt.value = pilotoPreseleccionado;
+                opt.textContent = pilotoPreseleccionado === "CUALQUIERA" ? "CUALQUIERA / PRIMER PILOTO DISPONIBLE" : pilotoPreseleccionado;
+                sel.prepend(opt);
+            }
+            sel.value = pilotoPreseleccionado;
+        }
 
-        window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({
-            enRecinto: true,
-            horaEntradaRecinto: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-        });
-        
-        window.sacarDeRecinto = (id) => {
-            showConfirm("¿EL PASAJERO HA SALIDO DEL RECINTO?", () => {
-                db.ref(`copilotajes/espera/${id}`).update({ enRecinto: false });
-            });
-        };
-
-        window.confirmarSubida = async (id) => {
-            const snap = await db.ref(`copilotajes/espera/${id}`).once('value');
-            if(!snap.exists()) return;
+        // EXPORTACIÓN COMPLETA CSV
+        document.getElementById('btn-reset').onclick = async () => {
+            const snap = await get(ref(db, 'copilotajes'));
             const d = snap.val();
+            if(!d) return;
+            const votosSnap = await get(ref(db, 'historial_votos'));
+            const votosRows = Object.values(votosSnap.val() || {}).filter(v => v && v.dorsal);
+            const votosPorTurno = {};
+            votosRows.forEach(v => {
+                const k = v.nPapel ? String(v.nPapel) : "";
+                if(!k) return;
+                if(!votosPorTurno[k]) votosPorTurno[k] = { ap:0, up:0, dw:0 };
+                votosPorTurno[k].ap += Number(v.ap || 0);
+                votosPorTurno[k].up += Number(v.up || 0);
+                votosPorTurno[k].dw += Number(v.dw || 0);
+            });
+
+            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;ORIGEN;ES_MENOR;TUTOR;DNI_TUTOR;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION;V_AP;V_UP;V_DW;V_SCORE\n";
             
-            const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
-            const dorsal = dMatch ? dMatch[1] : "0";
-            const nombreLimpio = d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim();
-
-            // CAPTURA DE TIEMPO DE ENTRADA
-            const ahora = Date.now();
-            const horaEntradaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-
-            const items = {};
-            items[dorsal] = { 
-                nombre: nombreLimpio + " & " + d.copiloto, 
-                coche: "TAXI DRIFT", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 
-            };
-
-            const updates = {};
-            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 999, items: items };
-            
-            const newK = db.ref('copilotajes/completados').push().key;
-            // Guardamos los campos de tiempo adicionales para el CSV
-            updates[`copilotajes/completados/${newK}`] = { 
-                ...d, 
-                tsEntrada: ahora, 
-                horaEntradaPista: horaEntradaTexto,
-                horaEntradaTexto: horaEntradaTexto, 
-                finalizado: false 
-            };
-            updates[`copilotajes/espera/${id}`] = null;
-
-            await db.ref().update(updates);
-            await actualizarEstadoPistaActiva();
-        };
-
-        window.confirmarSalidaRecinto = (id) => {
-            showConfirm("¿CONFIRMAR FIN DE VIAJE?", async () => {
-                const ahora = Date.now();
-                const horaSalidaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                
-                // Obtener datos para calcular duración total
-                const snap = await db.ref(`copilotajes/completados/${id}`).once('value');
-                const item = snap.val();
-                let duracionStr = "0:00";
-                
-                if(item && item.tsEntrada) {
-                    const diff = ahora - item.tsEntrada;
-                    const m = Math.floor(diff / 60000);
-                    const s = Math.floor((diff % 60000) / 1000);
-                    duracionStr = m + ":" + s.toString().padStart(2, '0');
-                }
-
-                const dorsalSalida = extraerDorsal(item?.piloto) || String(item?.nPapel || "");
-                await iniciarCierreVotoIndividual(dorsalSalida);
-
-                // Guardamos hora de salida y duración calculada
-                await db.ref(`copilotajes/completados/${id}`).update({ 
-                    finalizado: true, 
-                    tsSalida: ahora,
-                    horaSalida: horaSalidaTexto,
-                    horaSalidaTexto: horaSalidaTexto,
-                    duracion: duracionStr,
-                    duracionTotal: duracionStr
+            const procesarLista = (lista) => {
+                if(!lista) return;
+                Object.values(lista).forEach(i => {
+                    const tutorNombre = i.nombreTutor || i.tutor || "";
+                    const tutorDni = i.dniTutor || i.tutor_dni || "";
+                    const votos = votosPorTurno[String(i.nPapel)] || { ap:0, up:0, dw:0 };
+                    const score = (votos.ap * 2) + votos.up - votos.dw;
+                    const origen = i.origenRegistro || ((i.horaPreRegistro && i.horaPreRegistro !== 'MANUAL') ? 'PRE-REGISTRO' : 'TAQUILLA');
+                    const horaPre = (i.horaPreRegistro && i.horaPreRegistro !== 'MANUAL') ? i.horaPreRegistro : '';
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${origen}";"${(i.esMenor || tutorNombre || tutorDni) ? 'SI' : 'NO'}";"${tutorNombre}";"${tutorDni}";"${horaPre}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}";"${votos.ap}";"${votos.up}";"${votos.dw}";"${score}"\n`;
                 });
-                await actualizarEstadoPistaActiva();
-            });
+            };
+
+            procesarLista(d.espera);
+            procesarLista(d.completados);
+            csv += construirResumenVotosCSV(votosRows);
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `REPORTE_TIEMPOS_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+
+            setTimeout(() => {
+                if(confirm("¿Deseas BORRAR todos los datos de la nube y empezar un nuevo evento?")) {
+                    set(ref(db, 'copilotajes/espera'), null);
+                    set(ref(db, 'copilotajes/completados'), null);
+                        set(ref(db, 'copilotajes/ultimo_numero'), 0);
+                        set(ref(db, 'participantes_sorteo'), null);
+                        set(ref(db, 'historial_votos'), null);
+                        set(ref(db, 'registro_votos'), null);
+                        set(ref(db, 'votacion_activa'), { activa:false, timer:0, dorsal:"" });
+                        set(ref(db, 'sorteo_reset_ts'), Date.now());
+                        location.reload();
+                }
+            }, 1500);
         };
 
-        async function iniciarCierreVotoIndividual(dorsalSalida) {
-            if(!dorsalSalida) return;
-            const itemSnap = await db.ref(`votacion_activa/items/${dorsalSalida}`).once('value');
-            const itemVoto = itemSnap.val();
-            if(!itemVoto) return;
-
-            let count = 10;
-            await db.ref(`votacion_activa/items/${dorsalSalida}`).update({ cerrando: true, timer: count });
-            const inv = setInterval(async () => {
-                count--;
-                if(count > 0) {
-                    await db.ref(`votacion_activa/items/${dorsalSalida}/timer`).set(count);
-                    return;
-                }
-
-                clearInterval(inv);
-                const finalSnap = await db.ref(`votacion_activa/items/${dorsalSalida}`).once('value');
-                const data = finalSnap.val() || itemVoto;
-                if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
-                    await db.ref('historial_votos').push({
-                        dorsal: dorsalSalida,
-                        info: data.nombre,
-                        ap: data.ap||0,
-                        up: data.up||0,
-                        dw: data.dw||0,
-                        ts: Date.now()
-                    });
-                }
-                await db.ref(`votacion_activa/items/${dorsalSalida}`).remove();
-                await cerrarVotacionSiNoQuedanItems();
-            }, 1000);
-        }
-
-        async function cerrarVotacionSiNoQuedanItems() {
-            const snap = await db.ref('votacion_activa/items').once('value');
-            const items = snap.val() || {};
-            if(Object.keys(items).length === 0) {
-                await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
-            } else {
-                await db.ref('votacion_activa').update({ dorsal: Object.keys(items).join(' '), activa:true, timer:999 });
-            }
-        }
-
-        async function actualizarEstadoPistaActiva() {
-            const snap = await db.ref('copilotajes/completados').once('value');
-            const activos = Object.values(snap.val() || {}).filter(i => !i.finalizado);
-            if(!activos.length) {
-                await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
-                // Mantener votaciones individuales que estén cerrando aunque no queden coches activos.
-            }
-            const nombres = activos.map(i => limpiarNombrePiloto(i.piloto)).filter(Boolean);
-            const vSnap = await db.ref('votacion_activa/items').once('value');
-            const itemsActuales = vSnap.val() || {};
-            const items = {};
-            activos.forEach(item => {
-                const dorsal = extraerDorsal(item.piloto) || String(item.nPapel || "");
+        function construirResumenVotosCSV(rows) {
+            if(!rows.length) return "";
+            const agg = {};
+            rows.forEach(v => {
+                const dorsal = String(v.dorsal || "");
                 if(!dorsal) return;
-                const previo = itemsActuales[dorsal] || {};
-                items[dorsal] = {
-                    nombre: `${limpiarNombrePiloto(item.piloto)} & ${item.copiloto || ""}`,
-                    coche: "TAXI DRIFT",
-                    ap: previo.ap || 0,
-                    up: previo.up || 0,
-                    dw: previo.dw || 0,
-                    h_ap: previo.h_ap || 0,
-                    h_up: previo.h_up || 0,
-                    h_dw: previo.h_dw || 0,
-                    cerrando: false,
-                    timer: 999
-                };
-            });
-            Object.entries(itemsActuales).forEach(([dorsal, previo]) => {
-                if(previo && previo.cerrando) items[dorsal] = previo;
-            });
-            if(activos.length) await db.ref('estado_pista').set({
-                mensaje: '🏎️ EN PISTA: ' + nombres.join(' + '),
-                color: '#007bff',
-                id: 'btn-coche'
-            });
-            await db.ref('votacion_activa').set({
-                dorsal: Object.keys(items).join(' '),
-                activa: true,
-                timer: 999,
-                items: items
-            });
-            return activos.length;
-        }
-
-        function limpiarNombrePiloto(piloto) {
-            return String(piloto || '').split('|')[0].replace(/\[.*?\]/g,'').trim();
-        }
-
-        function extraerDorsal(piloto) {
-            const txt = String(piloto || "");
-            const match = txt.match(/\[#(\d+)\]/) || txt.match(/^(\d+)/);
-            return match ? match[1] : "";
-        }
-
-        function renderizarTodo() {
-            db.ref('copilotajes').once('value', snap => {
-                const data = snap.val() || {};
-                const tCola = document.getElementById('lista-cola-acceso');
-                const tRecinto = document.getElementById('lista-espera-recinto');
-                const tPista = document.getElementById('lista-pista-activa');
-                
-                tCola.innerHTML = ""; tRecinto.innerHTML = ""; tPista.innerHTML = "";
-
-                if(data.espera) {
-                    Object.entries(data.espera).sort((a,b)=>a[1].nPapel - b[1].nPapel).forEach(([id, item]) => {
-                        if(!item.enRecinto) tCola.innerHTML += generarFilaHTML(id, item, false, false);
-                        else tRecinto.innerHTML += generarFilaHTML(id, item, true, false);
-                    });
+                if(!agg[dorsal]) {
+                    agg[dorsal] = { dorsal, piloto: v.piloto || v.info || "", ap:0, up:0, dw:0, veces:0 };
                 }
-                if(data.completados) {
-                    Object.entries(data.completados).filter(x => !x[1].finalizado).forEach(([id, item]) => {
-                        tPista.innerHTML += generarFilaHTML(id, item, false, true);
-                    });
-                }
-                filtrar();
+                agg[dorsal].ap += Number(v.ap || 0);
+                agg[dorsal].up += Number(v.up || 0);
+                agg[dorsal].dw += Number(v.dw || 0);
+                agg[dorsal].veces += 1;
             });
+            const ranking = Object.values(agg)
+                .map(p => ({ ...p, score: (p.ap * 2) + p.up - p.dw }))
+                .sort((a,b) => (b.score - a.score) || (b.ap - a.ap));
+            let out = "\n\nRANKING_VOTOS\nRANK;DORSAL;PILOTO;APLAUSOS;UP;DOWN;SCORE;VECES\n";
+            ranking.forEach((p, i) => {
+                out += `"${i+1}";"${p.dorsal}";"${p.piloto}";"${p.ap}";"${p.up}";"${p.dw}";"${p.score}";"${p.veces}"\n`;
+            });
+            return out;
         }
 
-        db.ref('copilotajes').on('value', renderizarTodo);
-
-        setInterval(() => {
-            document.querySelectorAll('.time-info').forEach(el => {
-                const ts = parseInt(el.getAttribute('data-ts'));
-                if(!ts) return;
-                const diff = Date.now() - ts;
-                const m = Math.floor(diff/60000);
-                const s = Math.floor((diff%60000)/1000);
-                el.querySelector('.cronometro').innerText = `${m}:${s.toString().padStart(2,'0')}`;
-            });
-        }, 1000);
-
-        window.filtrar = () => {
-            const b = document.getElementById('buscador').value.toLowerCase();
-            document.querySelectorAll('tr').forEach(tr => {
-                tr.style.display = tr.innerText.toLowerCase().includes(b) ? '' : 'none';
-            });
+        // CARGA DE PILOTOS DESDE CSV
+        document.getElementById('csv-pilotos').onchange = (e) => {
+            const file = e.target.files[0];
+            const fr = new FileReader();
+            fr.onload = async () => {
+                const list = fr.result.split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l && !l.toLowerCase().includes('piloto'));
+                await set(ref(db, 'copilotajes/config_pilotos'), list);
+                alert("Lista de pilotos actualizada.");
+            };
+            fr.readAsText(file);
         };
     </script>
 </body>
 </html>
+

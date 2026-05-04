@@ -78,7 +78,7 @@
     .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.2em; font-weight: bold; text-transform: uppercase; margin: 15px 0; display: inline-block; }
     .nombre-pista { font-size: 2em; font-weight: bold; text-transform: uppercase; margin: 5px 0; color: #fff; line-height: 1.1; }
 
-    .votos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+    .votos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
     .v-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 20px; border: 1px solid #333; }
     .v-val { font-size: 2.5em; font-weight: bold; display: block; color: #fff; }
     .v-lab { font-size: 0.7em; color: #888; text-transform: uppercase; margin-top: 5px; display: block; }
@@ -119,6 +119,7 @@
     let cacheFichas = {};
     let votacionActual = null;
     let taxiActivos = [];
+    let acumuladoVotos = {};
 
     // 1. ESCUCHAR ESTADO DE PISTA (BANNER)
     const banner = document.getElementById('banner-pista-live');
@@ -157,9 +158,31 @@
       renderPista();
     });
 
+    db.ref('historial_votos').on('value', snap => {
+      acumuladoVotos = {};
+      Object.values(snap.val() || {}).forEach(v => {
+        const d = String(v.dorsal || "");
+        if(!d) return;
+        if(!acumuladoVotos[d]) acumuladoVotos[d] = { ap:0, up:0, dw:0 };
+        acumuladoVotos[d].ap += parseInt(v.ap) || 0;
+        acumuladoVotos[d].up += parseInt(v.up) || 0;
+        acumuladoVotos[d].dw += parseInt(v.dw) || 0;
+      });
+      renderPista();
+    });
+
     function renderPista() {
       const cont = document.getElementById('pista-container');
       cont.innerHTML = "";
+
+      const v = votacionActual;
+      if (v && v.activa !== false && v.items) {
+        Object.keys(v.items).forEach(id => {
+          if (id.toUpperCase() === "BATALLA") return;
+          crearCardPista(cont, id, v.items[id], true);
+        });
+        return;
+      }
 
       if (taxiActivos.length) {
         taxiActivos.forEach(item => {
@@ -167,27 +190,29 @@
           crearCardPista(cont, id, {
             nombre: `${limpiarPiloto(item.piloto)} & ${item.copiloto || ""}`,
             coche: "TAXI DRIFT",
-            ap: 0, up: 0, h_ap: 0, h_up: 0
+            ap: 0, up: 0, dw: 0, h_ap: 0, h_up: 0, h_dw: 0
           }, false);
         });
         return;
       }
 
-      const v = votacionActual;
       if (!v || v.activa === false || !v.items) {
         cont.innerHTML = '<div style="text-align:center; color:#555; padding:60px; font-size:1.8em; font-style:italic;">PISTA LIBRE</div>';
         return;
       }
-
-      Object.keys(v.items).forEach(id => {
-        if (id.toUpperCase() === "BATALLA") return;
-        crearCardPista(cont, id, v.items[id], true);
-      });
     }
 
     function crearCardPista(cont, id, p, mostrarFicha) {
-      const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
-      const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
+      const liveAp = parseInt(p.ap) || 0;
+      const liveUp = parseInt(p.up) || 0;
+      const liveDw = parseInt(p.dw) || 0;
+      const hist = acumuladoVotos[id] || {};
+      const accAp = (parseInt(p.h_ap) || 0) + (parseInt(hist.ap) || 0);
+      const accUp = (parseInt(p.h_up) || 0) + (parseInt(hist.up) || 0);
+      const accDw = (parseInt(p.h_dw) || 0) + (parseInt(hist.dw) || 0);
+      const totalAp = liveAp + accAp;
+      const totalUp = liveUp + accUp;
+      const totalDw = liveDw + accDw;
       const card = document.createElement('div');
       card.className = "card-active";
       card.innerHTML = `
@@ -195,8 +220,21 @@
         <div class="coche-tag">${p.coche || "TAXI DRIFT"}</div>
         <div class="nombre-pista">${p.nombre || "PILOTO"}</div>
         <div class="votos-grid">
-          <div class="v-box"> <span class="v-val" style="color:var(--yellow);">${tAp}</span> <span class="v-lab">👏 APLAUSOS</span> </div>
-          <div class="v-box"> <span class="v-val" style="color:var(--blue);">${tUp}</span> <span class="v-lab">👍 LIKES</span> </div>
+          <div class="v-box">
+            <span class="v-val" style="color:var(--yellow);">${liveAp}</span>
+            <span class="v-lab">👏 AHORA</span>
+            <span class="v-lab">TOTAL ${totalAp}</span>
+          </div>
+          <div class="v-box">
+            <span class="v-val" style="color:var(--blue);">${liveUp}</span>
+            <span class="v-lab">👍 AHORA</span>
+            <span class="v-lab">TOTAL ${totalUp}</span>
+          </div>
+          <div class="v-box">
+            <span class="v-val" style="color:#ff4d4d;">${liveDw}</span>
+            <span class="v-lab">👎 AHORA</span>
+            <span class="v-lab">TOTAL ${totalDw}</span>
+          </div>
         </div>
         ${mostrarFicha ? `<button class="btn-info" onclick="verFicha('${id}')">🔎 INFO MOTOR</button>` : ''}
       `;
@@ -255,5 +293,7 @@
   </script>
 </body>
 </html>
+
+
 
 

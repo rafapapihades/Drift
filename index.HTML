@@ -111,6 +111,7 @@
 
         let miVoto = "";
         let currentDorsal = "";
+        let currentVoteItem = "";
 
         onValue(ref(db, 'modo_actual'), s => {
             const m = s.val() || 'tab-show';
@@ -133,11 +134,12 @@
             if(v?.activa) {
                 if (currentDorsal !== v.dorsal) {
                     currentDorsal = v.dorsal || "0";
+                    currentVoteItem = resolverItemVoto(v);
                     miVoto = "";
                     resetIconos();
                 }
                 box.style.display = 'block';
-                document.getElementById('s-info').innerText = v.info || "";
+                document.getElementById('s-info').innerText = construirInfoVoto(v);
                 if(v.timer !== undefined && v.timer > 0 && v.timer < 10) {
                     timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
                 } else {
@@ -148,21 +150,24 @@
                 document.getElementById('s-info').innerText = "";
                 miVoto = "";
                 currentDorsal = "";
+                currentVoteItem = "";
                 resetIconos();
             }
         });
 
         window.votar = async (tipo) => {
             const tSnap = await get(ref(db, 'votacion_activa/timer'));
-            if(tSnap.exists() && tSnap.val() === 0) return;
+            const timer = tSnap.exists() ? Number(tSnap.val()) : 0;
+            if(timer > 0 && timer < 10) return;
+            if(!currentVoteItem) return;
 
             const updates = {};
             if(miVoto) {
-                updates[`votacion_activa/items/${currentDorsal}/${miVoto}`] = increment(-1);
+                updates[`votacion_activa/items/${currentVoteItem}/${miVoto}`] = increment(-1);
             }
 
-            updates[`votacion_activa/items/${currentDorsal}/${tipo}`] = increment(1);
-            updates[`registro_votos/${currentDorsal}/${USER_ID}`] = { tipo: tipo, ts: Date.now() };
+            updates[`votacion_activa/items/${currentVoteItem}/${tipo}`] = increment(1);
+            updates[`registro_votos/${currentVoteItem}/${USER_ID}`] = { tipo: tipo, ts: Date.now() };
             updates[`participantes_sorteo/${USER_ID}/votos_totales`] = increment(1);
             updates[`participantes_sorteo/${USER_ID}/ultimo_voto`] = Date.now();
 
@@ -175,6 +180,22 @@
 
         function resetIconos() {
             document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
+        }
+
+        function resolverItemVoto(v) {
+            if(!v?.items) return "";
+            if(v.items[v.dorsal]) return v.dorsal;
+            if(v.items.BATALLA) return "BATALLA";
+            return Object.keys(v.items)[0] || "";
+        }
+
+        function construirInfoVoto(v) {
+            if(!v?.items) return v.info || "";
+            return Object.entries(v.items).map(([id, item]) => {
+                if(id === "BATALLA") return "BATALLA";
+                const coche = item.coche ? ` (${item.coche})` : "";
+                return `#${id} ${item.nombre || ""}${coche}`;
+            }).join("  |  ");
         }
 
         onValue(ref(db, 'ranking_escapes'), s => {

@@ -107,7 +107,7 @@
 
   <div class="admin-csv">
     <input type="file" id="csv-file" style="display:none;" onchange="importarCSV(event)">
-    <button onclick="document.getElementById('csv-file').click()" style="padding:13px 28px; border-radius:12px; cursor:pointer; background:#222; color:#eee; border:1px solid #444; font-weight: bold; text-transform: uppercase; font-size:0.9em;">📂 ACTUALIZAR CSV</button>
+    <button onclick="document.getElementById('csv-file').click()" style="padding:13px 28px; border-radius:12px; cursor:pointer; background:#222; color:#eee; border:1px solid #444; font-weight: bold; text-transform: uppercase; font-size:0.9em;">ðŸ“‚ ACTUALIZAR CSV</button>
     <span id="contador-fichas">Sistema: 0 fichas cargadas</span>
   </div>
 
@@ -117,6 +117,8 @@
     firebase.initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
     const db = firebase.database();
     let cacheFichas = {};
+    let votacionActual = null;
+    let taxiActivos = [];
 
     // 1. ESCUCHAR ESTADO DE PISTA (BANNER)
     const banner = document.getElementById('banner-pista-live');
@@ -134,7 +136,7 @@
         }
     });
 
-    // 2. ESCUCHAR FICHAS TÉCNICAS
+    // 2. ESCUCHAR FICHAS TÃ‰CNICAS
     db.ref('fichas_pilotos').on('value', s => { 
       cacheFichas = s.val() || {}; 
       const total = Object.keys(cacheFichas).length;
@@ -143,43 +145,78 @@
 
     // 3. ESCUCHAR PILOTOS EN PISTA (MULTITARJETA)
     db.ref('votacion_activa').on('value', snap => {
-      const v = snap.val();
+      votacionActual = snap.val();
+      renderPista();
+    });
+
+    db.ref('copilotajes/completados').on('value', snap => {
+      taxiActivos = Object.entries(snap.val() || {})
+        .filter(([id, item]) => item && !item.finalizado)
+        .sort((a,b) => (a[1].tsEntrada || 0) - (b[1].tsEntrada || 0))
+        .map(([id, item]) => ({ id, ...item }));
+      renderPista();
+    });
+
+    function renderPista() {
       const cont = document.getElementById('pista-container');
       cont.innerHTML = "";
 
+      if (taxiActivos.length) {
+        taxiActivos.forEach(item => {
+          const id = extraerDorsal(item.piloto) || item.nPapel || "?";
+          crearCardPista(cont, id, {
+            nombre: `${limpiarPiloto(item.piloto)} & ${item.copiloto || ""}`,
+            coche: "TAXI DRIFT",
+            ap: 0, up: 0, h_ap: 0, h_up: 0
+          }, false);
+        });
+        return;
+      }
+
+      const v = votacionActual;
       if (!v || v.activa === false || !v.items) {
         cont.innerHTML = '<div style="text-align:center; color:#555; padding:60px; font-size:1.8em; font-style:italic;">PISTA LIBRE</div>';
         return;
       }
 
-      // Creamos tarjetas para cada coche en pista
       Object.keys(v.items).forEach(id => {
         if (id.toUpperCase() === "BATALLA") return;
-
-        const p = v.items[id];
-        const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
-        const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
-        
-        const card = document.createElement('div');
-        card.className = "card-active";
-        card.innerHTML = `
-          <div class="dorsal">#${id}</div>
-          <div class="coche-tag">${p.coche || "TAXI DRIFT"}</div>
-          <div class="nombre-pista">${p.nombre || "PILOTO"}</div>
-          <div class="votos-grid">
-            <div class="v-box"> <span class="v-val" style="color:var(--yellow);">${tAp}</span> <span class="v-lab">👏 APLAUSOS</span> </div>
-            <div class="v-box"> <span class="v-val" style="color:var(--blue);">${tUp}</span> <span class="v-lab">👍 LIKES</span> </div>
-          </div>
-          <button class="btn-info" onclick="verFicha('${id}')">🔎 INFO MOTOR</button>
-        `;
-        cont.appendChild(card);
+        crearCardPista(cont, id, v.items[id], true);
       });
-    });
+    }
 
-    // 4. MOSTRAR INFO TÉCNICA
+    function crearCardPista(cont, id, p, mostrarFicha) {
+      const tAp = (parseInt(p.ap) || 0) + (parseInt(p.h_ap) || 0);
+      const tUp = (parseInt(p.up) || 0) + (parseInt(p.h_up) || 0);
+      const card = document.createElement('div');
+      card.className = "card-active";
+      card.innerHTML = `
+        <div class="dorsal">#${id}</div>
+        <div class="coche-tag">${p.coche || "TAXI DRIFT"}</div>
+        <div class="nombre-pista">${p.nombre || "PILOTO"}</div>
+        <div class="votos-grid">
+          <div class="v-box"> <span class="v-val" style="color:var(--yellow);">${tAp}</span> <span class="v-lab">👏 APLAUSOS</span> </div>
+          <div class="v-box"> <span class="v-val" style="color:var(--blue);">${tUp}</span> <span class="v-lab">👍 LIKES</span> </div>
+        </div>
+        ${mostrarFicha ? `<button class="btn-info" onclick="verFicha('${id}')">🔎 INFO MOTOR</button>` : ''}
+      `;
+      cont.appendChild(card);
+    }
+
+    function extraerDorsal(piloto) {
+      const txt = String(piloto || "");
+      const match = txt.match(/\[#(\d+)\]/) || txt.match(/^(\d+)/);
+      return match ? match[1] : "";
+    }
+
+    function limpiarPiloto(piloto) {
+      return String(piloto || "").split('|')[0].replace(/\[.*?\]/g,'').trim();
+    }
+
+    // 4. MOSTRAR INFO TÃ‰CNICA
     window.verFicha = (id) => {
       const f = cacheFichas[id];
-      if (!f) return alert("No hay ficha técnica para el dorsal #" + id + ". Sube el CSV.");
+      if (!f) return alert("No hay ficha tÃ©cnica para el dorsal #" + id + ". Sube el CSV.");
       const cl = (t) => (t && t.toString().trim() !== "" && t !== "undefined") ? t : "---";
       
       document.getElementById('bio-body').innerHTML = `
@@ -218,3 +255,5 @@
   </script>
 </body>
 </html>
+
+

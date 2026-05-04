@@ -206,7 +206,7 @@
 
             const updates = {};
             updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 999, items: items };
-            updates['estado_pista'] = { mensaje: '🏎️ EN PISTA: ' + dorsal, color: '#007bff', id: 'btn-coche' };
+            updates['estado_pista'] = { mensaje: '🏎️ EN PISTA: ' + nombreLimpio, color: '#007bff', id: 'btn-coche' };
             
             const newK = db.ref('copilotajes/completados').push().key;
             // Guardamos los campos de tiempo adicionales para el CSV
@@ -324,3 +324,4 @@
     </script>
 </body>
 </html>
+

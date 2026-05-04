@@ -174,7 +174,10 @@
             db.ref(`copilotajes/espera/${id}`).update({ piloto: nuevo });
         };
 
-        window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({ enRecinto: true });
+        window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({
+            enRecinto: true,
+            horaEntradaRecinto: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        });
         
         window.sacarDeRecinto = (id) => {
             showConfirm("¿EL PASAJERO HA SALIDO DEL RECINTO?", () => {
@@ -210,6 +213,7 @@
             updates[`copilotajes/completados/${newK}`] = { 
                 ...d, 
                 tsEntrada: ahora, 
+                horaEntradaPista: horaEntradaTexto,
                 horaEntradaTexto: horaEntradaTexto, 
                 finalizado: false 
             };
@@ -266,7 +270,9 @@
                 await db.ref(`copilotajes/completados/${id}`).update({ 
                     finalizado: true, 
                     tsSalida: ahora,
+                    horaSalida: horaSalidaTexto,
                     horaSalidaTexto: horaSalidaTexto,
+                    duracion: duracionStr,
                     duracionTotal: duracionStr
                 });
             });

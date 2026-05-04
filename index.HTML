@@ -41,6 +41,26 @@
         .v-btn { font-size: 4.5em; filter: grayscale(1); margin: 10px; transition: 0.2s; cursor: pointer; display: inline-block; }
         .v-act { filter: grayscale(0) !important; transform: scale(1.2); }
         #timer-box { color: #ff0000; font-weight: bold; font-size: 1.5em; margin-top: 15px; height: 25px; }
+        .vote-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 12px;
+            padding: 12px 8px;
+            margin: 12px 0;
+        }
+        .vote-title {
+            color: #ffcc00;
+            font-size: 1.05em;
+            font-weight: 900;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+        .vote-sub {
+            color: #aaa;
+            font-size: 0.8em;
+            margin-top: 3px;
+        }
+        .vote-card .v-btn { font-size: 3.3em; margin: 4px 8px; }
         
         .rank-card { 
             background: rgba(255, 255, 255, 0.05); 
@@ -74,9 +94,7 @@
                 <h2 id="s-info" style="color:#007bff; margin: 15px 0; min-height: 1.2em; font-size: 1.8em;"></h2>
                 
                 <div id="voto-box" style="display:none;">
-                    <span id="v-ap" class="v-btn" onclick="votar('ap')">👏</span>
-                    <span id="v-up" class="v-btn" onclick="votar('up')">👍</span>
-                    <span id="v-dw" class="v-btn" onclick="votar('dw')">👎</span>
+                    <div id="votos-lista"></div>
                     <div id="timer-box"></div>
                 </div>
             </div>
@@ -109,9 +127,8 @@
         }
         document.getElementById('id-num').innerText = USER_ID;
 
-        let miVoto = "";
+        let miVotos = {};
         let currentDorsal = "";
-        let currentVoteItem = "";
 
         onValue(ref(db, 'modo_actual'), s => {
             const m = s.val() || 'tab-show';
@@ -134,12 +151,11 @@
             if(v?.activa) {
                 if (currentDorsal !== v.dorsal) {
                     currentDorsal = v.dorsal || "0";
-                    currentVoteItem = resolverItemVoto(v);
-                    miVoto = "";
-                    resetIconos();
+                    miVotos = Object.fromEntries(Object.entries(miVotos).filter(([id]) => v.items?.[id]));
                 }
                 box.style.display = 'block';
-                document.getElementById('s-info').innerText = construirInfoVoto(v);
+                document.getElementById('s-info').innerText = "";
+                renderVotos(v);
                 if(v.timer !== undefined && v.timer > 0 && v.timer < 10) {
                     timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
                 } else {
@@ -148,54 +164,59 @@
             } else {
                 box.style.display = 'none';
                 document.getElementById('s-info').innerText = "";
-                miVoto = "";
+                document.getElementById('votos-lista').innerHTML = "";
+                miVotos = {};
                 currentDorsal = "";
-                currentVoteItem = "";
-                resetIconos();
             }
         });
 
-        window.votar = async (tipo) => {
+        window.votar = async (itemId, tipo) => {
             const tSnap = await get(ref(db, 'votacion_activa/timer'));
             const timer = tSnap.exists() ? Number(tSnap.val()) : 0;
             if(timer > 0 && timer < 10) return;
-            if(!currentVoteItem) return;
+            if(!itemId) return;
 
             const updates = {};
-            if(miVoto) {
-                updates[`votacion_activa/items/${currentVoteItem}/${miVoto}`] = increment(-1);
+            if(miVotos[itemId]) {
+                updates[`votacion_activa/items/${itemId}/${miVotos[itemId]}`] = increment(-1);
             }
 
-            updates[`votacion_activa/items/${currentVoteItem}/${tipo}`] = increment(1);
-            updates[`registro_votos/${currentVoteItem}/${USER_ID}`] = { tipo: tipo, ts: Date.now() };
+            updates[`votacion_activa/items/${itemId}/${tipo}`] = increment(1);
+            updates[`registro_votos/${itemId}/${USER_ID}`] = { tipo: tipo, ts: Date.now() };
             updates[`participantes_sorteo/${USER_ID}/votos_totales`] = increment(1);
             updates[`participantes_sorteo/${USER_ID}/ultimo_voto`] = Date.now();
 
             await update(ref(db), updates);
             
-            miVoto = tipo;
-            resetIconos();
-            document.getElementById('v-' + tipo).classList.add('v-act');
+            miVotos[itemId] = tipo;
+            pintarSeleccion(itemId);
         };
 
-        function resetIconos() {
-            document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('v-act'));
-        }
-
-        function resolverItemVoto(v) {
-            if(!v?.items) return "";
-            if(v.items[v.dorsal]) return v.dorsal;
-            if(v.items.BATALLA) return "BATALLA";
-            return Object.keys(v.items)[0] || "";
-        }
-
-        function construirInfoVoto(v) {
-            if(!v?.items) return v.info || "";
-            return Object.entries(v.items).map(([id, item]) => {
-                if(id === "BATALLA") return "BATALLA";
+        function renderVotos(v) {
+            const lista = document.getElementById('votos-lista');
+            const items = Object.entries(v.items || {}).filter(([id]) => id !== "BATALLA");
+            lista.innerHTML = items.map(([id, item]) => {
                 const coche = item.coche ? ` (${item.coche})` : "";
-                return `#${id} ${item.nombre || ""}${coche}`;
-            }).join("  |  ");
+                return `
+                    <div class="vote-card" data-item="${id}">
+                        <div class="vote-title">#${id} ${item.nombre || "PILOTO"}</div>
+                        <div class="vote-sub">${coche.replace(/[()]/g, '')}</div>
+                        <span id="v-${id}-ap" class="v-btn" onclick="votar('${id}','ap')">👏</span>
+                        <span id="v-${id}-up" class="v-btn" onclick="votar('${id}','up')">👍</span>
+                        <span id="v-${id}-dw" class="v-btn" onclick="votar('${id}','dw')">👎</span>
+                    </div>
+                `;
+            }).join('');
+            items.forEach(([id]) => pintarSeleccion(id));
+        }
+
+        function pintarSeleccion(itemId) {
+            document.querySelectorAll(`[id^="v-${itemId}-"]`).forEach(b => b.classList.remove('v-act'));
+            const tipo = miVotos[itemId];
+            if(tipo) {
+                const btn = document.getElementById(`v-${itemId}-${tipo}`);
+                if(btn) btn.classList.add('v-act');
+            }
         }
 
         onValue(ref(db, 'ranking_escapes'), s => {
@@ -211,3 +232,4 @@
     </script>
 </body>
 </html>
+

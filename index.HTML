@@ -120,15 +120,31 @@
         
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
 
+        function generarUserId() {
+            return Math.floor(10000 + Math.random() * 90000).toString();
+        }
+
         let USER_ID = localStorage.getItem('drift_user_id');
         if (!USER_ID) {
-            USER_ID = Math.floor(10000 + Math.random() * 90000).toString();
+            USER_ID = generarUserId();
             localStorage.setItem('drift_user_id', USER_ID);
         }
         document.getElementById('id-num').innerText = USER_ID;
 
         let miVotos = {};
         let currentDorsal = "";
+
+        onValue(ref(db, 'sorteo_reset_ts'), s => {
+            const resetTs = s.val() || 0;
+            const localResetTs = parseInt(localStorage.getItem('drift_sorteo_reset_ts') || '0');
+            if(resetTs && resetTs > localResetTs) {
+                USER_ID = generarUserId();
+                localStorage.setItem('drift_user_id', USER_ID);
+                localStorage.setItem('drift_sorteo_reset_ts', resetTs.toString());
+                document.getElementById('id-num').innerText = USER_ID;
+                miVotos = {};
+            }
+        });
 
         onValue(ref(db, 'modo_actual'), s => {
             const m = s.val() || 'tab-show';

@@ -308,7 +308,7 @@ window.exportarVotos = async function () {
       else parts.push(d);
     }
     if (battle) {
-      battle._participants = (parts.length === 2) ? `${parts[0]} vs ${parts[1]}` : (parts.join(" ") || "?");
+      battle._participants = battle.participantes || ((parts.length === 2) ? `${parts[0]} vs ${parts[1]}` : (parts.join(" ") || "?"));
     }
   });
 
@@ -349,7 +349,7 @@ window.exportarVotos = async function () {
     const ap = Number(v.ap || 0), up = Number(v.up || 0), dw = Number(v.dw || 0);
 
     if (dorsal === "BATALLA") {
-      const key = v._participants || "?";
+      const key = v.participantes || v._participants || "?";
       const b = ensureBattle(key);
       b.ap += ap; b.up += up; b.dw += dw;
       b.veces += 1;
@@ -455,7 +455,7 @@ window.exportarVotos = async function () {
             Object.entries(v.items).forEach(function(pair){
               var idItem = pair[0], data = pair[1];
               if((data.ap||0)+(data.up||0)+(data.dw||0) > 0){
-                db.ref('historial_votos').push({ dorsal:idItem, info:data.nombre, ap:data.ap||0, up:data.up||0, dw:data.dw||0, ts:Date.now() });
+                db.ref('historial_votos').push({ dorsal:idItem, info:data.nombre, participantes:(idItem === 'BATALLA' ? v.dorsal : ''), ap:data.ap||0, up:data.up||0, dw:data.dw||0, ts:Date.now() });
               }
             });
 

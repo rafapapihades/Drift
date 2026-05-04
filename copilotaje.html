@@ -106,11 +106,16 @@
             <span id="contador-espera">0 personas</span>
         </div>
         <table id="tabla-espera"></table>
+
+        <div style="font-size:0.75em; color:#888; font-weight:bold; margin:18px 0 10px; text-transform: uppercase;">
+            ÚLTIMOS COPILOTOS SALIDOS DEL RECINTO
+        </div>
+        <table id="tabla-ultimos"></table>
     </div>
 
     <div class="controls-row">
-        <button class="btn-mini" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS</button>
-        <button class="btn-mini" onclick="document.getElementById('modal-pilotos').style.display='block'" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS</button>
+        <button class="btn-mini" id="btn-cargar-pilotos" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (0)</button>
+        <button class="btn-mini" id="btn-estado-pilotos" onclick="document.getElementById('modal-pilotos').style.display='block'" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS (0)</button>
         <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">EXPORTAR Y REINICIAR</button>
     </div>
     <input type="file" id="csv-pilotos" hidden accept=".csv">
@@ -136,6 +141,7 @@
         let metodoPago = "EFECTIVO";
         let proximoNumeroLibre = 1;
         let esMenorFlag = false;
+        let pilotoPreseleccionado = "";
 
         const getTime = () => new Date().toLocaleTimeString('es-ES');
 
@@ -163,6 +169,9 @@
                 document.getElementById('c-dni').value = pre.dni || "";
                 document.getElementById('c-nac').value = pre.fecha_nac || "";
                 document.getElementById('c-redes').value = pre.insta || "";
+                pilotoPreseleccionado = pre.piloto || "";
+                aplicarPilotoPreseleccionado();
+                seleccionarPago(pre.metodoPago || "EFECTIVO");
                 
                 validarEdad(pre.fecha_nac || "");
                 if(pre.tutor_dni) document.getElementById('c-dni-tutor').value = pre.tutor_dni;
@@ -225,12 +234,15 @@
             const activos = config.filter(p => !bajas.includes(p));
             
             document.getElementById('c-piloto').innerHTML = activos.map(p => `<option value="${p}">${p}</option>`).join('');
+            aplicarPilotoPreseleccionado();
             document.getElementById('lista-check-pilotos').innerHTML = config.map(p => `
                 <div class="piloto-row">
                     <span style="font-weight:bold; color:${bajas.includes(p)?'#555':'#fff'}">${p}</span>
                     <input type="checkbox" ${!bajas.includes(p)?'checked':''} onchange="window.togglePiloto('${p}', this.checked)" style="transform:scale(1.8)">
                 </div>
             `).join('');
+            document.getElementById('btn-cargar-pilotos').innerText = `CARGAR PILOTOS (${config.length})`;
+            document.getElementById('btn-estado-pilotos').innerText = `ESTADO PILOTOS (${activos.length})`;
 
             // Tabla de Espera
             const tEspera = document.getElementById('tabla-espera');
@@ -250,6 +262,21 @@
                     </td>`;
             });
             document.getElementById('contador-espera').innerText = `${itemsEspera.length} personas`;
+
+            const tUltimos = document.getElementById('tabla-ultimos');
+            const completados = data.completados || {};
+            const ultimos = Object.values(completados)
+                .filter(i => i.finalizado)
+                .sort((a,b) => (b.tsSalida || 0) - (a.tsSalida || 0))
+                .slice(0, 8);
+            tUltimos.innerHTML = ultimos.length ? "" : '<tr><td style="color:#555; padding:10px;">Todavía no hay viajes finalizados.</td></tr>';
+            ultimos.forEach(item => {
+                const row = tUltimos.insertRow();
+                row.innerHTML = `
+                    <td><span class="n-papel-cola" style="background:#333">${item.nPapel}</span></td>
+                    <td><b>${item.copiloto}</b><br><small style="color:var(--accent)">${item.piloto || ''}</small></td>
+                    <td style="text-align:right"><small>${item.horaRegistroLogistica || '-'}</small><br><b>${item.duracion || item.duracionTotal || '-'}</b></td>`;
+            });
         });
 
         // FUNCIONES AUXILIARES
@@ -287,18 +314,32 @@
             document.getElementById('btn-add').disabled = !document.getElementById('c-firma').checked;
         };
 
+        function aplicarPilotoPreseleccionado() {
+            if(!pilotoPreseleccionado) return;
+            const sel = document.getElementById('c-piloto');
+            if(!sel) return;
+            const existe = Array.from(sel.options).some(o => o.value === pilotoPreseleccionado);
+            if(!existe) {
+                const opt = document.createElement('option');
+                opt.value = pilotoPreseleccionado;
+                opt.textContent = pilotoPreseleccionado === "CUALQUIERA" ? "CUALQUIERA / PRIMER PILOTO DISPONIBLE" : pilotoPreseleccionado;
+                sel.prepend(opt);
+            }
+            sel.value = pilotoPreseleccionado;
+        }
+
         // EXPORTACIÓN COMPLETA CSV
         document.getElementById('btn-reset').onclick = async () => {
             const snap = await get(ref(db, 'copilotajes'));
             const d = snap.val();
             if(!d) return;
 
-            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION\n";
+            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;ES_MENOR;TUTOR;DNI_TUTOR;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION\n";
             
             const procesarLista = (lista) => {
                 if(!lista) return;
                 Object.values(lista).forEach(i => {
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${i.horaPreRegistro || ''}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}"\n`;
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${i.esMenor ? 'SI' : 'NO'}";"${i.nombreTutor || ''}";"${i.dniTutor || ''}";"${i.horaPreRegistro || ''}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}"\n`;
                 });
             };
 
@@ -337,4 +378,3 @@
     </script>
 </body>
 </html>
-

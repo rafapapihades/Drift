@@ -392,22 +392,36 @@
             const snap = await get(ref(db, 'copilotajes'));
             const d = snap.val();
             if(!d) return;
+            const votosSnap = await get(ref(db, 'historial_votos'));
+            const votosRows = Object.values(votosSnap.val() || {}).filter(v => v && v.dorsal);
+            const votosPorTurno = {};
+            votosRows.forEach(v => {
+                const k = v.nPapel ? String(v.nPapel) : "";
+                if(!k) return;
+                if(!votosPorTurno[k]) votosPorTurno[k] = { ap:0, up:0, dw:0 };
+                votosPorTurno[k].ap += Number(v.ap || 0);
+                votosPorTurno[k].up += Number(v.up || 0);
+                votosPorTurno[k].dw += Number(v.dw || 0);
+            });
 
-            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;ORIGEN;ES_MENOR;TUTOR;DNI_TUTOR;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION\n";
+            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;ORIGEN;ES_MENOR;TUTOR;DNI_TUTOR;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION;V_AP;V_UP;V_DW;V_SCORE\n";
             
             const procesarLista = (lista) => {
                 if(!lista) return;
                 Object.values(lista).forEach(i => {
                     const tutorNombre = i.nombreTutor || i.tutor || "";
                     const tutorDni = i.dniTutor || i.tutor_dni || "";
+                    const votos = votosPorTurno[String(i.nPapel)] || { ap:0, up:0, dw:0 };
+                    const score = (votos.ap * 2) + votos.up - votos.dw;
                     const origen = i.origenRegistro || ((i.horaPreRegistro && i.horaPreRegistro !== 'MANUAL') ? 'PRE-REGISTRO' : 'TAQUILLA');
                     const horaPre = (i.horaPreRegistro && i.horaPreRegistro !== 'MANUAL') ? i.horaPreRegistro : '';
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${origen}";"${(i.esMenor || tutorNombre || tutorDni) ? 'SI' : 'NO'}";"${tutorNombre}";"${tutorDni}";"${horaPre}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}"\n`;
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${origen}";"${(i.esMenor || tutorNombre || tutorDni) ? 'SI' : 'NO'}";"${tutorNombre}";"${tutorDni}";"${horaPre}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}";"${votos.ap}";"${votos.up}";"${votos.dw}";"${score}"\n`;
                 });
             };
 
             procesarLista(d.espera);
             procesarLista(d.completados);
+            csv += construirResumenVotosCSV(votosRows);
 
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
@@ -419,13 +433,40 @@
                 if(confirm("¿Deseas BORRAR todos los datos de la nube y empezar un nuevo evento?")) {
                     set(ref(db, 'copilotajes/espera'), null);
                     set(ref(db, 'copilotajes/completados'), null);
-                    set(ref(db, 'copilotajes/ultimo_numero'), 0);
-                    set(ref(db, 'participantes_sorteo'), null);
-                    set(ref(db, 'sorteo_reset_ts'), Date.now());
-                    location.reload();
+                        set(ref(db, 'copilotajes/ultimo_numero'), 0);
+                        set(ref(db, 'participantes_sorteo'), null);
+                        set(ref(db, 'historial_votos'), null);
+                        set(ref(db, 'registro_votos'), null);
+                        set(ref(db, 'votacion_activa'), { activa:false, timer:0, dorsal:"" });
+                        set(ref(db, 'sorteo_reset_ts'), Date.now());
+                        location.reload();
                 }
             }, 1500);
         };
+
+        function construirResumenVotosCSV(rows) {
+            if(!rows.length) return "";
+            const agg = {};
+            rows.forEach(v => {
+                const dorsal = String(v.dorsal || "");
+                if(!dorsal) return;
+                if(!agg[dorsal]) {
+                    agg[dorsal] = { dorsal, piloto: v.piloto || v.info || "", ap:0, up:0, dw:0, veces:0 };
+                }
+                agg[dorsal].ap += Number(v.ap || 0);
+                agg[dorsal].up += Number(v.up || 0);
+                agg[dorsal].dw += Number(v.dw || 0);
+                agg[dorsal].veces += 1;
+            });
+            const ranking = Object.values(agg)
+                .map(p => ({ ...p, score: (p.ap * 2) + p.up - p.dw }))
+                .sort((a,b) => (b.score - a.score) || (b.ap - a.ap));
+            let out = "\n\nRANKING_VOTOS\nRANK;DORSAL;PILOTO;APLAUSOS;UP;DOWN;SCORE;VECES\n";
+            ranking.forEach((p, i) => {
+                out += `"${i+1}";"${p.dorsal}";"${p.piloto}";"${p.ap}";"${p.up}";"${p.dw}";"${p.score}";"${p.veces}"\n`;
+            });
+            return out;
+        }
 
         // CARGA DE PILOTOS DESDE CSV
         document.getElementById('csv-pilotos').onchange = (e) => {

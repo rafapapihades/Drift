@@ -298,7 +298,7 @@
             const procesarLista = (lista) => {
                 if(!lista) return;
                 Object.values(lista).forEach(i => {
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${i.horaPreRegistro || ''}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || ''}";"${i.horaSalida || ''}";"${i.duracion || ''}"\n`;
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${i.horaPreRegistro || ''}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}"\n`;
                 });
             };
 
@@ -337,3 +337,4 @@
     </script>
 </body>
 </html>
+

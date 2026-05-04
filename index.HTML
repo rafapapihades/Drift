@@ -171,9 +171,6 @@
         });
 
         window.votar = async (itemId, tipo) => {
-            const tSnap = await get(ref(db, `votacion_activa/items/${itemId}/timer`));
-            const timer = tSnap.exists() ? Number(tSnap.val()) : 999;
-            if(timer > 0 && timer < 10) return;
             if(!itemId) return;
 
             const updates = {};
@@ -233,3 +230,4 @@
     </script>
 </body>
 </html>
+

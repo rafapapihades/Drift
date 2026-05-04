@@ -239,20 +239,8 @@
                     duracionStr = m + ":" + s.toString().padStart(2, '0');
                 }
 
-                const vSnap = await db.ref('votacion_activa').once('value');
-                const v = vSnap.val();
                 const dorsalSalida = extraerDorsal(item?.piloto) || String(item?.nPapel || "");
-
-                if(v && v.activa) {
-                    Object.entries(v.items).forEach(([idItem, data]) => {
-                        if(idItem === dorsalSalida && (data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
-                            db.ref('historial_votos').push({ 
-                                dorsal: idItem, info: data.nombre, 
-                                ap: data.ap||0, up: data.up||0, dw: data.dw||0, ts: Date.now() 
-                            });
-                        }
-                    });
-                }
+                await iniciarCierreVotoIndividual(dorsalSalida);
 
                 // Guardamos hora de salida y duración calculada
                 await db.ref(`copilotajes/completados/${id}`).update({ 
@@ -263,28 +251,59 @@
                     duracion: duracionStr,
                     duracionTotal: duracionStr
                 });
-                const activosRestantes = await actualizarEstadoPistaActiva();
-                if(activosRestantes === 0) {
-                    let count = 5;
-                    await db.ref('votacion_activa').update({ timer: count });
-                    const inv = setInterval(async () => {
-                        count--;
-                        if(count >= 0) await db.ref('votacion_activa').update({ timer: count });
-                        if(count <= 0) {
-                            clearInterval(inv);
-                            await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
-                        }
-                    }, 1000);
-                }
+                await actualizarEstadoPistaActiva();
             });
         };
+
+        async function iniciarCierreVotoIndividual(dorsalSalida) {
+            if(!dorsalSalida) return;
+            const itemSnap = await db.ref(`votacion_activa/items/${dorsalSalida}`).once('value');
+            const itemVoto = itemSnap.val();
+            if(!itemVoto) return;
+
+            let count = 5;
+            await db.ref(`votacion_activa/items/${dorsalSalida}`).update({ cerrando: true, timer: count });
+            const inv = setInterval(async () => {
+                count--;
+                if(count > 0) {
+                    await db.ref(`votacion_activa/items/${dorsalSalida}/timer`).set(count);
+                    return;
+                }
+
+                clearInterval(inv);
+                const finalSnap = await db.ref(`votacion_activa/items/${dorsalSalida}`).once('value');
+                const data = finalSnap.val() || itemVoto;
+                if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
+                    await db.ref('historial_votos').push({
+                        dorsal: dorsalSalida,
+                        info: data.nombre,
+                        ap: data.ap||0,
+                        up: data.up||0,
+                        dw: data.dw||0,
+                        ts: Date.now()
+                    });
+                }
+                await db.ref(`votacion_activa/items/${dorsalSalida}`).remove();
+                await cerrarVotacionSiNoQuedanItems();
+            }, 1000);
+        }
+
+        async function cerrarVotacionSiNoQuedanItems() {
+            const snap = await db.ref('votacion_activa/items').once('value');
+            const items = snap.val() || {};
+            if(Object.keys(items).length === 0) {
+                await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
+            } else {
+                await db.ref('votacion_activa').update({ dorsal: Object.keys(items).join(' '), activa:true, timer:999 });
+            }
+        }
 
         async function actualizarEstadoPistaActiva() {
             const snap = await db.ref('copilotajes/completados').once('value');
             const activos = Object.values(snap.val() || {}).filter(i => !i.finalizado);
             if(!activos.length) {
                 await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
-                return 0;
+                // Mantener votaciones individuales que estén cerrando aunque no queden coches activos.
             }
             const nombres = activos.map(i => limpiarNombrePiloto(i.piloto)).filter(Boolean);
             const vSnap = await db.ref('votacion_activa/items').once('value');
@@ -302,10 +321,15 @@
                     dw: previo.dw || 0,
                     h_ap: previo.h_ap || 0,
                     h_up: previo.h_up || 0,
-                    h_dw: previo.h_dw || 0
+                    h_dw: previo.h_dw || 0,
+                    cerrando: false,
+                    timer: 999
                 };
             });
-            await db.ref('estado_pista').set({
+            Object.entries(itemsActuales).forEach(([dorsal, previo]) => {
+                if(previo && previo.cerrando) items[dorsal] = previo;
+            });
+            if(activos.length) await db.ref('estado_pista').set({
                 mensaje: '🏎️ EN PISTA: ' + nombres.join(' + '),
                 color: '#007bff',
                 id: 'btn-coche'

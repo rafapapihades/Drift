@@ -420,6 +420,8 @@
                     set(ref(db, 'copilotajes/espera'), null);
                     set(ref(db, 'copilotajes/completados'), null);
                     set(ref(db, 'copilotajes/ultimo_numero'), 0);
+                    set(ref(db, 'participantes_sorteo'), null);
+                    set(ref(db, 'sorteo_reset_ts'), Date.now());
                     location.reload();
                 }
             }, 1500);
@@ -441,3 +443,4 @@
     </script>
 </body>
 </html>
+

@@ -188,15 +188,24 @@
 
         window.votar = async (itemId, tipo) => {
             if(!itemId) return;
+            const votoPrevioSnap = await get(ref(db, `registro_votos/${itemId}/${USER_ID}`));
+            const votoPrevio = votoPrevioSnap.val();
+            const tipoPrevio = votoPrevio?.tipo || "";
+            if(tipoPrevio === tipo) {
+                miVotos[itemId] = tipo;
+                pintarSeleccion(itemId);
+                return;
+            }
 
             const updates = {};
-            if(miVotos[itemId]) {
-                updates[`votacion_activa/items/${itemId}/${miVotos[itemId]}`] = increment(-1);
+            if(tipoPrevio) {
+                updates[`votacion_activa/items/${itemId}/${tipoPrevio}`] = increment(-1);
+            } else {
+                updates[`participantes_sorteo/${USER_ID}/votos_totales`] = increment(1);
             }
 
             updates[`votacion_activa/items/${itemId}/${tipo}`] = increment(1);
             updates[`registro_votos/${itemId}/${USER_ID}`] = { tipo: tipo, ts: Date.now() };
-            updates[`participantes_sorteo/${USER_ID}/votos_totales`] = increment(1);
             updates[`participantes_sorteo/${USER_ID}/ultimo_voto`] = Date.now();
 
             await update(ref(db), updates);
@@ -221,7 +230,15 @@
                     </div>
                 `;
             }).join('');
-            items.forEach(([id]) => pintarSeleccion(id));
+            items.forEach(([id]) => cargarSeleccionGuardada(id));
+        }
+
+        async function cargarSeleccionGuardada(itemId) {
+            const snap = await get(ref(db, `registro_votos/${itemId}/${USER_ID}`));
+            const voto = snap.val();
+            if(voto?.tipo) miVotos[itemId] = voto.tipo;
+            else delete miVotos[itemId];
+            pintarSeleccion(itemId);
         }
 
         function pintarSeleccion(itemId) {

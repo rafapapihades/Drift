@@ -206,7 +206,6 @@
 
             const updates = {};
             updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 999, items: items };
-            updates['estado_pista'] = { mensaje: '🏎️ EN PISTA: ' + nombreLimpio, color: '#007bff', id: 'btn-coche' };
             
             const newK = db.ref('copilotajes/completados').push().key;
             // Guardamos los campos de tiempo adicionales para el CSV
@@ -220,6 +219,7 @@
             updates[`copilotajes/espera/${id}`] = null;
 
             await db.ref().update(updates);
+            await actualizarEstadoPistaActiva();
         };
 
         window.confirmarSalidaRecinto = (id) => {
@@ -239,8 +239,6 @@
                     duracionStr = m + ":" + s.toString().padStart(2, '0');
                 }
 
-                await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
-                
                 const vSnap = await db.ref('votacion_activa').once('value');
                 const v = vSnap.val();
 
@@ -275,8 +273,28 @@
                     duracion: duracionStr,
                     duracionTotal: duracionStr
                 });
+                await actualizarEstadoPistaActiva();
             });
         };
+
+        async function actualizarEstadoPistaActiva() {
+            const snap = await db.ref('copilotajes/completados').once('value');
+            const activos = Object.values(snap.val() || {}).filter(i => !i.finalizado);
+            if(!activos.length) {
+                await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
+                return;
+            }
+            const nombres = activos.map(i => limpiarNombrePiloto(i.piloto)).filter(Boolean);
+            await db.ref('estado_pista').set({
+                mensaje: '🏎️ EN PISTA: ' + nombres.join(' + '),
+                color: '#007bff',
+                id: 'btn-coche'
+            });
+        }
+
+        function limpiarNombrePiloto(piloto) {
+            return String(piloto || '').split('|')[0].replace(/\[.*?\]/g,'').trim();
+        }
 
         function renderizarTodo() {
             db.ref('copilotajes').once('value', snap => {
@@ -324,4 +342,5 @@
     </script>
 </body>
 </html>
+
 

@@ -176,6 +176,10 @@
                 validarEdad(pre.fecha_nac || "");
                 if(pre.tutor_dni) document.getElementById('c-dni-tutor').value = pre.tutor_dni;
                 if(pre.tutor) document.getElementById('c-nombre-tutor').value = pre.tutor;
+                if(pre.tutor || pre.tutor_dni || pre.nombreTutor || pre.dniTutor) {
+                    esMenorFlag = true;
+                    document.getElementById('box-menor').style.display = 'block';
+                }
                 
                 document.getElementById('v-proximo-numero').innerText = pre.nPapel.toString().padStart(3, '0');
             } else {
@@ -187,6 +191,9 @@
         // REGISTRAR Y PASAR A COLA
         window.registrar = async () => {
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
+            const nombreTutor = document.getElementById('c-nombre-tutor').value.trim() || registroRecuperado?.tutor || registroRecuperado?.nombreTutor || "";
+            const dniTutor = document.getElementById('c-dni-tutor').value.trim() || registroRecuperado?.tutor_dni || registroRecuperado?.dniTutor || "";
+            const esMenorFinal = esMenorFlag || !!nombreTutor || !!dniTutor;
             
             const payload = {
                 nPapel: num,
@@ -196,9 +203,9 @@
                 redes: document.getElementById('c-redes').value.trim(),
                 piloto: document.getElementById('c-piloto').value,
                 metodoPago: metodoPago,
-                esMenor: esMenorFlag,
-                nombreTutor: esMenorFlag ? document.getElementById('c-nombre-tutor').value : "",
-                dniTutor: esMenorFlag ? document.getElementById('c-dni-tutor').value : "",
+                esMenor: esMenorFinal,
+                nombreTutor: esMenorFinal ? nombreTutor : "",
+                dniTutor: esMenorFinal ? dniTutor : "",
                 enRecinto: false,
                 finalizado: false,
                 // Tiempos para el reporte
@@ -339,7 +346,9 @@
             const procesarLista = (lista) => {
                 if(!lista) return;
                 Object.values(lista).forEach(i => {
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${i.esMenor ? 'SI' : 'NO'}";"${i.nombreTutor || ''}";"${i.dniTutor || ''}";"${i.horaPreRegistro || ''}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}"\n`;
+                    const tutorNombre = i.nombreTutor || i.tutor || "";
+                    const tutorDni = i.dniTutor || i.tutor_dni || "";
+                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${(i.esMenor || tutorNombre || tutorDni) ? 'SI' : 'NO'}";"${tutorNombre}";"${tutorDni}";"${i.horaPreRegistro || ''}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}"\n`;
                 });
             };
 

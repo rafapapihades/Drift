@@ -241,27 +241,17 @@
 
                 const vSnap = await db.ref('votacion_activa').once('value');
                 const v = vSnap.val();
+                const dorsalSalida = extraerDorsal(item?.piloto) || String(item?.nPapel || "");
 
                 if(v && v.activa) {
                     Object.entries(v.items).forEach(([idItem, data]) => {
-                        if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
+                        if(idItem === dorsalSalida && (data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
                             db.ref('historial_votos').push({ 
                                 dorsal: idItem, info: data.nombre, 
                                 ap: data.ap||0, up: data.up||0, dw: data.dw||0, ts: Date.now() 
                             });
                         }
                     });
-
-                    let count = 5;
-                    await db.ref('votacion_activa').update({ timer: count });
-                    const inv = setInterval(async () => {
-                        count--;
-                        if(count >= 0) await db.ref('votacion_activa').update({ timer: count });
-                        if(count <= 0) { 
-                            clearInterval(inv); 
-                            await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" }); 
-                        }
-                    }, 1000);
                 }
 
                 // Guardamos hora de salida y duración calculada
@@ -273,7 +263,19 @@
                     duracion: duracionStr,
                     duracionTotal: duracionStr
                 });
-                await actualizarEstadoPistaActiva();
+                const activosRestantes = await actualizarEstadoPistaActiva();
+                if(activosRestantes === 0) {
+                    let count = 5;
+                    await db.ref('votacion_activa').update({ timer: count });
+                    const inv = setInterval(async () => {
+                        count--;
+                        if(count >= 0) await db.ref('votacion_activa').update({ timer: count });
+                        if(count <= 0) {
+                            clearInterval(inv);
+                            await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
+                        }
+                    }, 1000);
+                }
             });
         };
 
@@ -282,18 +284,49 @@
             const activos = Object.values(snap.val() || {}).filter(i => !i.finalizado);
             if(!activos.length) {
                 await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
-                return;
+                return 0;
             }
             const nombres = activos.map(i => limpiarNombrePiloto(i.piloto)).filter(Boolean);
+            const vSnap = await db.ref('votacion_activa/items').once('value');
+            const itemsActuales = vSnap.val() || {};
+            const items = {};
+            activos.forEach(item => {
+                const dorsal = extraerDorsal(item.piloto) || String(item.nPapel || "");
+                if(!dorsal) return;
+                const previo = itemsActuales[dorsal] || {};
+                items[dorsal] = {
+                    nombre: `${limpiarNombrePiloto(item.piloto)} & ${item.copiloto || ""}`,
+                    coche: "TAXI DRIFT",
+                    ap: previo.ap || 0,
+                    up: previo.up || 0,
+                    dw: previo.dw || 0,
+                    h_ap: previo.h_ap || 0,
+                    h_up: previo.h_up || 0,
+                    h_dw: previo.h_dw || 0
+                };
+            });
             await db.ref('estado_pista').set({
                 mensaje: '🏎️ EN PISTA: ' + nombres.join(' + '),
                 color: '#007bff',
                 id: 'btn-coche'
             });
+            await db.ref('votacion_activa').set({
+                dorsal: Object.keys(items).join(' '),
+                activa: true,
+                timer: 999,
+                items: items
+            });
+            return activos.length;
         }
 
         function limpiarNombrePiloto(piloto) {
             return String(piloto || '').split('|')[0].replace(/\[.*?\]/g,'').trim();
+        }
+
+        function extraerDorsal(piloto) {
+            const txt = String(piloto || "");
+            const match = txt.match(/\[#(\d+)\]/) || txt.match(/^(\d+)/);
+            return match ? match[1] : "";
         }
 
         function renderizarTodo() {

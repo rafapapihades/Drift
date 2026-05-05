@@ -491,7 +491,19 @@
       }
 
       window.conectarESP = function(){
-        if(espWs && espWs.readyState === WebSocket.OPEN) return;
+        conectarESPAsync().catch(function(){});
+      };
+
+      function conectarESPAsync(){
+        return new Promise(function(resolve, reject){
+          if(espWs && espWs.readyState === WebSocket.OPEN) { resolve(); return; }
+          if(espWs && espWs.readyState === WebSocket.CONNECTING) {
+            var espera = setInterval(function(){
+              if(espWs && espWs.readyState === WebSocket.OPEN) { clearInterval(espera); resolve(); }
+              else if(!espWs || espWs.readyState === WebSocket.CLOSED) { clearInterval(espera); reject(new Error("ESP desconectado")); }
+            }, 100);
+            return;
+          }
         setESPStatus("CONECTANDO ESP...", false);
         try {
           var ip = getIpESP();
@@ -503,6 +515,7 @@
             setESPStatus("ESP CONECTADO", true);
             logESP("Conectado. Consultando calibracion...");
             enviarESP("CAL_GET", true);
+            resolve();
           };
           espWs.onclose = function(){
             espConnected = false;
@@ -510,7 +523,7 @@
             setESPStatus("ESP DESCONECTADO", false);
             actualizarBotonesMedicion();
           };
-          espWs.onerror = function(){ setESPStatus("ERROR CON ESP", false); logESP("No se pudo comunicar con el ESP."); };
+          espWs.onerror = function(){ setESPStatus("ERROR CON ESP", false); logESP("No se pudo comunicar con el ESP."); reject(new Error("No se pudo comunicar con el ESP")); };
           espWs.onmessage = function(ev){
             try { procesarESP(JSON.parse(ev.data)); }
             catch(e) { logESP("Mensaje ESP no JSON: " + ev.data); }
@@ -518,7 +531,18 @@
         } catch(e) {
           setESPStatus("NO SE PUDO CONECTAR", false);
           logESP(e.message || String(e));
+          reject(e);
         }
+        });
+      }
+
+      function desconectarESP(){
+        if(espWs) {
+          try { espWs.close(); } catch(e) {}
+        }
+        espWs = null;
+        espConnected = false;
+        setESPStatus("ESP DESCONECTADO", false);
       };
 
       window.toggleConfigESP = function(){
@@ -612,12 +636,13 @@
         }
       }
 
-      window.toggleMedicionDB = function(){
+      window.toggleMedicionDB = async function(){
         if(midiendoHZ) return alert("Para primero la medicion de tono.");
         if(!midiendoDB){
           escDb = 0;
           document.getElementById('res-db').innerText = "0.0";
           document.getElementById('db-live').innerText = "0.0";
+          try { await conectarESPAsync(); } catch(e) { alert("No se pudo conectar al ESP. Conectate al WiFi Sonometro-Escape y vuelve a pulsar."); return; }
           if(enviarESP("A_START")) { midiendoDB = true; logESP("Midiendo DB..."); }
         } else {
           if(enviarESP("A_STOP")) logESP("Cerrando medicion DB...");
@@ -625,12 +650,13 @@
         actualizarBotonesMedicion();
       };
 
-      window.toggleMedicionHZ = function(){
+      window.toggleMedicionHZ = async function(){
         if(midiendoDB) return alert("Para primero la medicion de DB.");
         if(!midiendoHZ){
           escHz = 0;
           document.getElementById('res-hz').innerText = "0";
           document.getElementById('hz-live').innerText = "0";
+          try { await conectarESPAsync(); } catch(e) { alert("No se pudo conectar al ESP. Conectate al WiFi Sonometro-Escape y vuelve a pulsar."); return; }
           if(enviarESP("B_START")) { midiendoHZ = true; logESP("Midiendo tono grave..."); }
         } else {
           if(enviarESP("B_STOP")) logESP("Cerrando medicion de tono...");
@@ -700,6 +726,7 @@
         var mensajePodio = calcularMensajePodio(payload, listaRanking);
         await avanzarSlotCrono();
         logESP("Ranking actualizado: #" + payload.dorsal + " · " + payload.db + " dB · " + Math.round(payload.hz) + " Hz");
+        desconectarESP();
         alert(mensajePodio);
         resetPruebaEscape();
       };
@@ -1197,5 +1224,3 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
-
-

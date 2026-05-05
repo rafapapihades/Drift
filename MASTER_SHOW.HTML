@@ -170,17 +170,17 @@
   <div id="tab-esc" class="tab-content">
     <div class="card">
       <button class="btn btn-cargar" onclick="document.getElementById('xl-e').click()">CARGAR ESCAPES.CSV</button>
-      <button class="btn" style="background:#333" onclick="window.open('registro_escapes.html','_blank')">ABRIR REGISTRO ESCAPES</button>
+      <button class="btn" style="background:#333" onclick="location.href='registro_escapes.html'">ABRIR REGISTRO ESCAPES</button>
       <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarEscapesCSV(event)">
+      <div class="input-group" style="margin-top:10px">
+        <input type="number" id="t-total" placeholder="MINUTOS EVENTO" oninput="actualizarTiemposEscapes()">
+        <button id="btn-play-esc" class="btn-lupa" onclick="iniciarCronoEscapes()">▶</button>
+      </div>
       <div class="esc-summary">
         <div class="esc-stat"><span>Inscritos</span><b id="esc-total">0</b></div>
         <div class="esc-stat"><span>Evento</span><b id="esc-event-left">--:--</b></div>
         <div class="esc-stat"><span>Prueba</span><b id="esc-slot">--:--</b></div>
         <div class="esc-stat"><span>Resultados</span><b id="esc-medidos">0</b></div>
-      </div>
-      <div class="input-group" style="margin-top:10px">
-        <input type="number" id="t-total" placeholder="MINUTOS EVENTO" oninput="actualizarTiemposEscapes()">
-        <button class="btn-lupa" onclick="iniciarCronoEscapes()">▶</button>
       </div>
       <div id="lista-escapes-cargados" class="info-preview" style="display:none"></div>
     </div>
@@ -356,6 +356,8 @@
           actualizarTiemposEscapes();
           await db.ref('ranking_escapes').remove();
           await db.ref('crono_evento').remove();
+          var play = document.getElementById('btn-play-esc');
+          if(play) { play.disabled = false; play.style.opacity = "1"; }
           await db.ref('inscritos_esc').set(obj).then(function(){
             alert("Cargados " + Object.keys(obj).length + " inscritos de escapes");
             event.target.value = "";
@@ -444,6 +446,8 @@
         var endTime = Date.now() + totalM * 60000;
         var slotS = Math.max(1, Math.floor((totalM * 60) / restantes));
         await db.ref('crono_evento').set({ totalMin: totalM, inscritos: total, medidos: medidos, restantes: restantes, slotSec: slotS, updatedAt: Date.now(), corriendo: true, endTime: endTime, slotTime: Date.now() + slotS * 1000 });
+        var play = document.getElementById('btn-play-esc');
+        if(play) { play.disabled = true; play.style.opacity = "0.35"; }
         logESP("Cronometro iniciado: " + fmtTime(slotS * 1000) + " para esta prueba.");
       };
 
@@ -468,6 +472,8 @@
 
       function actualizarCrono(c){
         clearInterval(cronoInterval);
+        var play = document.getElementById('btn-play-esc');
+        if(play) { play.disabled = !!(c && c.corriendo); play.style.opacity = (c && c.corriendo) ? "0.35" : "1"; }
         if(c && c.totalMin && c.inscritos && c.slotSec){
           var input = document.getElementById('t-total');
           if(input && !input.value) input.value = c.totalMin;
@@ -664,10 +670,32 @@
           ts: Date.now()
         };
         await db.ref('ranking_escapes/' + key).set(payload);
+        var snapRanking = await getOnce('ranking_escapes');
+        var listaRanking = Object.values(snapRanking.val() || {});
+        var mensajePodio = calcularMensajePodio(payload, listaRanking);
         await avanzarSlotCrono();
-        logESP("Ranking actualizado: #" + payload.dorsal + " ? " + payload.db + " dB ? " + Math.round(payload.hz) + " Hz");
+        logESP("Ranking actualizado: #" + payload.dorsal + " · " + payload.db + " dB · " + Math.round(payload.hz) + " Hz");
+        alert(mensajePodio);
         resetPruebaEscape();
       };
+
+      function calcularMensajePodio(payload, lista){
+        var comb = normComb(payload.combustible || payload.combustibleTexto);
+        var etiquetaComb = comb === "diesel" ? "DIÉSEL" : "GASOLINA";
+        var mismaCat = lista.filter(function(p){ return normComb(p.combustible || p.combustibleTexto) === comb; });
+        var dbRank = mismaCat.filter(function(p){ return Number(p.db) > 0; }).sort(function(a,b){ return Number(b.db||0) - Number(a.db||0); });
+        var hzRank = mismaCat.filter(function(p){ return Number(p.hz) > 0; }).sort(function(a,b){ return Number(a.hz||99999) - Number(b.hz||99999); });
+        var pDB = dbRank.findIndex(function(p){ return normalizarDorsal(p.dorsal) === normalizarDorsal(payload.dorsal); }) + 1;
+        var pHZ = hzRank.findIndex(function(p){ return normalizarDorsal(p.dorsal) === normalizarDorsal(payload.dorsal); }) + 1;
+        var podios = [];
+        if(pDB > 0 && pDB <= 3) podios.push("PODIO DB " + etiquetaComb + ": P" + pDB);
+        if(pHZ > 0 && pHZ <= 3) podios.push("PODIO HZ " + etiquetaComb + ": P" + pHZ);
+        var msg = "Resultado actualizado\\n#" + payload.dorsal + " " + payload.piloto + "\\n" + payload.db + " dB · " + Math.round(payload.hz) + " Hz";
+        msg += "\\nDB " + etiquetaComb + ": P" + (pDB || "-");
+        msg += "\\nHZ " + etiquetaComb + ": P" + (pHZ || "-");
+        msg += "\\n\\n" + (podios.length ? podios.join("\\n") : "No entra en podio de su categoría.");
+        return msg;
+      }
 
       window.exportarEscapes = async function(){
         var snap = await getOnce('ranking_escapes');

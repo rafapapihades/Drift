@@ -221,6 +221,7 @@
     <div class="card">
       <button class="btn" style="background:#333" onclick="toggleConfigESP()">CONFIG ESP ⚙</button>
       <div id="panel-config-esp" class="esp-config-panel">
+        <input id="esp-ip" type="text" placeholder="IP ESP (ej: 192.168.43.120)" oninput="guardarIpESP()">
         <button class="btn" style="background:#333" onclick="conectarESP()">CONECTAR ESP WIFI</button>
         <div class="cal-row">
           <input id="cal-db" type="number" step="0.1" placeholder="dB referencia">
@@ -230,7 +231,7 @@
           <button class="btn" style="background:#222" onclick="consultarCalibracionESP()">CONSULTAR CAL</button>
           <button class="btn" style="background:#721b1b" onclick="resetCalibracionESP()">RESET CAL</button>
         </div>
-        <div id="esp-log" class="esp-log">Esperando conexion con ws://192.168.4.1/ws</div>
+        <div id="esp-log" class="esp-log">Escribe la IP del ESP o usa 192.168.4.1 en modo fallback.</div>
       </div>
     </div>
   </div>
@@ -493,7 +494,10 @@
         if(espWs && espWs.readyState === WebSocket.OPEN) return;
         setESPStatus("CONECTANDO ESP...", false);
         try {
-          espWs = new WebSocket("ws://192.168.4.1/ws");
+          var ip = getIpESP();
+          var url = ip.indexOf("ws://") === 0 ? ip : ("ws://" + ip.replace(/\/+$/, "") + "/ws");
+          logESP("Conectando a " + url + "...");
+          espWs = new WebSocket(url);
           espWs.onopen = function(){
             espConnected = true;
             setESPStatus("ESP CONECTADO", true);
@@ -519,7 +523,28 @@
 
       window.toggleConfigESP = function(){
         var panel = document.getElementById('panel-config-esp');
-        if(panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        if(panel) {
+          panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+          cargarIpESP();
+        }
+      };
+
+      function getIpESP(){
+        var input = document.getElementById('esp-ip');
+        var ip = input ? input.value.trim() : "";
+        if(!ip) ip = localStorage.getItem('escapes_esp_ip') || "192.168.4.1";
+        if(input && !input.value) input.value = ip;
+        return ip;
+      }
+
+      function cargarIpESP(){
+        var input = document.getElementById('esp-ip');
+        if(input && !input.value) input.value = localStorage.getItem('escapes_esp_ip') || "192.168.4.1";
+      }
+
+      window.guardarIpESP = function(){
+        var input = document.getElementById('esp-ip');
+        if(input && input.value.trim()) localStorage.setItem('escapes_esp_ip', input.value.trim());
       };
 
       function setESPStatus(txt, ok){
@@ -1172,4 +1197,5 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+
 

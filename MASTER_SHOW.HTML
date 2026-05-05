@@ -73,6 +73,21 @@
     .esp-ok { color:#00ff99; }
     .esp-bad { color:#ff4444; }
     select { width:100%; padding:15px; background:#000; color:#ffcc00; border:1px solid #444; border-radius:8px; text-align:center; font-size:1.1em; margin-bottom:8px; }
+    .esc-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+    .esc-stat { background:#000; border:1px solid #333; border-radius:10px; padding:10px; text-align:center; }
+    .esc-stat span { display:block; color:#888; font-size:.7em; font-weight:900; text-transform:uppercase; }
+    .esc-stat b { display:block; color:#ffcc00; font-size:1.45em; margin-top:4px; }
+    .esc-car-card { background:#050505; border:1px solid #333; border-radius:10px; padding:12px; margin-top:10px; text-align:left; }
+    .esc-car-card h3 { margin:0 0 8px; color:#ffcc00; font-size:1.15em; text-transform:uppercase; }
+    .esc-car-card p { margin:4px 0; color:#ddd; }
+    .esc-live-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+    .esc-live-box { background:#000; border:1px solid #333; border-radius:10px; padding:12px; text-align:center; }
+    .esc-live-box span { color:#888; font-size:.7em; font-weight:900; text-transform:uppercase; }
+    .esc-live-box b { display:block; font-family:monospace; font-size:2em; margin-top:5px; }
+    .cal-row { display:flex; gap:8px; margin-top:8px; }
+    .cal-row input { font-size:1em; }
+    .cal-row .btn { width:auto; flex:1; margin:0; padding:14px; }
+    .esp-log { background:#050505; border:1px solid #222; border-radius:8px; padding:8px; min-height:34px; color:#aaa; font-size:.8em; text-align:center; margin-top:8px; }
 
     /* ERROR BAR (solo si hay error) */
     #dbg{
@@ -152,54 +167,65 @@
 
   <div id="tab-esc" class="tab-content">
     <div class="card">
-      <button class="btn btn-cargar" onclick="document.getElementById('xl-e').click()">📂 CARGAR ESCAPES.CSV</button>
+      <button class="btn btn-cargar" onclick="document.getElementById('xl-e').click()">CARGAR ESCAPES.CSV</button>
       <button class="btn" style="background:#333" onclick="window.open('registro_escapes.html','_blank')">ABRIR REGISTRO ESCAPES</button>
-      <div id="txt-count-esc" class="pilotos-count">ESCAPES CARGADOS: 0</div>
       <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarEscapesCSV(event)">
-      <div class="input-group">
-        <input type="text" id="d-esc" placeholder="DORSAL / NOMBRE / MATRICULA" oninput="buscarEscape(this.value)">
+      <div class="esc-summary">
+        <div class="esc-stat"><span>Inscritos</span><b id="esc-total">0</b></div>
+        <div class="esc-stat"><span>Tiempo prueba</span><b id="esc-slot">--:--</b></div>
+        <div class="esc-stat"><span>Resultados</span><b id="esc-medidos">0</b></div>
       </div>
-      <div id="preview-esc" class="info-preview">Introduce dorsal, nombre o matrícula...</div>
-      <div id="lista-escapes-cargados" class="info-preview"></div>
-      <select id="combustible-manual">
-        <option value="">Combustible del CSV</option>
-        <option value="gasolina">Gasolina</option>
-        <option value="diesel">Diésel</option>
-      </select>
+      <div class="input-group" style="margin-top:10px">
+        <input type="number" id="t-total" placeholder="MINUTOS EVENTO" oninput="actualizarTiemposEscapes()">
+        <button class="btn-lupa" onclick="guardarTiemposEscapes()">OK</button>
+      </div>
+      <div id="lista-escapes-cargados" class="info-preview">Sin inscritos cargados.</div>
+    </div>
+
+    <div class="card">
+      <div class="input-group">
+        <input type="text" id="d-esc" placeholder="BUSCAR DORSAL / NOMBRE / MATRICULA" oninput="buscarEscape(this.value)">
+        <button class="btn-lupa" onclick="buscarEscape(document.getElementById('d-esc').value)">OK</button>
+      </div>
+      <div id="preview-esc" class="info-preview">Carga un CSV y busca un dorsal.</div>
+      <div id="ficha-escape" class="esc-car-card" style="display:none"></div>
     </div>
 
     <div class="card">
       <div id="esp-status" class="esp-status esp-bad">ESP DESCONECTADO</div>
-      <button class="btn" style="background:#333" onclick="conectarESP()">CONECTAR SONÓMETRO</button>
-      <div id="db-live" class="big-db">0.0 dB</div>
-      <div id="hz-live" class="live-hz">0 Hz</div>
-      <button id="btn-med-db" class="btn" style="background:red" onclick="toggleMedicionDB()">INICIAR DB MAX</button>
-      <button id="btn-med-hz" class="btn" style="background:orange; color:#000" onclick="toggleMedicionHZ()">INICIAR MEDIA HZ</button>
-      <div style="display:flex; justify-content:space-around; margin:10px 0; font-family:monospace; background:#000; padding:10px; border-radius:5px">
-        <span>MAX: <b id="res-db" style="color:red">0.0</b>dB</span>
-        <span>Hz: <b id="res-hz" style="color:orange">0</b></span>
+      <button class="btn" style="background:#333" onclick="conectarESP()">CONECTAR ESP WIFI</button>
+      <div class="cal-row">
+        <input id="cal-db" type="number" step="0.1" placeholder="dB referencia">
+        <button class="btn" style="background:#555" onclick="calibrarESP()">CALIBRAR</button>
       </div>
-      <button class="btn" style="background:green" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
+      <div class="cal-row">
+        <button class="btn" style="background:#222" onclick="consultarCalibracionESP()">CONSULTAR CAL</button>
+        <button class="btn" style="background:#721b1b" onclick="resetCalibracionESP()">RESET CAL</button>
+      </div>
+      <div id="esp-log" class="esp-log">Esperando conexion con ws://192.168.4.1/ws</div>
     </div>
 
     <div class="card">
-      <div class="input-group">
-        <input type="number" id="t-total" placeholder="MINUTOS EVENTO">
-        <button class="btn-lupa" onclick="controlCronoEscapes('play')">▶</button>
-        <button class="btn-lupa" onclick="controlCronoEscapes('pause')">Ⅱ</button>
-        <button class="btn-lupa" onclick="controlCronoEscapes('reset')">↺</button>
+      <div class="esc-live-grid">
+        <div class="esc-live-box"><span>DB en vivo</span><b id="db-live" style="color:red">0.0</b></div>
+        <div class="esc-live-box"><span>Hz en vivo</span><b id="hz-live" style="color:#ff8800">0</b></div>
+        <div class="esc-live-box"><span>Pico DB</span><b id="res-db" style="color:red">0.0</b></div>
+        <div class="esc-live-box"><span>Media Hz bajos</span><b id="res-hz" style="color:#ff8800">0</b></div>
       </div>
-      <div class="info-preview">Evento: <b id="crono-total">--:--</b> · Slot: <b id="crono-slot">--:--</b> · Participantes: <b id="progreso-esc">0 de 0</b></div>
+      <button id="btn-med-db" class="btn" style="background:red" onclick="toggleMedicionDB()">MANTENER DB</button>
+      <button id="btn-med-hz" class="btn" style="background:orange; color:#000" onclick="toggleMedicionHZ()">MANTENER TONO</button>
+      <button class="btn" style="background:green" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
+      <button class="btn btn-reset" onclick="resetPruebaEscape()">RESTABLECER PRUEBA</button>
     </div>
 
     <div class="card">
       <div class="rank-grid">
-        <div class="mini-rank-box" id="rank-db-gas"><b>DB MÁX GASOLINA</b></div>
-        <div class="mini-rank-box" id="rank-db-diesel"><b>DB MÁX DIÉSEL</b></div>
+        <div class="mini-rank-box" id="rank-db-gas"><b>DB MAX GASOLINA</b></div>
+        <div class="mini-rank-box" id="rank-db-diesel"><b>DB MAX DIESEL</b></div>
         <div class="mini-rank-box" id="rank-hz-gas"><b>MEDIA HZ GASOLINA</b></div>
-        <div class="mini-rank-box" id="rank-hz-diesel"><b>MEDIA HZ DIÉSEL</b></div>
+        <div class="mini-rank-box" id="rank-hz-diesel"><b>MEDIA HZ DIESEL</b></div>
       </div>
-      <button class="btn btn-reset" onclick="exportarEscapes()">💾 DESCARGAR RANKING ESCAPES</button>
+      <button class="btn btn-reset" onclick="exportarEscapes()">DESCARGAR RESULTADOS ESCAPES</button>
     </div>
   </div>
 
@@ -259,7 +285,7 @@
 
       function normalizarDorsal(v){
         var s = String(v || "").trim().replace(/^#/, "");
-        return /^\d+$/.test(s) ? String(parseInt(s, 10)) : s.toLowerCase();
+        return /^\d+$/.test(s) ? String(parseInt(s, 10)) : normalizarTexto(s);
       }
 
       function parseCSVLine(line, sep){
@@ -273,6 +299,12 @@
         }
         out.push(cur.trim());
         return out;
+      }
+
+      function escHtml(v){
+        return String(v || "").replace(/[&<>"']/g, function(c){
+          return ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"})[c];
+        });
       }
 
       window.cambiarTab = async function(id){
@@ -289,6 +321,7 @@
         var reader = new FileReader();
         reader.onload = function(e){
           var lines = String(e.target.result || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
+          if(lines.length < 2) return alert("El CSV no contiene inscritos.");
           var sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
           var header = parseCSVLine(lines[0] || "", sep).map(function(h){ return normalizarTexto(h); });
           var hasDorsal = header[0] === "dorsal";
@@ -297,9 +330,10 @@
             var c = parseCSVLine(l, sep).map(function(x){ return String(x || "").trim(); });
             var offset = hasDorsal ? 1 : 0;
             if(!c[offset]) return;
-            var dorsal = hasDorsal && c[0] ? String(c[0]).trim() : String(idx + 1);
-            obj[dorsal] = {
-              dorsal: dorsal,
+            var dorsalRaw = hasDorsal && c[0] ? String(c[0]).trim() : String(idx + 1);
+            var key = normalizarDorsal(dorsalRaw);
+            obj[key] = {
+              dorsal: dorsalRaw,
               piloto: c[offset] || "",
               instagram: c[offset + 1] || "",
               matricula: c[offset + 2] || "",
@@ -310,7 +344,9 @@
             };
           });
           inscritosE = obj;
+          resetPruebaEscape();
           renderListaEscapesCargados();
+          actualizarTiemposEscapes();
           db.ref('inscritos_esc').set(obj).then(function(){
             alert("Cargados " + Object.keys(obj).length + " inscritos de escapes");
             event.target.value = "";
@@ -321,159 +357,80 @@
 
       window.buscarEscape = function(val){
         var raw = String(val || "").trim();
-        val = normalizarTexto(raw);
-        var dorsalBuscado = normalizarDorsal(raw);
-        selectedEscDorsal = "";
-        if(!val){
-          document.getElementById('preview-esc').innerText = "Introduce dorsal, nombre o matrícula...";
+        var texto = normalizarTexto(raw);
+        var dorsal = normalizarDorsal(raw);
+        if(!texto){
+          selectedEscDorsal = "";
+          renderFichaEscape(null);
+          document.getElementById('preview-esc').innerText = Object.keys(inscritosE).length ? "Busca dorsal, nombre o matricula." : "Primero carga un CSV de escapes.";
           return;
         }
         var found = Object.entries(inscritosE).find(function(pair){
-          var d = pair[0], p = pair[1] || {};
-          return normalizarDorsal(d) === dorsalBuscado ||
-                 normalizarDorsal(p.dorsal) === dorsalBuscado ||
-                 normalizarTexto(p.piloto).includes(val) ||
-                 normalizarTexto(p.matricula).includes(val) ||
-                 normalizarTexto(p.coche).includes(val);
+          var key = pair[0], p = pair[1] || {};
+          return normalizarDorsal(key) === dorsal ||
+                 normalizarDorsal(p.dorsal) === dorsal ||
+                 normalizarTexto(p.piloto).includes(texto) ||
+                 normalizarTexto(p.matricula).includes(texto) ||
+                 normalizarTexto(p.coche).includes(texto);
         });
         if(!found){
+          selectedEscDorsal = "";
+          renderFichaEscape(null);
           var total = Object.keys(inscritosE).length;
           document.getElementById('preview-esc').innerText = total ? "No encontrado entre " + total + " inscritos cargados." : "No hay inscritos de escapes cargados.";
           return;
         }
         selectedEscDorsal = found[0];
-        var p = found[1];
-        document.getElementById('d-esc').value = selectedEscDorsal;
-        document.getElementById('preview-esc').innerText = "#" + selectedEscDorsal + " " + p.piloto + " · " + p.matricula + " · " + p.coche + " · " + (p.combustibleTexto || p.combustible) + " · " + p.potencia + "CV";
+        document.getElementById('d-esc').value = found[1].dorsal || found[0];
+        renderFichaEscape(found[1]);
       };
+
+      function renderFichaEscape(p){
+        var box = document.getElementById('ficha-escape');
+        if(!box) return;
+        if(!p){ box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.style.display = 'block';
+        document.getElementById('preview-esc').innerText = "Dorsal #" + (p.dorsal || selectedEscDorsal) + " cargado para medicion.";
+        box.innerHTML = '<h3>#' + escHtml(p.dorsal || selectedEscDorsal) + ' ' + escHtml(p.piloto) + '</h3>' +
+          '<p><b>Matricula:</b> ' + escHtml(p.matricula) + '</p>' +
+          '<p><b>Coche:</b> ' + escHtml(p.coche) + '</p>' +
+          '<p><b>Combustible:</b> ' + escHtml(p.combustibleTexto || p.combustible) + '</p>' +
+          '<p><b>Potencia:</b> ' + escHtml(p.potencia) + ' CV</p>';
+      }
 
       function renderListaEscapesCargados(){
+        var total = Object.keys(inscritosE || {}).length;
+        var totalEl = document.getElementById('esc-total');
+        if(totalEl) totalEl.innerText = total;
         var el = document.getElementById('lista-escapes-cargados');
         if(!el) return;
-        var lista = Object.values(inscritosE || {}).sort(function(a,b){ return Number(a.dorsal || 0) - Number(b.dorsal || 0); });
-        if(!lista.length) {
-          el.innerText = "Sin inscritos cargados.";
-          return;
-        }
-        el.innerText = "Dorsales: " + lista.slice(0, 12).map(function(p){ return "#" + p.dorsal + " " + p.piloto; }).join(" · ") + (lista.length > 12 ? " · ..." : "");
+        var lista = Object.values(inscritosE || {}).sort(function(a,b){ return Number(normalizarDorsal(a.dorsal)) - Number(normalizarDorsal(b.dorsal)); });
+        if(!lista.length) { el.innerText = "Sin inscritos cargados."; return; }
+        el.innerText = "Dorsales: " + lista.slice(0, 14).map(function(p){ return "#" + p.dorsal + " " + p.piloto; }).join(" ? ") + (lista.length > 14 ? " ? ..." : "");
       }
 
-      window.conectarESP = function(){
-        if(espWs && espConnected) return;
-        var st = document.getElementById('esp-status');
-        st.innerText = "CONECTANDO ESP...";
-        st.className = "esp-status";
-        try {
-          espWs = new WebSocket("ws://192.168.4.1/ws");
-          espWs.onopen = function(){
-            espConnected = true;
-            st.innerText = "ESP CONECTADO";
-            st.className = "esp-status esp-ok";
-          };
-          espWs.onclose = function(){
-            espConnected = false;
-            midiendoDB = false; midiendoHZ = false;
-            st.innerText = "ESP DESCONECTADO";
-            st.className = "esp-status esp-bad";
-            document.getElementById('btn-med-db').innerText = "INICIAR DB MAX";
-            document.getElementById('btn-med-hz').innerText = "INICIAR MEDIA HZ";
-          };
-          espWs.onerror = function(){ st.innerText = "ERROR CON ESP"; st.className = "esp-status esp-bad"; };
-          espWs.onmessage = function(ev){ procesarESP(JSON.parse(ev.data)); };
-        } catch(e) {
-          st.innerText = "NO SE PUDO CONECTAR";
-          st.className = "esp-status esp-bad";
-        }
-      };
-
-      function enviarESP(cmd){
-        if(!espWs || espWs.readyState !== WebSocket.OPEN) { alert("Conecta primero el sonómetro ESP."); return false; }
-        espWs.send(cmd);
-        return true;
+      function fmtTime(ms){
+        var s = Math.max(0, Math.floor(ms / 1000));
+        return String(Math.floor(s / 60)).padStart(2,'0') + ":" + String(s % 60).padStart(2,'0');
       }
 
-      function procesarESP(m){
-        if(m.type === "A_LIVE"){
-          document.getElementById('db-live').innerText = Number(m.peak_db || m.current_db || 0).toFixed(1) + " dB";
-          document.getElementById('res-db').innerText = Number(m.peak_db || 0).toFixed(1);
-        } else if(m.type === "A_RESULT"){
-          escDb = Number(m.peak_db || m.fast_peak_db || 0);
-          document.getElementById('db-live').innerText = escDb.toFixed(1) + " dB";
-          document.getElementById('res-db').innerText = escDb.toFixed(1);
-          midiendoDB = false;
-          document.getElementById('btn-med-db').innerText = "INICIAR DB MAX";
-        } else if(m.type === "B_LIVE"){
-          document.getElementById('hz-live').innerText = Math.round(Number(m.freq_hz || 0)) + " Hz";
-        } else if(m.type === "B_RESULT"){
-          escHz = Number(m.avg_freq_hz || 0);
-          document.getElementById('hz-live').innerText = Math.round(escHz) + " Hz";
-          document.getElementById('res-hz').innerText = Math.round(escHz);
-          midiendoHZ = false;
-          document.getElementById('btn-med-hz').innerText = "INICIAR MEDIA HZ";
-        } else if(m.type && m.type.includes("ERROR")){
-          showDbg("ESP: " + JSON.stringify(m));
-        }
-      }
-
-      window.toggleMedicionDB = function(){
-        if(!midiendoDB){
-          escDb = 0;
-          document.getElementById('res-db').innerText = "0.0";
-          if(enviarESP("A_START")) { midiendoDB = true; document.getElementById('btn-med-db').innerText = "PARAR DB MAX"; }
-        } else {
-          if(enviarESP("A_STOP")) { midiendoDB = false; document.getElementById('btn-med-db').innerText = "INICIAR DB MAX"; }
-        }
+      window.actualizarTiemposEscapes = function(){
+        var totalM = parseFloat(document.getElementById('t-total').value || "0");
+        var total = Object.keys(inscritosE || {}).length;
+        var slotS = totalM > 0 && total > 0 ? Math.floor((totalM * 60) / total) : 0;
+        var el = document.getElementById('esc-slot');
+        if(el) el.innerText = slotS ? fmtTime(slotS * 1000) : "--:--";
+        return slotS;
       };
 
-      window.toggleMedicionHZ = function(){
-        if(!midiendoHZ){
-          escHz = 0;
-          document.getElementById('res-hz').innerText = "0";
-          if(enviarESP("B_START")) { midiendoHZ = true; document.getElementById('btn-med-hz').innerText = "PARAR MEDIA HZ"; }
-        } else {
-          if(enviarESP("B_STOP")) { midiendoHZ = false; document.getElementById('btn-med-hz').innerText = "INICIAR MEDIA HZ"; }
-        }
-      };
-
-      window.publicarEscape = async function(){
-        var d = selectedEscDorsal || String(document.getElementById('d-esc').value || "").trim();
-        var info = inscritosE[d];
-        if(!d || !info) return alert("Selecciona un inscrito de escapes.");
-        var dbVal = parseFloat(document.getElementById('res-db').innerText) || escDb;
-        var hzVal = parseFloat(document.getElementById('res-hz').innerText) || escHz;
-        if(dbVal <= 0 || hzVal <= 0) return alert("Falta medición de dB o Hz.");
-        var combManual = document.getElementById('combustible-manual').value;
-        var payload = {
-          ...info,
-          dorsal: d,
-          combustible: combManual || normComb(info.combustible || info.combustibleTexto),
-          db: Number(dbVal.toFixed(1)),
-          hz: Number(hzVal.toFixed(1)),
-          ts: Date.now()
-        };
-        await db.ref('ranking_escapes/' + d).set(payload);
-        document.getElementById('d-esc').value = "";
-        document.getElementById('preview-esc').innerText = "Publicado. Introduce otro dorsal...";
-        document.getElementById('res-db').innerText = "0.0";
-        document.getElementById('res-hz').innerText = "0";
-        document.getElementById('db-live').innerText = "0.0 dB";
-        document.getElementById('hz-live').innerText = "0 Hz";
-        escDb = 0; escHz = 0; selectedEscDorsal = "";
-        avanzarSlotCrono();
-      };
-
-      window.controlCronoEscapes = async function(accion){
-        if(accion === 'play'){
-          var totalM = parseFloat(document.getElementById('t-total').value || "0");
-          if(!totalM) return alert("Indica minutos del evento.");
-          var total = Object.keys(inscritosE).length || 1;
-          var slotS = Math.floor((totalM * 60) / total);
-          await db.ref('crono_evento').set({ endTime: Date.now() + totalM * 60000, slotTime: Date.now() + slotS * 1000, totalMin: totalM, slotSec: slotS, corriendo:true });
-        } else if(accion === 'pause') {
-          await db.ref('crono_evento').update({ corriendo:false });
-        } else if(accion === 'reset') {
-          await db.ref('crono_evento').remove();
-        }
+      window.guardarTiemposEscapes = async function(){
+        var totalM = parseFloat(document.getElementById('t-total').value || "0");
+        if(!totalM) return alert("Indica los minutos del evento.");
+        var total = Object.keys(inscritosE || {}).length;
+        if(!total) return alert("Carga inscritos antes de calcular tiempos.");
+        var slotS = actualizarTiemposEscapes();
+        await db.ref('crono_evento').set({ totalMin: totalM, inscritos: total, slotSec: slotS, updatedAt: Date.now(), corriendo: true, endTime: Date.now() + totalM * 60000, slotTime: Date.now() + slotS * 1000 });
+        logESP("Tiempos guardados: " + fmtTime(slotS * 1000) + " por prueba.");
       };
 
       async function avanzarSlotCrono(){
@@ -482,48 +439,220 @@
         if(c && c.corriendo && c.slotSec) await db.ref('crono_evento').update({ slotTime: Date.now() + c.slotSec * 1000 });
       }
 
-      function fmtTime(ms){
-        var s = Math.max(0, Math.floor(ms / 1000));
-        var m = Math.floor(s / 60);
-        var r = s % 60;
-        return String(m).padStart(2,'0') + ":" + String(r).padStart(2,'0');
+      function actualizarCrono(c){
+        if(c && c.totalMin && c.inscritos && c.slotSec){
+          var input = document.getElementById('t-total');
+          if(input && !input.value) input.value = c.totalMin;
+          var el = document.getElementById('esc-slot');
+          if(el) el.innerText = fmtTime(Number(c.slotSec || 0) * 1000);
+        } else {
+          actualizarTiemposEscapes();
+        }
       }
 
-      function actualizarCrono(c){
-        clearInterval(cronoInterval);
-        if(!c || !c.corriendo){
-          document.getElementById('crono-total').innerText = "--:--";
-          document.getElementById('crono-slot').innerText = "--:--";
-          return;
+      window.conectarESP = function(){
+        if(espWs && espWs.readyState === WebSocket.OPEN) return;
+        setESPStatus("CONECTANDO ESP...", false);
+        try {
+          espWs = new WebSocket("ws://192.168.4.1/ws");
+          espWs.onopen = function(){
+            espConnected = true;
+            setESPStatus("ESP CONECTADO", true);
+            logESP("Conectado. Consultando calibracion...");
+            enviarESP("CAL_GET", true);
+          };
+          espWs.onclose = function(){
+            espConnected = false;
+            midiendoDB = false; midiendoHZ = false;
+            setESPStatus("ESP DESCONECTADO", false);
+            actualizarBotonesMedicion();
+          };
+          espWs.onerror = function(){ setESPStatus("ERROR CON ESP", false); logESP("No se pudo comunicar con el ESP."); };
+          espWs.onmessage = function(ev){
+            try { procesarESP(JSON.parse(ev.data)); }
+            catch(e) { logESP("Mensaje ESP no JSON: " + ev.data); }
+          };
+        } catch(e) {
+          setESPStatus("NO SE PUDO CONECTAR", false);
+          logESP(e.message || String(e));
         }
-        cronoInterval = setInterval(function(){
-          var now = Date.now();
-          document.getElementById('crono-total').innerText = fmtTime((c.endTime || now) - now);
-          document.getElementById('crono-slot').innerText = fmtTime((c.slotTime || now) - now);
-        }, 500);
+      };
+
+      function setESPStatus(txt, ok){
+        var st = document.getElementById('esp-status');
+        if(!st) return;
+        st.innerText = txt;
+        st.className = "esp-status " + (ok ? "esp-ok" : "esp-bad");
       }
+
+      function logESP(txt){
+        var el = document.getElementById('esp-log');
+        if(el) el.innerText = txt;
+      }
+
+      function enviarESP(cmd, silent){
+        if(!espWs || espWs.readyState !== WebSocket.OPEN) {
+          if(!silent) alert("Conecta primero al WiFi del ESP y pulsa CONECTAR ESP WIFI.");
+          return false;
+        }
+        espWs.send(cmd);
+        return true;
+      }
+
+      function procesarESP(m){
+        if(m.type === "STATUS"){
+          logESP("Estado: " + (m.state || "idle") + " ? Calibrado: " + (m.calibrated ? "SI" : "NO") + " ? Offset: " + Number(m.cal_offset || 0).toFixed(2));
+        } else if(m.type === "A_LIVE"){
+          var live = Number(m.current_db || m.peak_db || 0);
+          var peak = Number(m.peak_db || 0);
+          document.getElementById('db-live').innerText = live.toFixed(1);
+          if(peak > escDb) escDb = peak;
+          document.getElementById('res-db').innerText = escDb > 0 ? escDb.toFixed(1) : "0.0";
+        } else if(m.type === "A_RESULT"){
+          escDb = Number(m.peak_db || m.fast_peak_db || escDb || 0);
+          document.getElementById('db-live').innerText = escDb.toFixed(1);
+          document.getElementById('res-db').innerText = escDb.toFixed(1);
+          midiendoDB = false;
+          actualizarBotonesMedicion();
+          logESP("DB mantenido: " + escDb.toFixed(1) + " dB");
+        } else if(m.type === "B_LIVE"){
+          document.getElementById('hz-live').innerText = Math.round(Number(m.freq_hz || 0));
+          logESP("Tono midiendo: " + Number(m.elapsed_s || 0).toFixed(1) + " s ? muestras " + (m.samples || 0));
+        } else if(m.type === "B_RESULT"){
+          escHz = Number(m.avg_freq_hz || 0);
+          document.getElementById('hz-live').innerText = Math.round(escHz);
+          document.getElementById('res-hz').innerText = Math.round(escHz);
+          midiendoHZ = false;
+          actualizarBotonesMedicion();
+          logESP("Tono mantenido: " + Math.round(escHz) + " Hz");
+        } else if(m.type === "B_ERROR"){
+          midiendoHZ = false;
+          actualizarBotonesMedicion();
+          var msg = m.reason === "too_short" ? "Tono demasiado corto, mide minimo 3 s." : m.reason === "too_long" ? "Tono demasiado largo, maximo 10 s." : m.reason === "no_signal" ? "No hay senal de tono." : m.reason;
+          logESP("Error tono: " + msg);
+        } else if(m.type === "CAL_OK"){
+          logESP("Calibracion OK ? ref " + m.ref_db + " dB ? offset " + Number(m.offset || 0).toFixed(2));
+        } else if(m.type === "CAL_INFO"){
+          logESP("Calibracion: " + (m.calibrated ? "SI" : "NO") + " ? offset " + Number(m.offset || 0).toFixed(2));
+        } else if(m.type === "CAL_RESET_OK"){
+          logESP("Calibracion borrada en el ESP.");
+        } else if(m.type === "CAL_ERROR"){
+          logESP("Error calibracion: " + (m.reason || "desconocido"));
+        } else if(m.type === "ERROR"){
+          logESP("Error ESP: " + (m.reason || "desconocido"));
+        }
+      }
+
+      window.toggleMedicionDB = function(){
+        if(midiendoHZ) return alert("Para primero la medicion de tono.");
+        if(!midiendoDB){
+          escDb = 0;
+          document.getElementById('res-db').innerText = "0.0";
+          document.getElementById('db-live').innerText = "0.0";
+          if(enviarESP("A_START")) { midiendoDB = true; logESP("Midiendo DB..."); }
+        } else {
+          if(enviarESP("A_STOP")) logESP("Cerrando medicion DB...");
+        }
+        actualizarBotonesMedicion();
+      };
+
+      window.toggleMedicionHZ = function(){
+        if(midiendoDB) return alert("Para primero la medicion de DB.");
+        if(!midiendoHZ){
+          escHz = 0;
+          document.getElementById('res-hz').innerText = "0";
+          document.getElementById('hz-live').innerText = "0";
+          if(enviarESP("B_START")) { midiendoHZ = true; logESP("Midiendo tono grave..."); }
+        } else {
+          if(enviarESP("B_STOP")) logESP("Cerrando medicion de tono...");
+        }
+        actualizarBotonesMedicion();
+      };
+
+      function actualizarBotonesMedicion(){
+        var bDb = document.getElementById('btn-med-db');
+        var bHz = document.getElementById('btn-med-hz');
+        if(bDb) bDb.innerText = midiendoDB ? "PARAR DB" : "MANTENER DB";
+        if(bHz) bHz.innerText = midiendoHZ ? "PARAR TONO" : "MANTENER TONO";
+      }
+
+      window.calibrarESP = function(){
+        var ref = parseFloat(document.getElementById('cal-db').value || "0");
+        if(!ref || ref < 30 || ref > 140) return alert("Introduce un valor de referencia entre 30 y 140 dB.");
+        enviarESP("CAL_SET:" + ref.toFixed(1));
+      };
+
+      window.consultarCalibracionESP = function(){ enviarESP("CAL_GET"); };
+
+      window.resetCalibracionESP = function(){
+        if(confirm("?Borrar la calibracion guardada en el ESP?")) enviarESP("CAL_RESET");
+      };
+
+      window.resetPruebaEscape = function(){
+        if(midiendoDB) enviarESP("A_STOP", true);
+        if(midiendoHZ) enviarESP("B_STOP", true);
+        midiendoDB = false; midiendoHZ = false;
+        selectedEscDorsal = "";
+        escDb = 0; escHz = 0;
+        ["d-esc"].forEach(function(id){ var el = document.getElementById(id); if(el) el.value = ""; });
+        document.getElementById('db-live').innerText = "0.0";
+        document.getElementById('hz-live').innerText = "0";
+        document.getElementById('res-db').innerText = "0.0";
+        document.getElementById('res-hz').innerText = "0";
+        document.getElementById('preview-esc').innerText = Object.keys(inscritosE).length ? "Busca un dorsal para la siguiente prueba." : "Carga un CSV y busca un dorsal.";
+        renderFichaEscape(null);
+        actualizarBotonesMedicion();
+      };
+
+      window.publicarEscape = async function(){
+        var key = selectedEscDorsal || normalizarDorsal(document.getElementById('d-esc').value || "");
+        var info = inscritosE[key];
+        if(!info) return alert("Selecciona un inscrito de escapes.");
+        var dbVal = Number(escDb || parseFloat(document.getElementById('res-db').innerText) || 0);
+        var hzVal = Number(escHz || parseFloat(document.getElementById('res-hz').innerText) || 0);
+        if(dbVal <= 0) return alert("Falta mantener el pico DB.");
+        if(hzVal <= 0) return alert("Falta mantener la media de Hz bajos.");
+        var payload = {
+          dorsal: info.dorsal || key,
+          piloto: info.piloto || "",
+          instagram: info.instagram || "",
+          matricula: info.matricula || "",
+          coche: info.coche || "",
+          combustible: normComb(info.combustible || info.combustibleTexto),
+          combustibleTexto: info.combustibleTexto || info.combustible || "",
+          potencia: info.potencia || "",
+          db: Number(dbVal.toFixed(1)),
+          hz: Number(hzVal.toFixed(1)),
+          ts: Date.now()
+        };
+        await db.ref('ranking_escapes/' + key).set(payload);
+        await avanzarSlotCrono();
+        logESP("Ranking actualizado: #" + payload.dorsal + " ? " + payload.db + " dB ? " + Math.round(payload.hz) + " Hz");
+        resetPruebaEscape();
+      };
 
       window.exportarEscapes = async function(){
         var snap = await getOnce('ranking_escapes');
-        if(!snap.exists()) return alert("No hay ranking de escapes.");
+        if(!snap.exists()) return alert("No hay resultados de escapes.");
         var lista = Object.values(snap.val() || {});
-        var esc = function(s){ return String(s || "").replace(/"/g, ""); };
-        var csv = "Dorsal;Nombre;Instagram;Matricula;MarcaModelo;Combustible;Potencia;DB;HZ;Fecha\n";
-        lista.forEach(function(p){
-          csv += `"${esc(p.dorsal)}";"${esc(p.piloto)}";"${esc(p.instagram)}";"${esc(p.matricula)}";"${esc(p.coche)}";"${esc(p.combustible)}";"${esc(p.potencia)}";"${p.db||""}";"${p.hz||""}";"${p.ts ? new Date(p.ts).toLocaleString('es-ES') : ""}"\n`;
+        var csv = "Dorsal;Nombre;Instagram;Matricula;MarcaModelo;Combustible;Potencia;PicoDB;MediaHzBajos;Fecha\n";
+        lista.sort(function(a,b){ return Number(normalizarDorsal(a.dorsal)) - Number(normalizarDorsal(b.dorsal)); }).forEach(function(p){
+          csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.combustibleTexto || p.combustible, p.potencia, p.db || "", p.hz || "", p.ts ? new Date(p.ts).toLocaleString('es-ES') : ""].map(csvCell).join(";") + "\n";
         });
         csv += "\nDB_MAX_GASOLINA\n" + rankingEscapesCSV(lista, 'gasolina', 'db');
         csv += "\nDB_MAX_DIESEL\n" + rankingEscapesCSV(lista, 'diesel', 'db');
         csv += "\nMEDIA_HZ_GASOLINA\n" + rankingEscapesCSV(lista, 'gasolina', 'hz');
         csv += "\nMEDIA_HZ_DIESEL\n" + rankingEscapesCSV(lista, 'diesel', 'hz');
-        descargarCsv("ranking_escapes.csv", csv);
+        descargarCsv("resultados_escapes.csv", csv);
       };
 
+      function csvCell(v){ return '"' + String(v || "").replace(/"/g, '""') + '"'; }
+
       function rankingEscapesCSV(lista, comb, campo){
-        var arr = lista.filter(function(p){ return normComb(p.combustible) === comb && Number(p[campo]) > 0; });
+        var arr = lista.filter(function(p){ return normComb(p.combustible || p.combustibleTexto) === comb && Number(p[campo]) > 0; });
         arr.sort(campo === 'db' ? function(a,b){ return Number(b.db||0)-Number(a.db||0); } : function(a,b){ return Number(a.hz||99999)-Number(b.hz||99999); });
         var out = "Rank;Dorsal;Nombre;Coche;Combustible;Valor\n";
-        arr.forEach(function(p,i){ out += `"${i+1}";"${p.dorsal}";"${p.piloto}";"${p.coche}";"${p.combustible}";"${p[campo]}"\n`; });
+        arr.forEach(function(p,i){ out += [i+1, p.dorsal, p.piloto, p.coche, p.combustibleTexto || p.combustible, p[campo]].map(csvCell).join(";") + "\n"; });
         return out;
       }
 
@@ -898,9 +1027,8 @@ window.exportarVotos = async function () {
 
       db.ref('inscritos_esc').on('value', function(s){
         inscritosE = s.val() || {};
-        document.getElementById('txt-count-esc').innerText = "ESCAPES CARGADOS: " + Object.keys(inscritosE).length;
         renderListaEscapesCargados();
-        actualizarProgresoEscapes();
+        actualizarTiemposEscapes();
       });
 
       db.ref('crono_evento').on('value', function(s){
@@ -912,18 +1040,12 @@ window.exportarVotos = async function () {
       });
 
       function renderRankingsEscapes(lista){
-        renderRankingCaja('rank-db-gas', 'DB MÁX GASOLINA', lista, 'gasolina', 'db');
-        renderRankingCaja('rank-db-diesel', 'DB MÁX DIÉSEL', lista, 'diesel', 'db');
+        renderRankingCaja('rank-db-gas', 'DB MAX GASOLINA', lista, 'gasolina', 'db');
+        renderRankingCaja('rank-db-diesel', 'DB MAX DIESEL', lista, 'diesel', 'db');
         renderRankingCaja('rank-hz-gas', 'MEDIA HZ GASOLINA', lista, 'gasolina', 'hz');
-        renderRankingCaja('rank-hz-diesel', 'MEDIA HZ DIÉSEL', lista, 'diesel', 'hz');
-        actualizarProgresoEscapes(lista.length);
-      }
-
-      function actualizarProgresoEscapes(medidos){
-        var total = Object.keys(inscritosE || {}).length;
-        if(typeof medidos !== 'number') medidos = document.querySelectorAll('#rank-db-gas .rank-line, #rank-db-diesel .rank-line').length;
-        var el = document.getElementById('progreso-esc');
-        if(el) el.innerText = medidos + " de " + total;
+        renderRankingCaja('rank-hz-diesel', 'MEDIA HZ DIESEL', lista, 'diesel', 'hz');
+        var el = document.getElementById('esc-medidos');
+        if(el) el.innerText = lista.length;
       }
 
       function renderRankingCaja(id, titulo, lista, comb, campo){
@@ -932,7 +1054,7 @@ window.exportarVotos = async function () {
         var unidad = campo === 'db' ? 'dB' : 'Hz';
         var html = '<b>' + titulo + '</b>';
         html += arr.slice(0, 5).map(function(p, i){
-          return '<div class="rank-line"><span>' + (i+1) + '. #' + p.dorsal + ' ' + (p.piloto || '') + '<br><small>' + (p.coche || '') + '</small></span><b>' + p[campo] + unidad + '</b></div>';
+          return '<div class="rank-line"><span>' + (i+1) + '. #' + escHtml(p.dorsal) + ' ' + escHtml(p.piloto || '') + '<br><small>' + escHtml(p.coche || '') + '</small></span><b>' + p[campo] + unidad + '</b></div>';
         }).join('') || '<div class="msg-hint">Sin datos</div>';
         document.getElementById(id).innerHTML = html;
       }
@@ -983,5 +1105,4 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
-
 

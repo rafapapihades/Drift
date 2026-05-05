@@ -90,6 +90,20 @@
             font-size: 1.45em;
             margin-top: 3px;
         }
+        .esc-result-card {
+            background: #050505;
+            border: 2px solid #ffcc00;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+        .esc-result-card h3 { margin: 0 0 10px; color: #ffcc00; text-transform: uppercase; }
+        .esc-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .esc-result-box { background: #000; border: 1px solid #333; border-radius: 10px; padding: 10px 6px; }
+        .esc-result-box span { display: block; color: #999; font-size: .7em; font-weight: 900; text-transform: uppercase; }
+        .esc-result-box b { display: block; font-size: 1.35em; margin: 4px 0; }
+        .podio-ok { color: #00ff99; }
+        .podio-out { color: #ffcc00; }
 
         .sorteo-info {
             margin-top: 25px;
@@ -121,6 +135,7 @@
                     <span>POR COCHE <b id="esc-crono-slot">--:--</b></span>
                     <span>MEDIDOS <b id="esc-progreso">0/0</b></span>
                 </div>
+                <div id="ultimo-resultado-esc" class="esc-result-card" style="display:none"></div>
                 <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 0;">DB GASOLINA</h2>
                 <div id="l-db-gas"></div>
                 <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">DB DIÉSEL</h2>
@@ -207,6 +222,39 @@
 
         function pintarProgresoEscapes() {
             document.getElementById('esc-progreso').innerText = `${medidosEscapes}/${totalEscapes}`;
+        }
+
+        onValue(ref(db, 'ultimo_resultado_escapes'), s => {
+            renderUltimoResultadoEscape(s.val());
+        });
+
+        function renderUltimoResultadoEscape(r) {
+            const box = document.getElementById('ultimo-resultado-esc');
+            if(!box || !r) {
+                if(box) box.style.display = 'none';
+                return;
+            }
+            const dbClass = r.dbPodio ? 'podio-ok' : 'podio-out';
+            const hzClass = r.hzPodio ? 'podio-ok' : 'podio-out';
+            box.style.display = 'block';
+            box.innerHTML = `
+                <h3>#${escHtml(r.dorsal)} ${escHtml(r.piloto)}</h3>
+                <div class="esc-result-grid">
+                    <div class="esc-result-box">
+                        <span>DB ${escHtml(r.categoria)}</span>
+                        <b>${Number(r.db || 0).toFixed(1)} dB</b>
+                        <strong class="${dbClass}">P${r.dbPos || '-'}</strong>
+                    </div>
+                    <div class="esc-result-box">
+                        <span>HZ ${escHtml(r.categoria)}</span>
+                        <b>${Math.round(Number(r.hz || 0))} Hz</b>
+                        <strong class="${hzClass}">P${r.hzPos || '-'}</strong>
+                    </div>
+                </div>`;
+        }
+
+        function escHtml(v) {
+            return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
         }
 
         onValue(ref(db, 'estado_pista'), s => {

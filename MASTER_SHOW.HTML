@@ -614,12 +614,12 @@
           logESP("Estado: " + (m.state || "idle") + " ? Calibrado: " + (m.calibrated ? "SI" : "NO") + " ? Offset: " + Number(m.cal_offset || 0).toFixed(2));
         } else if(m.type === "A_LIVE"){
           var live = Number(m.current_db || m.peak_db || 0);
-          var peak = Number(m.peak_db || 0);
+          var peak = Number(m.fast_peak_db || m.peak_db || 0);
           document.getElementById('db-live').innerText = live.toFixed(1);
           if(peak > escDb) escDb = peak;
           document.getElementById('res-db').innerText = escDb > 0 ? escDb.toFixed(1) : "0.0";
         } else if(m.type === "A_RESULT"){
-          escDb = Number(m.peak_db || m.fast_peak_db || escDb || 0);
+          escDb = Number(m.fast_peak_db || m.peak_db || escDb || 0);
           document.getElementById('db-live').innerText = escDb.toFixed(1);
           document.getElementById('res-db').innerText = escDb.toFixed(1);
           midiendoDB = false;
@@ -1298,4 +1298,5 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+
 

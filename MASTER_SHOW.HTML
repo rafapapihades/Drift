@@ -73,7 +73,7 @@
     .esp-ok { color:#00ff99; }
     .esp-bad { color:#ff4444; }
     select { width:100%; padding:15px; background:#000; color:#ffcc00; border:1px solid #444; border-radius:8px; text-align:center; font-size:1.1em; margin-bottom:8px; }
-    .esc-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+    .esc-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
     .esc-stat { background:#000; border:1px solid #333; border-radius:10px; padding:10px; text-align:center; }
     .esc-stat span { display:block; color:#888; font-size:.7em; font-weight:900; text-transform:uppercase; }
     .esc-stat b { display:block; color:#ffcc00; font-size:1.45em; margin-top:4px; }
@@ -88,6 +88,8 @@
     .cal-row input { font-size:1em; }
     .cal-row .btn { width:auto; flex:1; margin:0; padding:14px; }
     .esp-log { background:#050505; border:1px solid #222; border-radius:8px; padding:8px; min-height:34px; color:#aaa; font-size:.8em; text-align:center; margin-top:8px; }
+    .esp-config-panel { display:none; margin-top:10px; }
+    @media (max-width:520px){ .esc-summary { grid-template-columns:repeat(2,1fr); } }
 
     /* ERROR BAR (solo si hay error) */
     #dbg{
@@ -172,14 +174,15 @@
       <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarEscapesCSV(event)">
       <div class="esc-summary">
         <div class="esc-stat"><span>Inscritos</span><b id="esc-total">0</b></div>
-        <div class="esc-stat"><span>Tiempo prueba</span><b id="esc-slot">--:--</b></div>
+        <div class="esc-stat"><span>Evento</span><b id="esc-event-left">--:--</b></div>
+        <div class="esc-stat"><span>Prueba</span><b id="esc-slot">--:--</b></div>
         <div class="esc-stat"><span>Resultados</span><b id="esc-medidos">0</b></div>
       </div>
       <div class="input-group" style="margin-top:10px">
         <input type="number" id="t-total" placeholder="MINUTOS EVENTO" oninput="actualizarTiemposEscapes()">
-        <button class="btn-lupa" onclick="guardarTiemposEscapes()">OK</button>
+        <button class="btn-lupa" onclick="iniciarCronoEscapes()">▶</button>
       </div>
-      <div id="lista-escapes-cargados" class="info-preview">Sin inscritos cargados.</div>
+      <div id="lista-escapes-cargados" class="info-preview" style="display:none"></div>
     </div>
 
     <div class="card">
@@ -193,19 +196,6 @@
 
     <div class="card">
       <div id="esp-status" class="esp-status esp-bad">ESP DESCONECTADO</div>
-      <button class="btn" style="background:#333" onclick="conectarESP()">CONECTAR ESP WIFI</button>
-      <div class="cal-row">
-        <input id="cal-db" type="number" step="0.1" placeholder="dB referencia">
-        <button class="btn" style="background:#555" onclick="calibrarESP()">CALIBRAR</button>
-      </div>
-      <div class="cal-row">
-        <button class="btn" style="background:#222" onclick="consultarCalibracionESP()">CONSULTAR CAL</button>
-        <button class="btn" style="background:#721b1b" onclick="resetCalibracionESP()">RESET CAL</button>
-      </div>
-      <div id="esp-log" class="esp-log">Esperando conexion con ws://192.168.4.1/ws</div>
-    </div>
-
-    <div class="card">
       <div class="esc-live-grid">
         <div class="esc-live-box"><span>DB en vivo</span><b id="db-live" style="color:red">0.0</b></div>
         <div class="esc-live-box"><span>Hz en vivo</span><b id="hz-live" style="color:#ff8800">0</b></div>
@@ -226,6 +216,22 @@
         <div class="mini-rank-box" id="rank-hz-diesel"><b>MEDIA HZ DIESEL</b></div>
       </div>
       <button class="btn btn-reset" onclick="exportarEscapes()">DESCARGAR RESULTADOS ESCAPES</button>
+    </div>
+
+    <div class="card">
+      <button class="btn" style="background:#333" onclick="toggleConfigESP()">CONFIG ESP ⚙</button>
+      <div id="panel-config-esp" class="esp-config-panel">
+        <button class="btn" style="background:#333" onclick="conectarESP()">CONECTAR ESP WIFI</button>
+        <div class="cal-row">
+          <input id="cal-db" type="number" step="0.1" placeholder="dB referencia">
+          <button class="btn" style="background:#555" onclick="calibrarESP()">CALIBRAR</button>
+        </div>
+        <div class="cal-row">
+          <button class="btn" style="background:#222" onclick="consultarCalibracionESP()">CONSULTAR CAL</button>
+          <button class="btn" style="background:#721b1b" onclick="resetCalibracionESP()">RESET CAL</button>
+        </div>
+        <div id="esp-log" class="esp-log">Esperando conexion con ws://192.168.4.1/ws</div>
+      </div>
     </div>
   </div>
 
@@ -273,6 +279,7 @@
       var escDb = 0;
       var escHz = 0;
       var cronoInterval = null;
+      var rankingEscapesActual = [];
 
       function normComb(v){
         var s = String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -319,7 +326,7 @@
         var file = event.target.files && event.target.files[0];
         if(!file) return;
         var reader = new FileReader();
-        reader.onload = function(e){
+        reader.onload = async function(e){
           var lines = String(e.target.result || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
           if(lines.length < 2) return alert("El CSV no contiene inscritos.");
           var sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
@@ -347,7 +354,9 @@
           resetPruebaEscape();
           renderListaEscapesCargados();
           actualizarTiemposEscapes();
-          db.ref('inscritos_esc').set(obj).then(function(){
+          await db.ref('ranking_escapes').remove();
+          await db.ref('crono_evento').remove();
+          await db.ref('inscritos_esc').set(obj).then(function(){
             alert("Cargados " + Object.keys(obj).length + " inscritos de escapes");
             event.target.value = "";
           });
@@ -381,8 +390,8 @@
           return;
         }
         selectedEscDorsal = found[0];
-        document.getElementById('d-esc').value = found[1].dorsal || found[0];
         renderFichaEscape(found[1]);
+        recalcularSlotCrono();
       };
 
       function renderFichaEscape(p){
@@ -404,9 +413,7 @@
         if(totalEl) totalEl.innerText = total;
         var el = document.getElementById('lista-escapes-cargados');
         if(!el) return;
-        var lista = Object.values(inscritosE || {}).sort(function(a,b){ return Number(normalizarDorsal(a.dorsal)) - Number(normalizarDorsal(b.dorsal)); });
-        if(!lista.length) { el.innerText = "Sin inscritos cargados."; return; }
-        el.innerText = "Dorsales: " + lista.slice(0, 14).map(function(p){ return "#" + p.dorsal + " " + p.piloto; }).join(" ? ") + (lista.length > 14 ? " ? ..." : "");
+        el.innerText = "";
       }
 
       function fmtTime(ms){
@@ -417,34 +424,60 @@
       window.actualizarTiemposEscapes = function(){
         var totalM = parseFloat(document.getElementById('t-total').value || "0");
         var total = Object.keys(inscritosE || {}).length;
-        var slotS = totalM > 0 && total > 0 ? Math.floor((totalM * 60) / total) : 0;
+        var medidos = rankingEscapesActual.length;
+        var restantes = Math.max(1, total - medidos);
+        var slotS = totalM > 0 && total > 0 ? Math.floor((totalM * 60) / restantes) : 0;
+        var eventEl = document.getElementById('esc-event-left');
+        if(eventEl) eventEl.innerText = totalM ? fmtTime(totalM * 60000) : "--:--";
         var el = document.getElementById('esc-slot');
         if(el) el.innerText = slotS ? fmtTime(slotS * 1000) : "--:--";
         return slotS;
       };
 
-      window.guardarTiemposEscapes = async function(){
+      window.iniciarCronoEscapes = async function(){
         var totalM = parseFloat(document.getElementById('t-total').value || "0");
         if(!totalM) return alert("Indica los minutos del evento.");
         var total = Object.keys(inscritosE || {}).length;
         if(!total) return alert("Carga inscritos antes de calcular tiempos.");
-        var slotS = actualizarTiemposEscapes();
-        await db.ref('crono_evento').set({ totalMin: totalM, inscritos: total, slotSec: slotS, updatedAt: Date.now(), corriendo: true, endTime: Date.now() + totalM * 60000, slotTime: Date.now() + slotS * 1000 });
-        logESP("Tiempos guardados: " + fmtTime(slotS * 1000) + " por prueba.");
+        var medidos = rankingEscapesActual.length;
+        var restantes = Math.max(1, total - medidos);
+        var endTime = Date.now() + totalM * 60000;
+        var slotS = Math.max(1, Math.floor((totalM * 60) / restantes));
+        await db.ref('crono_evento').set({ totalMin: totalM, inscritos: total, medidos: medidos, restantes: restantes, slotSec: slotS, updatedAt: Date.now(), corriendo: true, endTime: endTime, slotTime: Date.now() + slotS * 1000 });
+        logESP("Cronometro iniciado: " + fmtTime(slotS * 1000) + " para esta prueba.");
       };
 
+      window.guardarTiemposEscapes = window.iniciarCronoEscapes;
+
       async function avanzarSlotCrono(){
+        await recalcularSlotCrono();
+      }
+
+      async function recalcularSlotCrono(){
         var snap = await getOnce('crono_evento');
         var c = snap.val();
-        if(c && c.corriendo && c.slotSec) await db.ref('crono_evento').update({ slotTime: Date.now() + c.slotSec * 1000 });
+        if(!c || !c.corriendo || !c.endTime) return;
+        var total = Object.keys(inscritosE || {}).length || Number(c.inscritos || 0);
+        var rankingSnap = await getOnce('ranking_escapes');
+        var medidos = rankingSnap.exists() ? Object.keys(rankingSnap.val() || {}).length : rankingEscapesActual.length;
+        var restantes = Math.max(1, total - medidos);
+        var remainingMs = Math.max(0, Number(c.endTime || Date.now()) - Date.now());
+        var slotS = Math.max(1, Math.floor((remainingMs / 1000) / restantes));
+        await db.ref('crono_evento').update({ medidos: medidos, restantes: restantes, slotSec: slotS, slotTime: Date.now() + slotS * 1000, updatedAt: Date.now() });
       }
 
       function actualizarCrono(c){
+        clearInterval(cronoInterval);
         if(c && c.totalMin && c.inscritos && c.slotSec){
           var input = document.getElementById('t-total');
           if(input && !input.value) input.value = c.totalMin;
-          var el = document.getElementById('esc-slot');
-          if(el) el.innerText = fmtTime(Number(c.slotSec || 0) * 1000);
+          cronoInterval = setInterval(function(){
+            var now = Date.now();
+            var eventEl = document.getElementById('esc-event-left');
+            var slotEl = document.getElementById('esc-slot');
+            if(eventEl) eventEl.innerText = c.corriendo ? fmtTime(Number(c.endTime || now) - now) : fmtTime(Number(c.totalMin || 0) * 60000);
+            if(slotEl) slotEl.innerText = c.corriendo ? fmtTime(Number(c.slotTime || now) - now) : fmtTime(Number(c.slotSec || 0) * 1000);
+          }, 500);
         } else {
           actualizarTiemposEscapes();
         }
@@ -476,6 +509,11 @@
           setESPStatus("NO SE PUDO CONECTAR", false);
           logESP(e.message || String(e));
         }
+      };
+
+      window.toggleConfigESP = function(){
+        var panel = document.getElementById('panel-config-esp');
+        if(panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
       };
 
       function setESPStatus(txt, ok){
@@ -1040,6 +1078,7 @@ window.exportarVotos = async function () {
       });
 
       function renderRankingsEscapes(lista){
+        rankingEscapesActual = lista || [];
         renderRankingCaja('rank-db-gas', 'DB MAX GASOLINA', lista, 'gasolina', 'db');
         renderRankingCaja('rank-db-diesel', 'DB MAX DIESEL', lista, 'diesel', 'db');
         renderRankingCaja('rank-hz-gas', 'MEDIA HZ GASOLINA', lista, 'gasolina', 'hz');

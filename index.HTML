@@ -74,6 +74,22 @@
             text-align: left;
             box-sizing: border-box;
         }
+        .esc-crono {
+            display: flex;
+            justify-content: space-around;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            font-size: 0.85em;
+            color: #aaa;
+        }
+        .esc-crono b {
+            display: block;
+            color: #ffcc00;
+            font-size: 1.45em;
+            margin-top: 3px;
+        }
 
         .sorteo-info {
             margin-top: 25px;
@@ -100,10 +116,19 @@
             </div>
 
             <div id="ui-esc" style="display:none; width: 100%">
-                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 0;">RANKING dB</h2>
-                <div id="l-db"></div>
-                <h2 style="color:#ffcc00; font-size: 1.8em; margin-top: 20px;">RANKING SONORIDAD</h2>
-                <div id="l-hz"></div>
+                <div class="esc-crono">
+                    <span>EVENTO <b id="esc-crono-total">--:--</b></span>
+                    <span>POR COCHE <b id="esc-crono-slot">--:--</b></span>
+                    <span>MEDIDOS <b id="esc-progreso">0/0</b></span>
+                </div>
+                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 0;">DB GASOLINA</h2>
+                <div id="l-db-gas"></div>
+                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">DB DIÉSEL</h2>
+                <div id="l-db-diesel"></div>
+                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">HZ GASOLINA</h2>
+                <div id="l-hz-gas"></div>
+                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">HZ DIÉSEL</h2>
+                <div id="l-hz-diesel"></div>
             </div>
 
             <div class="sorteo-info">
@@ -119,6 +144,9 @@
         import { getDatabase, ref, onValue, update, increment, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const db = getDatabase(initializeApp({ databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
+        let totalEscapes = 0;
+        let medidosEscapes = 0;
+        let cronoEscapesTimer = null;
 
         function generarUserId() {
             return Math.floor(10000 + Math.random() * 90000).toString();
@@ -151,6 +179,35 @@
             document.getElementById('ui-show').style.display = m==='tab-show'?'block':'none';
             document.getElementById('ui-esc').style.display = m==='tab-esc'?'block':'none';
         });
+
+        onValue(ref(db, 'inscritos_esc'), s => {
+            totalEscapes = s.exists() ? Object.keys(s.val()).length : 0;
+            pintarProgresoEscapes();
+        });
+
+        onValue(ref(db, 'crono_evento'), s => {
+            clearInterval(cronoEscapesTimer);
+            const c = s.val();
+            if(!c || !c.corriendo) {
+                document.getElementById('esc-crono-total').innerText = '--:--';
+                document.getElementById('esc-crono-slot').innerText = '--:--';
+                return;
+            }
+            cronoEscapesTimer = setInterval(() => {
+                const now = Date.now();
+                document.getElementById('esc-crono-total').innerText = fmtTime((c.endTime || now) - now);
+                document.getElementById('esc-crono-slot').innerText = fmtTime((c.slotTime || now) - now);
+            }, 500);
+        });
+
+        function fmtTime(ms) {
+            const s = Math.max(0, Math.floor(ms / 1000));
+            return `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
+        }
+
+        function pintarProgresoEscapes() {
+            document.getElementById('esc-progreso').innerText = `${medidosEscapes}/${totalEscapes}`;
+        }
 
         onValue(ref(db, 'estado_pista'), s => {
             const e = s.val();
@@ -251,15 +308,22 @@
         }
 
         onValue(ref(db, 'ranking_escapes'), s => {
-            if(!s.exists()) return;
-            const data = Object.values(s.val());
-            const render = (arr, tId, sFn, u) => {
-                document.getElementById(tId).innerHTML = arr.sort(sFn).slice(0,10).map(p => 
-                    `<div class="rank-card"><span><b>${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[u.toLowerCase()==='db'?'db':'hz']}${u}</b></div>`).join('');
+            const data = s.exists() ? Object.values(s.val()) : [];
+            medidosEscapes = data.length;
+            pintarProgresoEscapes();
+            const normComb = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('diesel') ? 'diesel' : 'gasolina';
+            const render = (arr, tId, campo, unidad) => {
+                document.getElementById(tId).innerHTML = arr.slice(0,5).map(p => 
+                    `<div class="rank-card"><span><b>#${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[campo]}${unidad}</b></div>`).join('') || '<div class="rank-card">Sin datos</div>';
             };
-            render([...data], 'l-db', (a,b)=>b.db-a.db, 'dB');
-            render([...data], 'l-hz', (a,b)=>a.hz-b.hz, 'Hz');
+            const gas = data.filter(p => normComb(p.combustible) === 'gasolina');
+            const diesel = data.filter(p => normComb(p.combustible) === 'diesel');
+            render(gas.filter(p => Number(p.db) > 0).sort((a,b)=>Number(b.db)-Number(a.db)), 'l-db-gas', 'db', 'dB');
+            render(diesel.filter(p => Number(p.db) > 0).sort((a,b)=>Number(b.db)-Number(a.db)), 'l-db-diesel', 'db', 'dB');
+            render(gas.filter(p => Number(p.hz) > 0).sort((a,b)=>Number(a.hz)-Number(b.hz)), 'l-hz-gas', 'hz', 'Hz');
+            render(diesel.filter(p => Number(p.hz) > 0).sort((a,b)=>Number(a.hz)-Number(b.hz)), 'l-hz-diesel', 'hz', 'Hz');
         });
     </script>
 </body>
 </html>
+

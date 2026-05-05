@@ -210,6 +210,7 @@
         <div class="esc-live-box"><span>Pico DB</span><b id="res-db" style="color:red">0.0</b></div>
         <div class="esc-live-box"><span>Media Hz bajos</span><b id="res-hz" style="color:#ff8800">0</b></div>
       </div>
+      <div id="db-peaks-info" class="hint">Picos DB: esperando medicion.</div>
       <button id="btn-med-db" class="btn" style="background:red" onclick="toggleMedicionDB()">MANTENER DB</button>
       <button id="btn-med-hz" class="btn" style="background:orange; color:#000" onclick="toggleMedicionHZ()">MANTENER TONO</button>
       <button class="btn" style="background:green" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
@@ -623,13 +624,15 @@
           document.getElementById('db-live').innerText = live.toFixed(1);
           if(peak > 0 && peak > escDb) escDb = peak;
           document.getElementById('res-db').innerText = escDb > 0 ? escDb.toFixed(1) : "0.0";
+          renderInfoPicosDB(m);
         } else if(m.type === "A_RESULT"){
           escDb = Number(m.fast_peak_db || m.peak_db || escDb || 0);
           document.getElementById('db-live').innerText = escDb.toFixed(1);
           document.getElementById('res-db').innerText = escDb.toFixed(1);
           midiendoDB = false;
           actualizarBotonesMedicion();
-          logESP("DB mantenido: " + escDb.toFixed(1) + " dB");
+          renderInfoPicosDB(m);
+          logESP("DB mantenido: " + escDb.toFixed(1) + " dB · " + resumenPicosDB(m));
         } else if(m.type === "B_LIVE"){
           document.getElementById('hz-live').innerText = Math.round(Number(m.freq_hz || 0));
           logESP("Tono midiendo: " + Number(m.elapsed_s || 0).toFixed(1) + " s ? muestras " + (m.samples || 0));
@@ -666,12 +669,24 @@
         }
       }
 
+      function resumenPicosDB(m){
+        var vals = [m.top1_db, m.top2_db, m.top3_db].map(function(v){ return Number(v); }).filter(function(v){ return v > 0; });
+        return "picos validos " + (m.peak_count || vals.length || 0) + (vals.length ? " (" + vals.map(function(v){ return v.toFixed(1); }).join(" / ") + ")" : "");
+      }
+
+      function renderInfoPicosDB(m){
+        var el = document.getElementById('db-peaks-info');
+        if(!el) return;
+        el.innerText = "Picos DB: " + resumenPicosDB(m);
+      }
+
       window.toggleMedicionDB = async function(){
         if(midiendoHZ) return alert("Para primero la medicion de tono.");
         if(!midiendoDB){
           escDb = 0;
           document.getElementById('res-db').innerText = "0.0";
           document.getElementById('db-live').innerText = "0.0";
+          document.getElementById('db-peaks-info').innerText = "Picos DB: midiendo...";
           try { await conectarESPAsync(); } catch(e) { alert("No se pudo conectar al ESP. Conectate al WiFi Sonometro-Escape y vuelve a pulsar."); return; }
           if(enviarESP("A_START")) { midiendoDB = true; logESP("Midiendo DB..."); }
         } else {
@@ -736,6 +751,7 @@
         document.getElementById('hz-live').innerText = "0";
         document.getElementById('res-db').innerText = "0.0";
         document.getElementById('res-hz').innerText = "0";
+        document.getElementById('db-peaks-info').innerText = "Picos DB: esperando medicion.";
         document.getElementById('preview-esc').innerText = Object.keys(inscritosE).length ? "Busca un dorsal para la siguiente prueba." : "Carga un CSV y busca un dorsal.";
         renderFichaEscape(null);
         actualizarBotonesMedicion();
@@ -1303,4 +1319,3 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
-

@@ -221,8 +221,8 @@
     <div class="card">
       <button class="btn" style="background:#333" onclick="toggleConfigESP()">CONFIG ESP ⚙</button>
       <div id="panel-config-esp" class="esp-config-panel">
-        <input id="esp-ip" type="text" placeholder="IP ESP (ej: 192.168.43.120)" oninput="guardarIpESP()">
-        <button class="btn" style="background:#333" onclick="conectarESP()">CONECTAR ESP WIFI</button>
+        <input id="esp-ip" type="text" placeholder="IP/URL ESP (sonometro.local o 192.168.x.x)" oninput="guardarIpESP()">
+        <button class="btn" style="background:#333" onclick="conectarESP()">CONECTAR ESP</button>
         <div class="cal-row">
           <input id="cal-db" type="number" step="0.1" placeholder="dB referencia">
           <button class="btn" style="background:#555" onclick="calibrarESP()">CALIBRAR</button>
@@ -231,7 +231,7 @@
           <button class="btn" style="background:#222" onclick="consultarCalibracionESP()">CONSULTAR CAL</button>
           <button class="btn" style="background:#721b1b" onclick="resetCalibracionESP()">RESET CAL</button>
         </div>
-        <div id="esp-log" class="esp-log">Escribe la IP del ESP o usa 192.168.4.1 en modo fallback.</div>
+        <div id="esp-log" class="esp-log">Si el ESP está en TPI prueba sonometro.local o la IP que sale por serie.</div>
       </div>
     </div>
   </div>
@@ -556,14 +556,14 @@
       function getIpESP(){
         var input = document.getElementById('esp-ip');
         var ip = input ? input.value.trim() : "";
-        if(!ip) ip = localStorage.getItem('escapes_esp_ip') || "192.168.4.1";
+        if(!ip) ip = localStorage.getItem('escapes_esp_ip') || "sonometro.local";
         if(input && !input.value) input.value = ip;
         return ip;
       }
 
       function cargarIpESP(){
         var input = document.getElementById('esp-ip');
-        if(input && !input.value) input.value = localStorage.getItem('escapes_esp_ip') || "192.168.4.1";
+        if(input && !input.value) input.value = localStorage.getItem('escapes_esp_ip') || "sonometro.local";
       }
 
       window.guardarIpESP = function(){
@@ -585,7 +585,7 @@
 
       function enviarESP(cmd, silent){
         if(!espWs || espWs.readyState !== WebSocket.OPEN) {
-          if(!silent) alert("Conecta primero al WiFi del ESP y pulsa CONECTAR ESP WIFI.");
+          if(!silent) alert("No hay conexión con el ESP. Si está en TPI, pon sonometro.local o su IP en CONFIG ESP.");
           return false;
         }
         espWs.send(cmd);
@@ -1224,3 +1224,4 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+

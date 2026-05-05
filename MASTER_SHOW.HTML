@@ -160,6 +160,7 @@
         <input type="text" id="d-esc" placeholder="DORSAL / NOMBRE / MATRICULA" oninput="buscarEscape(this.value)">
       </div>
       <div id="preview-esc" class="info-preview">Introduce dorsal, nombre o matrícula...</div>
+      <div id="lista-escapes-cargados" class="info-preview"></div>
       <select id="combustible-manual">
         <option value="">Combustible del CSV</option>
         <option value="gasolina">Gasolina</option>
@@ -253,7 +254,12 @@
       }
 
       function normalizarTexto(v){
-        return String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        return String(v || "").replace(/^\uFEFF/, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      }
+
+      function normalizarDorsal(v){
+        var s = String(v || "").trim().replace(/^#/, "");
+        return /^\d+$/.test(s) ? String(parseInt(s, 10)) : s.toLowerCase();
       }
 
       function parseCSVLine(line, sep){
@@ -303,6 +309,8 @@
               potencia: c[offset + 5] || ""
             };
           });
+          inscritosE = obj;
+          renderListaEscapesCargados();
           db.ref('inscritos_esc').set(obj).then(function(){
             alert("Cargados " + Object.keys(obj).length + " inscritos de escapes");
             event.target.value = "";
@@ -312,7 +320,9 @@
       };
 
       window.buscarEscape = function(val){
-        val = String(val || "").trim().toLowerCase();
+        var raw = String(val || "").trim();
+        val = normalizarTexto(raw);
+        var dorsalBuscado = normalizarDorsal(raw);
         selectedEscDorsal = "";
         if(!val){
           document.getElementById('preview-esc').innerText = "Introduce dorsal, nombre o matrícula...";
@@ -320,10 +330,15 @@
         }
         var found = Object.entries(inscritosE).find(function(pair){
           var d = pair[0], p = pair[1] || {};
-          return d === val || String(p.piloto || "").toLowerCase().includes(val) || String(p.matricula || "").toLowerCase().includes(val);
+          return normalizarDorsal(d) === dorsalBuscado ||
+                 normalizarDorsal(p.dorsal) === dorsalBuscado ||
+                 normalizarTexto(p.piloto).includes(val) ||
+                 normalizarTexto(p.matricula).includes(val) ||
+                 normalizarTexto(p.coche).includes(val);
         });
         if(!found){
-          document.getElementById('preview-esc').innerText = "No encontrado";
+          var total = Object.keys(inscritosE).length;
+          document.getElementById('preview-esc').innerText = total ? "No encontrado entre " + total + " inscritos cargados." : "No hay inscritos de escapes cargados.";
           return;
         }
         selectedEscDorsal = found[0];
@@ -331,6 +346,17 @@
         document.getElementById('d-esc').value = selectedEscDorsal;
         document.getElementById('preview-esc').innerText = "#" + selectedEscDorsal + " " + p.piloto + " · " + p.matricula + " · " + p.coche + " · " + (p.combustibleTexto || p.combustible) + " · " + p.potencia + "CV";
       };
+
+      function renderListaEscapesCargados(){
+        var el = document.getElementById('lista-escapes-cargados');
+        if(!el) return;
+        var lista = Object.values(inscritosE || {}).sort(function(a,b){ return Number(a.dorsal || 0) - Number(b.dorsal || 0); });
+        if(!lista.length) {
+          el.innerText = "Sin inscritos cargados.";
+          return;
+        }
+        el.innerText = "Dorsales: " + lista.slice(0, 12).map(function(p){ return "#" + p.dorsal + " " + p.piloto; }).join(" · ") + (lista.length > 12 ? " · ..." : "");
+      }
 
       window.conectarESP = function(){
         if(espWs && espConnected) return;
@@ -873,6 +899,7 @@ window.exportarVotos = async function () {
       db.ref('inscritos_esc').on('value', function(s){
         inscritosE = s.val() || {};
         document.getElementById('txt-count-esc').innerText = "ESCAPES CARGADOS: " + Object.keys(inscritosE).length;
+        renderListaEscapesCargados();
         actualizarProgresoEscapes();
       });
 
@@ -956,4 +983,5 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+
 

@@ -613,10 +613,15 @@
         if(m.type === "STATUS"){
           logESP("Estado: " + (m.state || "idle") + " ? Calibrado: " + (m.calibrated ? "SI" : "NO") + " ? Offset: " + Number(m.cal_offset || 0).toFixed(2));
         } else if(m.type === "A_LIVE"){
+          if(m.warming) {
+            document.getElementById('db-live').innerText = "...";
+            document.getElementById('res-db').innerText = "0.0";
+            return;
+          }
           var live = Number(m.current_db || m.peak_db || 0);
           var peak = Number(m.fast_peak_db || m.peak_db || 0);
           document.getElementById('db-live').innerText = live.toFixed(1);
-          if(peak > escDb) escDb = peak;
+          if(peak > 0 && peak > escDb) escDb = peak;
           document.getElementById('res-db').innerText = escDb > 0 ? escDb.toFixed(1) : "0.0";
         } else if(m.type === "A_RESULT"){
           escDb = Number(m.fast_peak_db || m.peak_db || escDb || 0);
@@ -641,9 +646,9 @@
           var msg = m.reason === "too_short" ? "Tono demasiado corto, mide minimo 3 s." : m.reason === "too_long" ? "Tono demasiado largo, maximo 10 s." : m.reason === "no_signal" ? "No hay senal de tono." : m.reason;
           logESP("Error tono: " + msg);
         } else if(m.type === "CAL_OK"){
-          logESP("Calibracion OK ? ref " + m.ref_db + " dB ? offset " + Number(m.offset || 0).toFixed(2));
+          logESP("Calibracion OK: sonometro " + Number(m.ref_db || 0).toFixed(1) + " dB · ESP crudo " + Number(m.raw_db || 0).toFixed(1) + " dB · correccion " + Number(m.offset || 0).toFixed(2) + " dB");
         } else if(m.type === "CAL_INFO"){
-          logESP("Calibracion: " + (m.calibrated ? "SI" : "NO") + " ? offset " + Number(m.offset || 0).toFixed(2));
+          logESP("Calibracion: " + (m.calibrated ? "SI" : "NO") + " · correccion actual " + Number(m.offset || 0).toFixed(2) + " dB");
         } else if(m.type === "CAL_RESET_OK"){
           logESP("Calibracion borrada en el ESP.");
         } else if(m.type === "CAL_ERROR"){
@@ -699,7 +704,7 @@
       window.calibrarESP = function(){
         var ref = parseFloat(document.getElementById('cal-db').value || "0");
         if(!ref || ref < 30 || ref > 140) return alert("Introduce un valor de referencia entre 30 y 140 dB.");
-        enviarESP("CAL_SET:" + ref.toFixed(1));
+        if(enviarESP("CAL_SET:" + ref.toFixed(1))) logESP("Calibrando con referencia del sonometro: " + ref.toFixed(1) + " dB...");
       };
 
       window.consultarCalibracionESP = function(){ enviarESP("CAL_GET"); };
@@ -1298,5 +1303,4 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
-
 

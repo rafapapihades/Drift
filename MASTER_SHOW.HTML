@@ -153,6 +153,7 @@
   <div id="tab-esc" class="tab-content">
     <div class="card">
       <button class="btn btn-cargar" onclick="document.getElementById('xl-e').click()">📂 CARGAR ESCAPES.CSV</button>
+      <button class="btn" style="background:#333" onclick="window.open('registro_escapes.html','_blank')">ABRIR REGISTRO ESCAPES</button>
       <div id="txt-count-esc" class="pilotos-count">ESCAPES CARGADOS: 0</div>
       <input type="file" id="xl-e" accept=".csv" style="display:none" onchange="cargarEscapesCSV(event)">
       <div class="input-group">
@@ -251,6 +252,23 @@
         return s.includes("diesel") ? "diesel" : "gasolina";
       }
 
+      function normalizarTexto(v){
+        return String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      }
+
+      function parseCSVLine(line, sep){
+        var out = [], cur = "", inside = false;
+        for(var i = 0; i < line.length; i++){
+          var ch = line[i];
+          if(ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+          else if(ch === '"') inside = !inside;
+          else if(ch === sep && !inside) { out.push(cur.trim()); cur = ""; }
+          else cur += ch;
+        }
+        out.push(cur.trim());
+        return out;
+      }
+
       window.cambiarTab = async function(id){
         document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active-tab'); });
         document.getElementById(id).classList.add('active-tab');
@@ -266,20 +284,23 @@
         reader.onload = function(e){
           var lines = String(e.target.result || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
           var sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
+          var header = parseCSVLine(lines[0] || "", sep).map(function(h){ return normalizarTexto(h); });
+          var hasDorsal = header[0] === "dorsal";
           var obj = {};
           lines.slice(1).forEach(function(l, idx){
-            var c = l.split(sep).map(function(x){ return String(x || "").trim(); });
-            if(!c[0]) return;
-            var dorsal = String(idx + 1);
+            var c = parseCSVLine(l, sep).map(function(x){ return String(x || "").trim(); });
+            var offset = hasDorsal ? 1 : 0;
+            if(!c[offset]) return;
+            var dorsal = hasDorsal && c[0] ? String(c[0]).trim() : String(idx + 1);
             obj[dorsal] = {
               dorsal: dorsal,
-              piloto: c[0] || "",
-              instagram: c[1] || "",
-              matricula: c[2] || "",
-              coche: c[3] || "",
-              combustible: normComb(c[4] || ""),
-              combustibleTexto: c[4] || "",
-              potencia: c[5] || ""
+              piloto: c[offset] || "",
+              instagram: c[offset + 1] || "",
+              matricula: c[offset + 2] || "",
+              coche: c[offset + 3] || "",
+              combustible: normComb(c[offset + 4] || ""),
+              combustibleTexto: c[offset + 4] || "",
+              potencia: c[offset + 5] || ""
             };
           });
           db.ref('inscritos_esc').set(obj).then(function(){
@@ -935,3 +956,4 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+

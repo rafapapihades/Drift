@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro Escapes</title>
+  <style>
+    :root { --accent:#ffcc00; --bg:#000; --card:#141414; --muted:#999; --danger:#c62828; --ok:#1b8f3a; }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      min-height:100vh;
+      background:#000 url('Fibra3.png') center/420px;
+      color:#fff;
+      font-family:Arial, sans-serif;
+      padding:16px;
+      display:flex;
+      justify-content:center;
+    }
+    .container {
+      width:100%;
+      max-width:760px;
+      background:rgba(15,15,15,.96);
+      border:1px solid #333;
+      border-radius:18px;
+      padding:20px;
+      box-shadow:0 12px 35px rgba(0,0,0,.55);
+    }
+    .logo { width:100%; max-width:230px; display:block; margin:0 auto 14px; }
+    h1 { margin:0 0 18px; color:var(--accent); text-align:center; font-size:1.45em; text-transform:uppercase; }
+    .panel { background:#101010; border-left:4px solid var(--accent); border-radius:10px; padding:14px; margin-bottom:16px; }
+    .section-title { display:block; margin-bottom:10px; color:var(--accent); font-size:.78em; font-weight:900; text-transform:uppercase; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    input, select {
+      width:100%;
+      min-height:46px;
+      padding:12px;
+      background:#000;
+      color:#fff;
+      border:1px solid #444;
+      border-radius:8px;
+      font-size:1em;
+      outline:none;
+    }
+    input:focus, select:focus { border-color:var(--accent); }
+    .dorsal-box {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:#000;
+      border:1px dashed var(--accent);
+      border-radius:10px;
+      padding:12px;
+      margin-bottom:12px;
+    }
+    .dorsal-box span { color:var(--muted); font-size:.78em; text-transform:uppercase; font-weight:900; }
+    .dorsal-box b { color:var(--accent); font-size:2.4em; font-family:monospace; line-height:1; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    button {
+      border:0;
+      border-radius:10px;
+      padding:14px 16px;
+      font-weight:900;
+      cursor:pointer;
+      text-transform:uppercase;
+    }
+    .btn-main { flex:2; background:var(--accent); color:#000; }
+    .btn-dark { flex:1; background:#333; color:#fff; }
+    .btn-ok { background:var(--ok); color:#fff; }
+    .btn-danger { background:var(--danger); color:#fff; }
+    .summary { display:flex; gap:10px; margin-bottom:12px; }
+    .summary div { flex:1; background:#000; border:1px solid #2b2b2b; border-radius:8px; padding:10px; text-align:center; }
+    .summary b { display:block; color:var(--accent); font-size:1.5em; }
+    table { width:100%; border-collapse:collapse; font-size:.88em; }
+    th, td { padding:9px 7px; border-bottom:1px solid #242424; text-align:left; vertical-align:top; }
+    th { color:var(--accent); font-size:.72em; text-transform:uppercase; }
+    td:first-child { color:var(--accent); font-weight:900; font-family:monospace; }
+    .row-actions { display:flex; gap:6px; }
+    .row-actions button { padding:8px 10px; border-radius:7px; font-size:.75em; }
+    .empty { color:var(--muted); text-align:center; padding:18px; }
+    .hint { margin:10px 0 0; color:var(--muted); font-size:.78em; line-height:1.35; }
+    @media (max-width:640px) {
+      .grid { grid-template-columns:1fr; }
+      .summary { flex-direction:column; }
+      table { font-size:.78em; }
+      th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <img src="logo.jpg" alt="Drift Show" class="logo">
+    <h1>Registro Competición Escapes</h1>
+
+    <section class="panel">
+      <span class="section-title">Nuevo participante</span>
+      <div class="dorsal-box">
+        <span>Próximo dorsal</span>
+        <b id="next-dorsal">1</b>
+      </div>
+      <div class="grid">
+        <input id="nombre" type="text" placeholder="Nombre y Apellidos">
+        <input id="instagram" type="text" placeholder="Instagram">
+        <input id="matricula" type="text" placeholder="Matrícula">
+        <input id="coche" type="text" placeholder="Marca + Modelo">
+        <select id="combustible">
+          <option value="Gasolina">Gasolina</option>
+          <option value="Diésel">Diésel</option>
+        </select>
+        <input id="potencia" type="number" min="0" placeholder="Potencia (CV)">
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn-main" onclick="guardarParticipante()">Guardar participante</button>
+        <button class="btn-dark" onclick="limpiarFormulario()">Limpiar</button>
+      </div>
+      <p class="hint">El dorsal se asigna solo con el siguiente número libre. Si borras el último participante, ese dorsal vuelve a quedar disponible.</p>
+    </section>
+
+    <section class="panel">
+      <span class="section-title">Lista de inscritos</span>
+      <div class="summary">
+        <div><b id="total">0</b>Inscritos</div>
+        <div><b id="gasolina">0</b>Gasolina</div>
+        <div><b id="diesel">0</b>Diésel</div>
+      </div>
+      <div class="actions" style="margin-bottom:12px">
+        <button class="btn-ok" onclick="exportarCSV()">Exportar CSV MASTER_SHOW</button>
+        <button class="btn-dark" onclick="importFile.click()">Importar CSV</button>
+        <button class="btn-danger" onclick="reiniciarTodo()">Reiniciar lista</button>
+      </div>
+      <input id="importFile" type="file" accept=".csv" style="display:none" onchange="importarCSV(event)">
+      <div id="tabla"></div>
+    </section>
+  </main>
+
+  <script>
+    var STORAGE_KEY = "registro_escapes_participantes_v1";
+    var participantes = cargarLocal();
+    var editandoDorsal = null;
+
+    function cargarLocal(){
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+      catch(e) { return []; }
+    }
+
+    function guardarLocal(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(participantes));
+    }
+
+    function siguienteDorsal(){
+      var usados = participantes.map(function(p){ return Number(p.dorsal); }).filter(Boolean);
+      var n = 1;
+      while(usados.includes(n)) n++;
+      return n;
+    }
+
+    function valor(id){ return document.getElementById(id).value.trim(); }
+
+    window.guardarParticipante = function(){
+      var nombre = valor("nombre");
+      var matricula = valor("matricula").toUpperCase();
+      var coche = valor("coche");
+      if(!nombre || !matricula || !coche) return alert("Faltan nombre, matrícula o coche.");
+
+      var dorsal = editandoDorsal || siguienteDorsal();
+      var p = {
+        dorsal: String(dorsal),
+        piloto: nombre,
+        instagram: valor("instagram"),
+        matricula: matricula,
+        coche: coche,
+        combustible: document.getElementById("combustible").value,
+        potencia: valor("potencia")
+      };
+
+      var idx = participantes.findIndex(function(x){ return String(x.dorsal) === String(dorsal); });
+      if(idx >= 0) participantes[idx] = p;
+      else participantes.push(p);
+      participantes.sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
+      guardarLocal();
+      limpiarFormulario();
+      render();
+    };
+
+    window.limpiarFormulario = function(){
+      editandoDorsal = null;
+      ["nombre","instagram","matricula","coche","potencia"].forEach(function(id){ document.getElementById(id).value = ""; });
+      document.getElementById("combustible").value = "Gasolina";
+      document.querySelector(".btn-main").innerText = "Guardar participante";
+      renderDorsal();
+    };
+
+    window.editar = function(dorsal){
+      var p = participantes.find(function(x){ return String(x.dorsal) === String(dorsal); });
+      if(!p) return;
+      editandoDorsal = p.dorsal;
+      document.getElementById("next-dorsal").innerText = p.dorsal;
+      document.getElementById("nombre").value = p.piloto || "";
+      document.getElementById("instagram").value = p.instagram || "";
+      document.getElementById("matricula").value = p.matricula || "";
+      document.getElementById("coche").value = p.coche || "";
+      document.getElementById("combustible").value = normalizarCombustible(p.combustible) === "diesel" ? "Diésel" : "Gasolina";
+      document.getElementById("potencia").value = p.potencia || "";
+      document.querySelector(".btn-main").innerText = "Guardar cambios dorsal " + p.dorsal;
+      window.scrollTo({ top:0, behavior:"smooth" });
+    };
+
+    window.borrar = function(dorsal){
+      if(!confirm("¿Borrar el dorsal " + dorsal + "?")) return;
+      participantes = participantes.filter(function(p){ return String(p.dorsal) !== String(dorsal); });
+      guardarLocal();
+      limpiarFormulario();
+      render();
+    };
+
+    window.reiniciarTodo = function(){
+      if(!confirm("¿Borrar todos los inscritos de escapes de este dispositivo?")) return;
+      participantes = [];
+      guardarLocal();
+      limpiarFormulario();
+      render();
+    };
+
+    window.exportarCSV = function(){
+      if(!participantes.length) return alert("No hay inscritos para exportar.");
+      var csv = "Dorsal,Nombre+Apellidos,Instagram,Matrícula,Marca+Modelo,Combustible,Potencia (CV)\n";
+      participantes
+        .slice()
+        .sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); })
+        .forEach(function(p){
+          csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.combustible, p.potencia].map(csvCell).join(",") + "\n";
+        });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type:"text/csv;charset=utf-8;" }));
+      a.download = "ESCAPES_MASTER_SHOW.csv";
+      a.click();
+    };
+
+    window.importarCSV = function(event){
+      var file = event.target.files && event.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var lines = String(e.target.result || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
+        if(lines.length < 2) return alert("CSV vacío.");
+        var sep = lines[0].includes(";") ? ";" : ",";
+        var head = parseCSVLine(lines[0], sep).map(function(h){ return normalizarTexto(h); });
+        var hasDorsal = head[0] === "dorsal";
+        var importados = [];
+        lines.slice(1).forEach(function(line, idx){
+          var c = parseCSVLine(line, sep);
+          var offset = hasDorsal ? 1 : 0;
+          var dorsal = hasDorsal && c[0] ? c[0].trim() : String(idx + 1);
+          if(!c[offset]) return;
+          importados.push({
+            dorsal: dorsal,
+            piloto: c[offset] || "",
+            instagram: c[offset + 1] || "",
+            matricula: (c[offset + 2] || "").toUpperCase(),
+            coche: c[offset + 3] || "",
+            combustible: normalizarCombustible(c[offset + 4]) === "diesel" ? "Diésel" : "Gasolina",
+            potencia: c[offset + 5] || ""
+          });
+        });
+        participantes = importados.sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
+        guardarLocal();
+        limpiarFormulario();
+        render();
+        alert("Importados " + participantes.length + " inscritos.");
+        event.target.value = "";
+      };
+      reader.readAsText(file, "UTF-8");
+    };
+
+    function csvCell(v){
+      return '"' + String(v || "").replace(/"/g, '""') + '"';
+    }
+
+    function parseCSVLine(line, sep){
+      var out = [], cur = "", inside = false;
+      for(var i=0; i<line.length; i++){
+        var ch = line[i];
+        if(ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+        else if(ch === '"') inside = !inside;
+        else if(ch === sep && !inside) { out.push(cur.trim()); cur = ""; }
+        else cur += ch;
+      }
+      out.push(cur.trim());
+      return out;
+    }
+
+    function normalizarTexto(v){
+      return String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    }
+
+    function normalizarCombustible(v){
+      return normalizarTexto(v).includes("diesel") ? "diesel" : "gasolina";
+    }
+
+    function renderDorsal(){
+      document.getElementById("next-dorsal").innerText = editandoDorsal || siguienteDorsal();
+    }
+
+    function render(){
+      renderDorsal();
+      document.getElementById("total").innerText = participantes.length;
+      document.getElementById("gasolina").innerText = participantes.filter(function(p){ return normalizarCombustible(p.combustible) === "gasolina"; }).length;
+      document.getElementById("diesel").innerText = participantes.filter(function(p){ return normalizarCombustible(p.combustible) === "diesel"; }).length;
+
+      if(!participantes.length) {
+        document.getElementById("tabla").innerHTML = '<div class="empty">Todavía no hay inscritos.</div>';
+        return;
+      }
+      var rows = participantes.map(function(p){
+        return '<tr>' +
+          '<td>#' + p.dorsal + '</td>' +
+          '<td><b>' + esc(p.piloto) + '</b><br><small>' + esc(p.instagram) + '</small></td>' +
+          '<td>' + esc(p.matricula) + '</td>' +
+          '<td>' + esc(p.coche) + '</td>' +
+          '<td>' + esc(p.combustible) + '<br><small>' + esc(p.potencia) + ' CV</small></td>' +
+          '<td><div class="row-actions"><button class="btn-dark" onclick="editar(\'' + p.dorsal + '\')">Editar</button><button class="btn-danger" onclick="borrar(\'' + p.dorsal + '\')">Borrar</button></div></td>' +
+        '</tr>';
+      }).join("");
+      document.getElementById("tabla").innerHTML = '<table><thead><tr><th>Dorsal</th><th>Participante</th><th>Matrícula</th><th>Coche</th><th>Motor</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    function esc(v){
+      return String(v || "").replace(/[&<>"']/g, function(c){
+        return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c];
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>

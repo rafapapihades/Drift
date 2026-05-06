@@ -144,6 +144,26 @@
       document.getElementById('contador-fichas').innerText = `Sistema: ${total} fichas cargadas`;
     });
 
+    db.ref('pilotos_evento').on('value', s => {
+      const data = s.val() || {};
+      if(!Object.keys(data).length) return;
+      cacheFichas = {};
+      Object.values(data).forEach(p => {
+        const dorsal = normalizarDorsal(p.dorsal);
+        if(!dorsal) return;
+        cacheFichas[dorsal] = {
+          nombre: p.piloto || "",
+          motor: p.motor || "",
+          potencia: p.potencia || "",
+          mods: p.modificaciones || "",
+          curiosidades: p.curiosidades || "",
+          palmares: p.palmares || "",
+          ig: p.instagram || ""
+        };
+      });
+      document.getElementById('contador-fichas').innerText = `Sistema: ${Object.keys(cacheFichas).length} fichas cargadas`;
+    });
+
     // 3. ESCUCHAR PILOTOS EN PISTA (MULTITARJETA)
     db.ref('votacion_activa').on('value', snap => {
       votacionActual = snap.val();
@@ -251,6 +271,54 @@
       return String(piloto || "").split('|')[0].replace(/\[.*?\]/g,'').trim();
     }
 
+    function normalizarTexto(v){
+      return String(v || "").replace(/^\uFEFF/, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    }
+
+    function normalizarDorsal(v){
+      const s = String(v || "").trim().replace(/^#/, "");
+      return /^\d+$/.test(s) ? String(parseInt(s, 10)) : normalizarTexto(s);
+    }
+
+    function escHtml(v){
+      return String(v || "").replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+    }
+
+    function textoFicha(t){
+      const raw = String(t || "").trim();
+      if(!raw || raw === "undefined") return "---";
+      const parts = raw
+        .replace(/\r/g, "\n")
+        .split(/\n+| · | • |; /)
+        .map(x => x.trim())
+        .filter(Boolean);
+      if(parts.length <= 1) return escHtml(raw).replace(/\n/g, "<br>");
+      return "<ul style='margin:8px 0 0 20px; padding:0;'>" + parts.map(x => "<li>" + escHtml(x) + "</li>").join("") + "</ul>";
+    }
+
+    function parseCSVLine(line, sep){
+      const out = [];
+      let cur = "", inside = false;
+      for(let i = 0; i < line.length; i++){
+        const ch = line[i];
+        if(ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if(ch === '"') inside = !inside;
+        else if(ch === sep && !inside) { out.push(cur.trim()); cur = ""; }
+        else cur += ch;
+      }
+      out.push(cur.trim());
+      return out.map(x => x.replace(/^"(.*)"$/, "$1").replace(/""/g, '"'));
+    }
+
+    function campo(row, names){
+      for(const name of names){
+        const key = normalizarTexto(name).replace(/[^a-z0-9]/g, "");
+        const found = Object.keys(row).find(k => k.replace(/[^a-z0-9]/g, "") === key);
+        if(found && row[found]) return row[found];
+      }
+      return "";
+    }
+
     // 4. MOSTRAR INFO TÃ‰CNICA
     window.verFicha = (id) => {
       const f = cacheFichas[id];
@@ -259,12 +327,13 @@
       
       document.getElementById('bio-body').innerHTML = `
         <h2 style="color:var(--blue); font-size:3em; margin:0; font-style:italic;">#${id}</h2>
-        <h3 style="text-transform:uppercase; margin-bottom:20px;">${cl(f.nombre)}</h3>
-        <p><b>MOTOR:</b> <span style="color:#00ff99">${cl(f.motor)}</span></p>
-        <p><b>POTENCIA:</b> ${cl(f.potencia)} CV</p>
-        <p><b>MODS:</b> <small>${cl(f.mods)}</small></p>
-        <p style="color:var(--yellow);"><i>"${cl(f.curiosidades)}"</i></p>
-        <p style="font-size:1.2em; color:var(--blue);">IG: ${cl(f.ig)}</p>
+        <h3 style="text-transform:uppercase; margin-bottom:20px;">${escHtml(cl(f.nombre))}</h3>
+        <p><b>MOTOR:</b> <span style="color:#00ff99">${escHtml(cl(f.motor))}</span></p>
+        <p><b>POTENCIA:</b> ${escHtml(cl(f.potencia))} CV</p>
+        <p><b>MODS:</b><br><small>${textoFicha(f.mods)}</small></p>
+        <p style="color:var(--yellow);"><b>CURIOSIDADES:</b><br><small>${textoFicha(f.curiosidades)}</small></p>
+        <p><b>PALMARÉS:</b><br><small>${textoFicha(f.palmares)}</small></p>
+        <p style="font-size:1.2em; color:var(--blue);">IG: ${escHtml(cl(f.ig))}</p>
         <button class="btn-cerrar" onclick="document.getElementById('modal-bio').style.display='none'">CERRAR</button>
       `;
       document.getElementById('modal-bio').style.display = 'block';
@@ -274,16 +343,24 @@
     window.importarCSV = (e) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        const lines = ev.target.result.split(/\r?\n/);
+        const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim());
         let nuevas = {};
         const sep = lines[0].includes(';') ? ';' : ',';
+        const header = parseCSVLine(lines[0], sep).map(h => normalizarTexto(h));
         for(let i=1; i<lines.length; i++){
-          const c = lines[i].split(sep).map(x => x.trim());
-          if(!c[0]) continue;
-          // Estructura basada en tu CSV: Dorsal, Nombre, Edad, Residencia, Modelo, Motor, Potencia, Mods, Curiosidades, IG
-          nuevas[c[0]] = { 
-              nombre: c[1], motor: c[5], potencia: c[6], 
-              mods: c[7], curiosidades: c[8], ig: c[10] 
+          const c = parseCSVLine(lines[i], sep);
+          const row = {};
+          header.forEach((h, idx) => row[h] = c[idx] || "");
+          const dorsal = normalizarDorsal(campo(row, ["Dorsal"]));
+          if(!dorsal) continue;
+          nuevas[dorsal] = { 
+              nombre: campo(row, ["Piloto", "Nombre", "Nombre+Apellidos"]),
+              motor: campo(row, ["Motor"]),
+              potencia: campo(row, ["PotenciaCV", "Potencia", "Potencia (CV)"]),
+              mods: campo(row, ["Modificaciones", "Mods"]),
+              curiosidades: campo(row, ["Curiosidades"]),
+              palmares: campo(row, ["Palmares", "Palmarés"]),
+              ig: campo(row, ["Instagram", "IG"])
           };
         }
         db.ref('fichas_pilotos').set(nuevas).then(() => alert("Fichas actualizadas correctamente"));
@@ -293,6 +370,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 

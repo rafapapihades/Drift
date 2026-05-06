@@ -1143,6 +1143,8 @@ window.exportarVotos = async function () {
         var val = document.getElementById('d-show').value.trim();
         if(!val) return alert("Introduce un dorsal primero");
 
+        await db.ref('registro_votos').set(null);
+
         var dorsalesArr = val.split(/\s+/);
         var items = {};
 
@@ -1177,8 +1179,6 @@ window.exportarVotos = async function () {
         if(id === 'btn-libre'){
           
           // --- CORRECCIÓN 2: Permite que el público vote al siguiente piloto ---
-          await db.ref('registro_votos').set(null);
-
           document.getElementById('d-show').value = "";
           document.getElementById('preview-show').innerText = "Introduce dorsal...";
 
@@ -1186,20 +1186,23 @@ window.exportarVotos = async function () {
           var v = snap.val();
 
           if(v && v.activa){
-            Object.entries(v.items).forEach(function(pair){
-              var idItem = pair[0], data = pair[1];
-              if((data.ap||0)+(data.up||0)+(data.dw||0) > 0){
-                db.ref('historial_votos').push({ dorsal:idItem, info:data.nombre, participantes:(idItem === 'BATALLA' ? v.dorsal : ''), ap:data.ap||0, up:data.up||0, dw:data.dw||0, ts:Date.now() });
-              }
-            });
-
-            var count = 5;
+            var count = 10;
             await db.ref('votacion_activa').update({ timer: count });
             var interval = setInterval(async function(){
               count--;
               await db.ref('votacion_activa').update({ timer: count });
               if(count <= 0){
                 clearInterval(interval);
+                var finalSnap = await getOnce('votacion_activa');
+                var finalV = finalSnap.val();
+                if(finalV && finalV.items){
+                  Object.entries(finalV.items).forEach(function(pair){
+                    var idItem = pair[0], data = pair[1];
+                    if((data.ap||0)+(data.up||0)+(data.dw||0) > 0){
+                      db.ref('historial_votos').push({ dorsal:idItem, info:data.nombre, participantes:(idItem === 'BATALLA' ? finalV.dorsal : ''), ap:data.ap||0, up:data.up||0, dw:data.dw||0, ts:Date.now() });
+                    }
+                  });
+                }
                 await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
               }
             }, 1000);

@@ -415,10 +415,30 @@
         recalcularSlotCrono();
       };
 
+      async function publicarEscapeActual(p){
+        if(!p) {
+          await db.ref('escape_prueba_actual').remove();
+          return;
+        }
+        await db.ref('escape_prueba_actual').set({
+          dorsal: p.dorsal || selectedEscDorsal,
+          piloto: p.piloto || "",
+          coche: p.coche || "",
+          combustible: p.combustibleTexto || p.combustible || "",
+          potencia: p.potencia || "",
+          ts: Date.now()
+        });
+      }
+
       function renderFichaEscape(p){
         var box = document.getElementById('ficha-escape');
         if(!box) return;
-        if(!p){ box.style.display = 'none'; box.innerHTML = ''; return; }
+        if(!p){
+          box.style.display = 'none';
+          box.innerHTML = '';
+          publicarEscapeActual(null);
+          return;
+        }
         box.style.display = 'block';
         document.getElementById('preview-esc').innerText = "Dorsal #" + (p.dorsal || selectedEscDorsal) + " cargado para medicion.";
         box.innerHTML = '<h3>#' + escHtml(p.dorsal || selectedEscDorsal) + ' ' + escHtml(p.piloto) + '</h3>' +
@@ -426,6 +446,7 @@
           '<p><b>Coche:</b> ' + escHtml(p.coche) + '</p>' +
           '<p><b>Combustible:</b> ' + escHtml(p.combustibleTexto || p.combustible) + '</p>' +
           '<p><b>Potencia:</b> ' + escHtml(p.potencia) + ' CV</p>';
+        publicarEscapeActual(p);
       }
 
       function renderListaEscapesCargados(){

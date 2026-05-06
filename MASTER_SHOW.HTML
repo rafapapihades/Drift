@@ -299,6 +299,7 @@
       var escHz = 0;
       var cronoInterval = null;
       var rankingEscapesActual = [];
+      var configEvento = {};
 
       function normComb(v){
         var s = String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -324,7 +325,36 @@
           else cur += ch;
         }
         out.push(cur.trim());
-        return out;
+        return out.map(function(x){ return String(x || "").replace(/^"(.*)"$/, "$1").replace(/""/g, '"'); });
+      }
+
+      function campoCSV(row, names){
+        var keys = Object.keys(row || {});
+        for(var i = 0; i < names.length; i++){
+          var wanted = normalizarTexto(names[i]).replace(/[^a-z0-9]/g, "");
+          var found = keys.find(function(k){ return k.replace(/[^a-z0-9]/g, "") === wanted; });
+          if(found && row[found] != null && row[found] !== "") return row[found];
+        }
+        return "";
+      }
+
+      function parseCSVText(text){
+        var lines = String(text || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
+        if(!lines.length) return [];
+        var sep = (lines[0] && lines[0].includes(";")) ? ";" : ",";
+        var header = parseCSVLine(lines[0] || "", sep).map(function(h){ return normalizarTexto(h); });
+        return lines.slice(1).map(function(l){
+          var c = parseCSVLine(l, sep);
+          if(c.length === 1 && c[0].includes(sep)) c = parseCSVLine(c[0], sep);
+          var row = {};
+          header.forEach(function(h, idx){ row[h] = c[idx] || ""; });
+          return row;
+        });
+      }
+
+      function slugEvento(){
+        var base = [configEvento.nombre || "DRIFT_SHOW", configEvento.lugar || "", configEvento.fecha || ""].filter(Boolean).join("_");
+        return normalizarTexto(base).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase() || "DRIFT_SHOW";
       }
 
       function escHtml(v){
@@ -346,27 +376,24 @@
         if(!file) return;
         var reader = new FileReader();
         reader.onload = async function(e){
-          var lines = String(e.target.result || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
-          if(lines.length < 2) return alert("El CSV no contiene inscritos.");
-          var sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
-          var header = parseCSVLine(lines[0] || "", sep).map(function(h){ return normalizarTexto(h); });
-          var hasDorsal = header[0] === "dorsal";
+          var rows = parseCSVText(e.target.result);
+          if(rows.length < 1) return alert("El CSV no contiene inscritos.");
           var obj = {};
-          lines.slice(1).forEach(function(l, idx){
-            var c = parseCSVLine(l, sep).map(function(x){ return String(x || "").trim(); });
-            var offset = hasDorsal ? 1 : 0;
-            if(!c[offset]) return;
-            var dorsalRaw = hasDorsal && c[0] ? String(c[0]).trim() : String(idx + 1);
+          rows.forEach(function(row, idx){
+            var dorsalRaw = campoCSV(row, ["Dorsal"]) || String(idx + 1);
+            var piloto = campoCSV(row, ["Nombre", "Nombre+Apellidos", "Piloto"]);
+            if(!piloto) return;
+            var comb = campoCSV(row, ["Combustible"]);
             var key = normalizarDorsal(dorsalRaw);
             obj[key] = {
               dorsal: dorsalRaw,
-              piloto: c[offset] || "",
-              instagram: c[offset + 1] || "",
-              matricula: c[offset + 2] || "",
-              coche: c[offset + 3] || "",
-              combustible: normComb(c[offset + 4] || ""),
-              combustibleTexto: c[offset + 4] || "",
-              potencia: c[offset + 5] || ""
+              piloto: piloto,
+              instagram: campoCSV(row, ["Instagram", "IG"]),
+              matricula: campoCSV(row, ["Matricula", "Matrícula"]).toUpperCase(),
+              coche: campoCSV(row, ["Vehiculo", "Vehículo", "Marca+Modelo", "MarcaModelo", "Coche"]),
+              combustible: normComb(comb),
+              combustibleTexto: comb || normComb(comb),
+              potencia: campoCSV(row, ["PotenciaCV", "Potencia (CV)", "Potencia"])
             };
           });
           inscritosE = obj;
@@ -869,31 +896,33 @@
         var snap = await getOnce('ranking_escapes');
         if(!snap.exists()) return alert("No hay resultados de escapes.");
         var lista = Object.values(snap.val() || {});
-        var csv = "Dorsal;Nombre;Instagram;Matricula;MarcaModelo;Combustible;Potencia;PicoDB;MediaHzBajos;Fecha\n";
+        var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV;PicoDB;MediaHzBajos;Fecha\n";
         lista.sort(function(a,b){ return Number(normalizarDorsal(a.dorsal)) - Number(normalizarDorsal(b.dorsal)); }).forEach(function(p){
           csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.combustibleTexto || p.combustible, p.potencia, p.db || "", p.hz || "", p.ts ? new Date(p.ts).toLocaleString('es-ES') : ""].map(csvCell).join(";") + "\n";
         });
-        csv += "\nDB_MAX_GASOLINA\n" + rankingEscapesCSV(lista, 'gasolina', 'db');
-        csv += "\nDB_MAX_DIESEL\n" + rankingEscapesCSV(lista, 'diesel', 'db');
-        csv += "\nMEDIA_HZ_GASOLINA\n" + rankingEscapesCSV(lista, 'gasolina', 'hz');
-        csv += "\nMEDIA_HZ_DIESEL\n" + rankingEscapesCSV(lista, 'diesel', 'hz');
-        descargarCsv("resultados_escapes.csv", csv);
+        var rankings = rankingEscapesCSV(lista, 'gasolina', 'db', 'DB_MAX_GASOLINA') +
+                       rankingEscapesCSV(lista, 'diesel', 'db', 'DB_MAX_DIESEL') +
+                       rankingEscapesCSV(lista, 'gasolina', 'hz', 'MEDIA_HZ_GASOLINA') +
+                       rankingEscapesCSV(lista, 'diesel', 'hz', 'MEDIA_HZ_DIESEL');
+        rankings = "Categoria;Rank;Dorsal;Nombre;Vehiculo;Combustible;Valor\n" + rankings;
+        descargarCsv("ESCAPES_RESULTADOS.csv", csv);
+        setTimeout(function(){ descargarCsv("ESCAPES_RANKINGS.csv", rankings); }, 250);
       };
 
       function csvCell(v){ return '"' + String(v || "").replace(/"/g, '""') + '"'; }
 
-      function rankingEscapesCSV(lista, comb, campo){
+      function rankingEscapesCSV(lista, comb, campo, categoria){
         var arr = lista.filter(function(p){ return normComb(p.combustible || p.combustibleTexto) === comb && Number(p[campo]) > 0; });
         arr.sort(campo === 'db' ? function(a,b){ return Number(b.db||0)-Number(a.db||0); } : function(a,b){ return Number(a.hz||99999)-Number(b.hz||99999); });
-        var out = "Rank;Dorsal;Nombre;Coche;Combustible;Valor\n";
-        arr.forEach(function(p,i){ out += [i+1, p.dorsal, p.piloto, p.coche, p.combustibleTexto || p.combustible, p[campo]].map(csvCell).join(";") + "\n"; });
+        var out = "";
+        arr.forEach(function(p,i){ out += [categoria, i+1, p.dorsal, p.piloto, p.coche, p.combustibleTexto || p.combustible, p[campo]].map(csvCell).join(";") + "\n"; });
         return out;
       }
 
       function descargarCsv(filename, content){
         var link = document.createElement("a");
         link.href = URL.createObjectURL(new Blob(["\ufeff" + content], { type:"text/csv;charset=utf-8;" }));
-        link.download = filename;
+        link.download = slugEvento() + "_" + filename;
         link.click();
       }
 
@@ -984,14 +1013,14 @@
 
         var reader = new FileReader();
         reader.onload = function(e){
-          var lines = String(e.target.result||"").split(/\r?\n/);
+          var rows = parseCSVText(e.target.result);
           var obj = {};
-          var sep = (lines[0] && lines[0].includes(';')) ? ';' : ',';
 
-          lines.slice(1).forEach(function(l){
-            if(!l.trim()) return;
-            var c = l.split(sep);
-            if(c[0]) obj[c[0].trim()] = { piloto:(c[1]||"").trim(), coche:(c[2]||"").trim() };
+          rows.forEach(function(row, idx){
+            var dorsal = campoCSV(row, ["Dorsal"]) || String(idx + 1);
+            var piloto = campoCSV(row, ["Piloto", "Nombre", "Nombre+Apellidos"]);
+            var coche = campoCSV(row, ["Vehiculo", "Vehículo", "Coche", "Coche Modelo", "coche_modelo", "Marca+Modelo"]);
+            if(dorsal && piloto) obj[normalizarDorsal(dorsal)] = { dorsal:dorsal, piloto:piloto, coche:coche, instagram:campoCSV(row, ["Instagram", "IG"]) };
           });
 
           db.ref('inscritos_drift').set(obj).then(function(){
@@ -1127,12 +1156,12 @@ window.exportarVotos = async function () {
   function downloadCsv(filename, content) {
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob(["\ufeff" + content], { type: 'text/csv;charset=utf-8;' }));
-    link.download = filename;
+    link.download = slugEvento() + "_" + filename;
     link.click();
   }
 
-  downloadCsv("ranking_pilotos.csv", csvPilotos);
-  setTimeout(() => downloadCsv("batallas.csv", csvBatallas), 250);
+  downloadCsv("VOTOS_SHOW_RESULTADOS.csv", csvPilotos);
+  setTimeout(() => downloadCsv("VOTOS_BATALLAS_RESULTADOS.csv", csvBatallas), 250);
 
   if (confirm("¿Borrar historial de la nube?")) {
     firebase.database().ref('historial_votos').remove();
@@ -1257,6 +1286,10 @@ window.exportarVotos = async function () {
         }).join('') : "<div class='msg-hint' style='margin-top:8px;'>No hay sesiones online</div>";
       });
 
+      db.ref('config_evento').on('value', function(s){
+        configEvento = s.val() || {};
+      });
+
       db.ref('inscritos_drift').on('value', function(s){
         inscritosD = s.val() || {};
         document.getElementById('txt-count').innerText = "PILOTOS CARGADOS: " + Object.keys(inscritosD).length;
@@ -1343,3 +1376,4 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+

@@ -27,12 +27,64 @@
         box-shadow:0 0 40px rgba(255,255,255,0.6);
     }
     .btn-pista:not(.active-now) { opacity:0.2; }
+
+    #mensaje-master {
+        position:fixed;
+        inset:0;
+        z-index:20;
+        display:none;
+        align-items:center;
+        justify-content:center;
+        padding:18px;
+        background:rgba(0,0,0,.82);
+    }
+    .mensaje-card {
+        width:min(720px, 100%);
+        border:4px solid #ffcc00;
+        border-radius:18px;
+        background:#111;
+        color:#fff;
+        padding:24px;
+        text-align:center;
+        box-shadow:0 0 40px rgba(255,204,0,.35);
+    }
+    .mensaje-card h2 {
+        margin:0 0 14px;
+        color:#ffcc00;
+        font-size:2.1em;
+    }
+    #mensaje-texto {
+        margin:0 0 22px;
+        font-size:2.4em;
+        line-height:1.18;
+        font-weight:900;
+        white-space:pre-wrap;
+    }
+    .mensaje-card button {
+        width:100%;
+        border:0;
+        border-radius:14px;
+        padding:18px;
+        background:#ffcc00;
+        color:#000;
+        font-size:1.8em;
+        font-weight:900;
+        text-transform:uppercase;
+    }
   </style>
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
+
+  <div id="mensaje-master">
+    <div class="mensaje-card">
+      <h2>MENSAJE DE MASTER</h2>
+      <p id="mensaje-texto"></p>
+      <button onclick="confirmarMensajeMaster()">OK</button>
+    </div>
+  </div>
 
   <button id="btn-libre" class="btn-pista btn-libre" onclick="enviarEstado('🟢 PISTA LIBRE', '#008000', 'btn-libre')">PISTA LIBRE</button>
   <button id="btn-obs" class="btn-pista btn-obs" onclick="enviarEstado('⚠️ OBSTÁCULO', '#ffcc00', 'btn-obs')">OBSTÁCULO</button>
@@ -43,6 +95,24 @@
     const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const SESSION_KEY = 'drift_pista_session_id';
+    const LAST_READ_KEY = 'drift_pista_last_read_ts';
+    const sessionId = localStorage.getItem(SESSION_KEY) || ('PISTA-' + Math.random().toString(36).slice(2, 7).toUpperCase());
+    localStorage.setItem(SESSION_KEY, sessionId);
+    const sessionRef = db.ref('pista_sessions/' + sessionId);
+    let mensajeActivoTs = 0;
+
+    function actualizarSesion(extra = {}) {
+      sessionRef.update({
+        lastSeen: Date.now(),
+        ua: navigator.userAgent,
+        ...extra
+      });
+    }
+
+    actualizarSesion();
+    setInterval(() => actualizarSesion(), 8000);
+    sessionRef.onDisconnect().update({ lastSeen: 0 });
 
     // MANDAR ESTADO
     window.enviarEstado = (msg, col, id) => {
@@ -66,8 +136,38 @@
         if(btnActivo) btnActivo.classList.add('active-now');
       }
     });
+
+    db.ref('mensaje_pista').on('value', (snap) => {
+      const data = snap.val();
+      const panel = document.getElementById('mensaje-master');
+      const texto = document.getElementById('mensaje-texto');
+
+      if(data && data.texto && data.ts) {
+        mensajeActivoTs = data.ts;
+        texto.innerText = data.texto;
+        const leidoLocal = Number(localStorage.getItem(LAST_READ_KEY) || 0);
+        panel.style.display = leidoLocal >= data.ts ? 'none' : 'flex';
+        actualizarSesion({ lastMessageTs: data.ts });
+        if (leidoLocal < data.ts && navigator.vibrate) navigator.vibrate([120, 80, 120]);
+      } else {
+        mensajeActivoTs = 0;
+        texto.innerText = '';
+        panel.style.display = 'none';
+        actualizarSesion({ lastMessageTs: 0 });
+      }
+    });
+
+    window.confirmarMensajeMaster = () => {
+      if(!mensajeActivoTs) return;
+      document.getElementById('mensaje-master').style.display = 'none';
+      localStorage.setItem(LAST_READ_KEY, String(mensajeActivoTs));
+      actualizarSesion({ lastReadTs: mensajeActivoTs });
+    };
   </script>
 </body>
 </html>
+
+
+
 
 

@@ -74,9 +74,15 @@
             text-align: left;
             box-sizing: border-box;
         }
+        .rank-card .rank-pos {
+            color: #ffcc00;
+            font-size: 1.35em;
+            font-weight: 900;
+            margin-right: 8px;
+        }
         .esc-crono {
             display: flex;
-            justify-content: space-around;
+            justify-content: center;
             gap: 8px;
             margin-bottom: 14px;
             padding-bottom: 12px;
@@ -104,6 +110,25 @@
         .esc-result-box b { display: block; font-size: 1.35em; margin: 4px 0; }
         .podio-ok { color: #00ff99; }
         .podio-out { color: #ffcc00; }
+        .esc-current-card {
+            background: rgba(0,0,0,.72);
+            border: 1px solid rgba(255,204,0,.55);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 14px;
+            text-align: left;
+        }
+        .esc-current-card h3 {
+            margin: 0 0 8px;
+            color: #ffcc00;
+            text-transform: uppercase;
+        }
+        .esc-current-card p {
+            margin: 4px 0;
+            color: #ddd;
+            font-size: .95em;
+        }
+        .esc-current-card b { color: #fff; }
 
         .sorteo-info {
             margin-top: 25px;
@@ -131,10 +156,9 @@
 
             <div id="ui-esc" style="display:none; width: 100%">
                 <div class="esc-crono">
-                    <span>EVENTO <b id="esc-crono-total">--:--</b></span>
-                    <span>POR COCHE <b id="esc-crono-slot">--:--</b></span>
                     <span>MEDIDOS <b id="esc-progreso">0/0</b></span>
                 </div>
+                <div id="coche-prueba-esc" class="esc-current-card" style="display:none"></div>
                 <div id="ultimo-resultado-esc" class="esc-result-card" style="display:none"></div>
                 <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 0;">DB GASOLINA</h2>
                 <div id="l-db-gas"></div>
@@ -162,6 +186,7 @@
         let totalEscapes = 0;
         let medidosEscapes = 0;
         let cronoEscapesTimer = null;
+        let ultimoResultadoTimer = null;
 
         function generarUserId() {
             return Math.floor(10000 + Math.random() * 90000).toString();
@@ -202,17 +227,7 @@
 
         onValue(ref(db, 'crono_evento'), s => {
             clearInterval(cronoEscapesTimer);
-            const c = s.val();
-            if(!c || !c.corriendo) {
-                document.getElementById('esc-crono-total').innerText = '--:--';
-                document.getElementById('esc-crono-slot').innerText = '--:--';
-                return;
-            }
-            cronoEscapesTimer = setInterval(() => {
-                const now = Date.now();
-                document.getElementById('esc-crono-total').innerText = fmtTime((c.endTime || now) - now);
-                document.getElementById('esc-crono-slot').innerText = fmtTime((c.slotTime || now) - now);
-            }, 500);
+            cronoEscapesTimer = null;
         });
 
         function fmtTime(ms) {
@@ -228,10 +243,20 @@
             renderUltimoResultadoEscape(s.val());
         });
 
+        onValue(ref(db, 'escape_prueba_actual'), s => {
+            renderCochePruebaEscape(s.val());
+        });
+
         function renderUltimoResultadoEscape(r) {
             const box = document.getElementById('ultimo-resultado-esc');
             if(!box || !r) {
                 if(box) box.style.display = 'none';
+                return;
+            }
+            clearTimeout(ultimoResultadoTimer);
+            const age = Date.now() - Number(r.ts || 0);
+            if(r.ts && age > 10000) {
+                box.style.display = 'none';
                 return;
             }
             const dbClass = r.dbPodio ? 'podio-ok' : 'podio-out';
@@ -251,6 +276,21 @@
                         <strong class="${hzClass}">P${r.hzPos || '-'}</strong>
                     </div>
                 </div>`;
+            ultimoResultadoTimer = setTimeout(() => { box.style.display = 'none'; }, Math.max(0, 10000 - age));
+        }
+
+        function renderCochePruebaEscape(p) {
+            const box = document.getElementById('coche-prueba-esc');
+            if(!box || !p) {
+                if(box) box.style.display = 'none';
+                return;
+            }
+            box.style.display = 'block';
+            box.innerHTML = `
+                <h3>Prueba sonido #${escHtml(p.dorsal)}</h3>
+                <p><b>Coche:</b> ${escHtml(p.coche || '-')}</p>
+                <p><b>Combustible:</b> ${escHtml(p.combustible || '-')}</p>
+                <p><b>Potencia:</b> ${escHtml(p.potencia || '-')} CV</p>`;
         }
 
         function escHtml(v) {
@@ -361,8 +401,8 @@
             pintarProgresoEscapes();
             const normComb = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('diesel') ? 'diesel' : 'gasolina';
             const render = (arr, tId, campo, unidad) => {
-                document.getElementById(tId).innerHTML = arr.slice(0,5).map(p => 
-                    `<div class="rank-card"><span><b>#${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[campo]}${unidad}</b></div>`).join('') || '<div class="rank-card">Sin datos</div>';
+                document.getElementById(tId).innerHTML = arr.slice(0,5).map((p, i) => 
+                    `<div class="rank-card"><span><span class="rank-pos">${i+1}º</span><b>#${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[campo]}${unidad}</b></div>`).join('') || '<div class="rank-card">Sin datos</div>';
             };
             const gas = data.filter(p => normComb(p.combustible) === 'gasolina');
             const diesel = data.filter(p => normComb(p.combustible) === 'diesel');
@@ -375,5 +415,4 @@
 </body>
 </html>
 
-</html>
 

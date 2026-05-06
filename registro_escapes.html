@@ -80,6 +80,7 @@
     .row-actions button { padding:8px 10px; border-radius:7px; font-size:.75em; }
     .empty { color:var(--muted); text-align:center; padding:18px; }
     .hint { margin:10px 0 0; color:var(--muted); font-size:.78em; line-height:1.35; }
+    .status { margin-top:10px; color:var(--accent); font-size:.82em; font-weight:900; text-align:center; }
     @media (max-width:640px) {
       .grid { grid-template-columns:1fr; }
       .summary { flex-direction:column; }
@@ -127,17 +128,28 @@
       <div class="actions" style="margin-bottom:12px">
         <button class="btn-ok" onclick="exportarCSV()">Exportar CSV MASTER_SHOW</button>
         <button class="btn-dark" onclick="importFile.click()">Importar CSV</button>
+        <button class="btn-ok" onclick="publicarFirebase()">Publicar en MASTER</button>
         <button class="btn-danger" onclick="reiniciarTodo()">Reiniciar lista</button>
       </div>
       <input id="importFile" type="file" accept=".csv" style="display:none" onchange="importarCSV(event)">
+      <div class="status" id="status">Trabajo local. Publica en MASTER cuando quieras usar esta lista.</div>
       <div id="tabla"></div>
     </section>
   </main>
 
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <script>
+    firebase.initializeApp({ databaseURL:"https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
+    var db = firebase.database();
     var STORAGE_KEY = "registro_escapes_participantes_v1";
     var participantes = cargarLocal();
     var editandoDorsal = null;
+    var configEvento = {};
+
+    db.ref('config_evento').on('value', function(s){
+      configEvento = s.val() || {};
+    });
 
     function cargarLocal(){
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
@@ -224,7 +236,7 @@
 
     window.exportarCSV = function(){
       if(!participantes.length) return alert("No hay inscritos para exportar.");
-      var csv = "Dorsal;Nombre+Apellidos;Instagram;Matrícula;Marca+Modelo;Combustible;Potencia (CV)\n";
+      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV\n";
       participantes
         .slice()
         .sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); })
@@ -233,8 +245,11 @@
         });
       var a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type:"text/csv;charset=utf-8;" }));
-      a.download = "ESCAPES_MASTER_SHOW.csv";
+      a.download = slugEvento() + "_PARTICIPANTES_ESCAPES.csv";
       a.click();
+      setTimeout(function(){
+        if(confirm("Exportaci?n generada. ?Quieres reiniciar esta lista local de escapes?")) reiniciarTodo();
+      }, 700);
     };
 
     window.importarCSV = function(event){
@@ -242,25 +257,22 @@
       if(!file) return;
       var reader = new FileReader();
       reader.onload = function(e){
-        var lines = String(e.target.result || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
-        if(lines.length < 2) return alert("CSV vacío.");
-        var sep = lines[0].includes(";") ? ";" : ",";
-        var head = parseCSVLine(lines[0], sep).map(function(h){ return normalizarTexto(h); });
-        var hasDorsal = head[0] === "dorsal";
+        var rows = parseCSVText(e.target.result);
+        if(!rows.length) return alert("CSV vac?o.");
         var importados = [];
-        lines.slice(1).forEach(function(line, idx){
-          var c = parseCSVLine(line, sep);
-          var offset = hasDorsal ? 1 : 0;
-          var dorsal = hasDorsal && c[0] ? c[0].trim() : String(idx + 1);
-          if(!c[offset]) return;
+        rows.forEach(function(row, idx){
+          var dorsal = campoCSV(row, ["Dorsal"]) || String(idx + 1);
+          var nombre = campoCSV(row, ["Nombre", "Nombre+Apellidos", "Piloto"]);
+          var comb = campoCSV(row, ["Combustible"]);
+          if(!nombre) return;
           importados.push({
             dorsal: dorsal,
-            piloto: c[offset] || "",
-            instagram: c[offset + 1] || "",
-            matricula: (c[offset + 2] || "").toUpperCase(),
-            coche: c[offset + 3] || "",
-            combustible: normalizarCombustible(c[offset + 4]) === "diesel" ? "Diésel" : "Gasolina",
-            potencia: c[offset + 5] || ""
+            piloto: nombre,
+            instagram: campoCSV(row, ["Instagram", "IG"]),
+            matricula: (campoCSV(row, ["Matricula", "Matr?cula"]) || "").toUpperCase(),
+            coche: campoCSV(row, ["Vehiculo", "Veh?culo", "Marca+Modelo", "MarcaModelo", "Coche"]),
+            combustible: normalizarCombustible(comb) === "diesel" ? "Di?sel" : "Gasolina",
+            potencia: campoCSV(row, ["PotenciaCV", "Potencia (CV)", "Potencia"])
           });
         });
         participantes = importados.sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
@@ -277,6 +289,40 @@
       return '"' + String(v || "").replace(/"/g, '""') + '"';
     }
 
+    function slugEvento(){
+      var base = [configEvento.nombre || "DRIFT_SHOW", configEvento.lugar || "", configEvento.fecha || ""].filter(Boolean).join("_");
+      return normalizarTexto(base).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase() || "DRIFT_SHOW";
+    }
+
+    function normalizarDorsal(v){
+      var s = String(v || "").trim().replace(/^#/, "");
+      return /^\d+$/.test(s) ? String(parseInt(s, 10)) : normalizarTexto(s);
+    }
+
+    function parseCSVText(text){
+      var lines = String(text || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
+      if(!lines.length) return [];
+      var sep = lines[0].includes(";") ? ";" : ",";
+      var head = parseCSVLine(lines[0], sep).map(function(h){ return normalizarTexto(h); });
+      return lines.slice(1).map(function(line){
+        var c = parseCSVLine(line, sep);
+        if(c.length === 1 && c[0].includes(sep)) c = parseCSVLine(c[0], sep);
+        var row = {};
+        head.forEach(function(h, i){ row[h] = c[i] || ""; });
+        return row;
+      });
+    }
+
+    function campoCSV(row, names){
+      var keys = Object.keys(row || {});
+      for(var i = 0; i < names.length; i++){
+        var wanted = normalizarTexto(names[i]).replace(/[^a-z0-9]/g, "");
+        var found = keys.find(function(k){ return k.replace(/[^a-z0-9]/g, "") === wanted; });
+        if(found && row[found]) return row[found];
+      }
+      return "";
+    }
+
     function parseCSVLine(line, sep){
       var out = [], cur = "", inside = false;
       for(var i=0; i<line.length; i++){
@@ -287,7 +333,7 @@
         else cur += ch;
       }
       out.push(cur.trim());
-      return out;
+      return out.map(function(x){ return String(x || "").replace(/^"(.*)"$/, "$1").replace(/""/g, '"'); });
     }
 
     function normalizarTexto(v){
@@ -297,6 +343,30 @@
     function normalizarCombustible(v){
       return normalizarTexto(v).includes("diesel") ? "diesel" : "gasolina";
     }
+
+    window.publicarFirebase = async function(){
+      if(!participantes.length) return alert("No hay inscritos para publicar.");
+      var obj = {};
+      participantes.forEach(function(p){
+        var key = normalizarDorsal(p.dorsal);
+        obj[key] = {
+          dorsal: p.dorsal,
+          piloto: p.piloto,
+          instagram: p.instagram || "",
+          matricula: p.matricula || "",
+          coche: p.coche || "",
+          combustible: normalizarCombustible(p.combustible),
+          combustibleTexto: p.combustible || "",
+          potencia: p.potencia || ""
+        };
+      });
+      await db.ref('inscritos_esc').set(obj);
+      await db.ref('ranking_escapes').remove();
+      await db.ref('crono_evento').remove();
+      await db.ref('escape_prueba_actual').remove();
+      document.getElementById("status").innerText = "Publicado en MASTER: " + Object.keys(obj).length + " inscritos.";
+      alert("Participantes publicados en MASTER_SHOW.");
+    };
 
     function renderDorsal(){
       document.getElementById("next-dorsal").innerText = editandoDorsal || siguienteDorsal();

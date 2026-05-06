@@ -120,7 +120,7 @@
 
     <div class="overlay"></div>
 
-    <h2>MI POSICIÓN</h2>
+    <h2>MI POSICIÃ“N</h2>
     <p class="subtitle">Ingresa tu dorsal para saber si entras al podio</p>
     
     <div class="card-input">
@@ -138,12 +138,20 @@
     <h2 style="margin-top:30px; font-size:1.2em">RANKING GENERAL</h2>
     <div class="ranking-container">
         <div class="rank-column">
-            <h3>🏆 TOP POTENCIA (dB)</h3>
-            <div id="col-db"></div>
+            <h3>DB GASOLINA</h3>
+            <div id="col-db-gas"></div>
         </div>
         <div class="rank-column">
-            <h3>🎸 TOP GRAVES (Hz)</h3>
-            <div id="col-hz"></div>
+            <h3>DB DIÉSEL</h3>
+            <div id="col-db-diesel"></div>
+        </div>
+        <div class="rank-column">
+            <h3>HZ GASOLINA</h3>
+            <div id="col-hz-gas"></div>
+        </div>
+        <div class="rank-column">
+            <h3>HZ DIÉSEL</h3>
+            <div id="col-hz-diesel"></div>
         </div>
     </div>
 
@@ -211,9 +219,11 @@
                 return;
             }
 
-            // Calculamos posiciones en ambos rankings
-            const rDB = [...rankingData].sort((a,b) => b.db - a.db);
-            const rHZ = [...rankingData].sort((a,b) => a.hz - b.hz);
+            const miComb = normComb(yo.combustible || yo.combustibleTexto);
+            const miCategoria = miComb === 'diesel' ? 'DIÉSEL' : 'GASOLINA';
+            const miCategoriaData = rankingData.filter(p => normComb(p.combustible || p.combustibleTexto) === miComb);
+            const rDB = [...miCategoriaData].sort((a,b) => Number(b.db || 0) - Number(a.db || 0));
+            const rHZ = [...miCategoriaData].sort((a,b) => Number(a.hz || 99999) - Number(b.hz || 99999));
             
             const pDB = rDB.findIndex(p => p.dorsal == dorsal) + 1;
             const pHZ = rHZ.findIndex(p => p.dorsal == dorsal) + 1;
@@ -222,11 +232,11 @@
             const esPodioHZ = pHZ <= 3;
             const esCualquierPodio = esPodioDB || esPodioHZ;
 
-            // Determinar instrucción de podio
+            // Determinar instrucciÃ³n de podio
             let instruccion = "Debes salir del podio";
-            if (esPodioDB && esPodioHZ) instruccion = "ESTÁS EN AMBOS PODIOS!!! (ELIGE)";
-            else if (esPodioDB) instruccion = "COLÓCATE EN PODIO DE POTENCIA (dB)";
-            else if (esPodioHZ) instruccion = "COLÓCATE EN PODIO DE GRAVES (Hz)";
+            if (esPodioDB && esPodioHZ) instruccion = "ESTÃS EN AMBOS PODIOS!!! (ELIGE)";
+            else if (esPodioDB) instruccion = "COLÓCATE EN PODIO DB " + miCategoria;
+            else if (esPodioHZ) instruccion = "COLÓCATE EN PODIO HZ " + miCategoria;
 
             screen.innerHTML = `
                 <div class="status-box ${esCualquierPodio ? 'en-podio' : 'fuera-podio'}">
@@ -235,12 +245,12 @@
                     
                     <div class="pos-container">
                         <div class="pos-item">
-                            <span class="pos-num">${pDB}º</span>
-                            <span class="pos-label">Potencia</span>
+                            <span class="pos-num">${pDB}Âº</span>
+                            <span class="pos-label">DB ${miCategoria}</span>
                         </div>
                         <div class="pos-item">
-                            <span class="pos-num">${pHZ}º</span>
-                            <span class="pos-label">Graves</span>
+                            <span class="pos-num">${pHZ}Âº</span>
+                            <span class="pos-label">HZ ${miCategoria}</span>
                         </div>
                     </div>
 
@@ -252,27 +262,33 @@
         };
 
         function renderRankingGlobal() {
-            const colDB = document.getElementById('col-db');
-            const colHZ = document.getElementById('col-hz');
-            const rDB = [...rankingData].sort((a,b) => b.db - a.db);
-            const rHZ = [...rankingData].sort((a,b) => a.hz - b.hz);
-
+            const gas = rankingData.filter(p => normComb(p.combustible || p.combustibleTexto) === 'gasolina');
+            const diesel = rankingData.filter(p => normComb(p.combustible || p.combustibleTexto) === 'diesel');
             const buildHTML = (lista, campo, unidad) => {
-                return lista.map((p, i) => `
+                const filtrada = lista.filter(p => Number(p[campo]) > 0).slice(0, 5);
+                return filtrada.map((p, i) => `
                     <div class="rank-item">
                         <div class="p-info">
-                            <b>${i+1}. ${p.piloto}</b>
+                            <b>${i+1}º. #${p.dorsal} ${p.piloto}</b>
                             <span>${p.coche}</span>
                         </div>
                         <div class="p-val">${p[campo]}${unidad}</div>
                     </div>
-                `).join('');
+                `).join('') || '<div class="rank-item"><div class="p-info"><b>Sin datos</b></div></div>';
             };
 
-            colDB.innerHTML = buildHTML(rDB, 'db', 'dB');
-            colHZ.innerHTML = buildHTML(rHZ, 'hz', 'Hz');
+            document.getElementById('col-db-gas').innerHTML = buildHTML([...gas].sort((a,b) => Number(b.db || 0) - Number(a.db || 0)), 'db', 'dB');
+            document.getElementById('col-db-diesel').innerHTML = buildHTML([...diesel].sort((a,b) => Number(b.db || 0) - Number(a.db || 0)), 'db', 'dB');
+            document.getElementById('col-hz-gas').innerHTML = buildHTML([...gas].sort((a,b) => Number(a.hz || 99999) - Number(b.hz || 99999)), 'hz', 'Hz');
+            document.getElementById('col-hz-diesel').innerHTML = buildHTML([...diesel].sort((a,b) => Number(a.hz || 99999) - Number(b.hz || 99999)), 'hz', 'Hz');
+        }
+
+        function normComb(v) {
+            return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('diesel') ? 'diesel' : 'gasolina';
         }
 </script>
 </body>
 </html>
+
+
 

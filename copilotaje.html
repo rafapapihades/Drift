@@ -158,8 +158,69 @@
         let proximoNumeroLibre = 1;
         let esMenorFlag = false;
         let pilotoPreseleccionado = "";
+        let configEvento = {};
+        let pilotosEvento = {};
+        let copilotajesData = {};
 
         const getTime = () => new Date().toLocaleTimeString('es-ES');
+        const normalizarTexto = (v) => String(v || "").replace(/^\uFEFF/, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const normalizarDorsal = (v) => {
+            const s = String(v || "").trim().replace(/^#/, "");
+            return /^\d+$/.test(s) ? String(parseInt(s, 10)) : normalizarTexto(s);
+        };
+        const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+        const csvLine = (arr) => arr.map(csvCell).join(";") + "\n";
+        const slugEvento = () => {
+            const base = [configEvento.nombre || "DRIFT_SHOW", configEvento.lugar || "", configEvento.fecha || ""].filter(Boolean).join("_");
+            return normalizarTexto(base).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase() || "DRIFT_SHOW";
+        };
+        function parseCSVLine(line, sep){
+            const out = [];
+            let cur = "", inside = false;
+            for(let i=0; i<line.length; i++){
+                const ch = line[i];
+                if(ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+                else if(ch === '"') inside = !inside;
+                else if(ch === sep && !inside) { out.push(cur.trim()); cur = ""; }
+                else cur += ch;
+            }
+            out.push(cur.trim());
+            return out.map(x => String(x || "").replace(/^"(.*)"$/, "$1").replace(/""/g, '"'));
+        }
+        function parseCSVText(text){
+            const lines = String(text || "").split(/\r?\n/).filter(l => l.trim());
+            if(!lines.length) return [];
+            const sep = lines[0].includes(";") ? ";" : ",";
+            const head = parseCSVLine(lines[0], sep).map(normalizarTexto);
+            return lines.slice(1).map(line => {
+                let c = parseCSVLine(line, sep);
+                if(c.length === 1 && c[0].includes(sep)) c = parseCSVLine(c[0], sep);
+                const row = {};
+                head.forEach((h, i) => row[h] = c[i] || "");
+                return row;
+            });
+        }
+        function campoCSV(row, names){
+            const keys = Object.keys(row || {});
+            for(const name of names){
+                const wanted = normalizarTexto(name).replace(/[^a-z0-9]/g, "");
+                const found = keys.find(k => k.replace(/[^a-z0-9]/g, "") === wanted);
+                if(found && row[found]) return row[found];
+            }
+            return "";
+        }
+        function pilotoLabel(p){
+            const dorsal = p.dorsal ? `${p.dorsal},` : "";
+            return `${dorsal}${p.piloto || ""},${p.vehiculo || p.coche || ""}`.trim();
+        }
+        function listaPilotosTaxidrift(dataFallback){
+            const desdeEvento = Object.values(pilotosEvento || {})
+                .filter(p => p && p.activoTaxidrift !== false)
+                .sort((a,b) => Number(a.dorsal) - Number(b.dorsal))
+                .map(pilotoLabel)
+                .filter(Boolean);
+            return desdeEvento.length ? desdeEvento : (dataFallback.config_pilotos || []);
+        }
 
         // BÚSQUEDA EN PRE-INSCRITOS
         window.buscarParticipante = async () => {
@@ -245,15 +306,29 @@
         };
 
         // ESCUCHA DE DATOS (PILOTOS Y TABLA)
+        onValue(ref(db, 'config_evento'), (snap) => {
+            configEvento = snap.val() || {};
+        });
+
+        onValue(ref(db, 'pilotos_evento'), (snap) => {
+            pilotosEvento = snap.val() || {};
+            renderCopilotajes(copilotajesData);
+        });
+
         onValue(ref(db, 'copilotajes'), (snap) => {
             const data = snap.val() || {};
+            copilotajesData = data;
+            renderCopilotajes(data);
+        });
+
+        function renderCopilotajes(data) {
             
             // Turnos
             proximoNumeroLibre = (data.ultimo_numero || 0) + 1;
             if(!registroRecuperado) document.getElementById('v-proximo-numero').innerText = proximoNumeroLibre.toString().padStart(3, '0');
             
             // Pilotos
-            const config = data.config_pilotos || [];
+            const config = listaPilotosTaxidrift(data);
             const bajas = data.pilotos_baja || [];
             const activos = config.filter(p => !bajas.includes(p));
             
@@ -262,7 +337,7 @@
             document.getElementById('lista-check-pilotos').innerHTML = config.map(p => `
                 <div class="piloto-row">
                     <span style="font-weight:bold; color:${bajas.includes(p)?'#555':'#fff'}">${p}</span>
-                    <input type="checkbox" ${!bajas.includes(p)?'checked':''} onchange="window.togglePiloto('${p}', this.checked)" style="transform:scale(1.8)">
+                    <input type="checkbox" ${!bajas.includes(p)?'checked':''} onchange="window.togglePiloto('${encodeURIComponent(p)}', this.checked)" style="transform:scale(1.8)">
                 </div>
             `).join('');
             document.getElementById('btn-cargar-pilotos').innerText = `CARGAR PILOTOS (${config.length})`;
@@ -301,10 +376,11 @@
                     <td><b>${item.copiloto}</b><br><small style="color:var(--accent)">${item.piloto || ''}</small></td>
                     <td style="text-align:right"><small>${item.horaRegistroLogistica || '-'}</small><br><b>${item.duracion || item.duracionTotal || '-'}</b></td>`;
             });
-        });
+        }
 
         // FUNCIONES AUXILIARES
         window.togglePiloto = async (nombre, activa) => {
+            nombre = decodeURIComponent(nombre);
             const snap = await get(ref(db, 'copilotajes/pilotos_baja'));
             let bajas = snap.val() || [];
             if(activa) bajas = bajas.filter(b => b !== nombre);
@@ -404,9 +480,9 @@
                 votosPorTurno[k].dw += Number(v.dw || 0);
             });
 
-            let csv = "\ufeffTURNO;CO-PILOTO;DNI;REDES;PILOTO;PAGO;ORIGEN;ES_MENOR;TUTOR;DNI_TUTOR;H_PRE;H_LOGISTICA;H_RECINTO;H_PISTA;H_SALIDA;DURACION;V_AP;V_UP;V_DW;V_SCORE\n";
+            let csv = "Turno;Copiloto;DNI;Redes;Piloto;Pago;Origen;EsMenor;Tutor;DNITutor;HoraPreRegistro;HoraLogistica;HoraRecinto;HoraPista;HoraSalida;Duracion;VotosAplausos;VotosUp;VotosDown;VotosScore;Estado\n";
             
-            const procesarLista = (lista) => {
+            const procesarLista = (lista, estado) => {
                 if(!lista) return;
                 Object.values(lista).forEach(i => {
                     const tutorNombre = i.nombreTutor || i.tutor || "";
@@ -415,22 +491,21 @@
                     const score = (votos.ap * 2) + votos.up - votos.dw;
                     const origen = i.origenRegistro || ((i.horaPreRegistro && i.horaPreRegistro !== 'MANUAL') ? 'PRE-REGISTRO' : 'TAQUILLA');
                     const horaPre = (i.horaPreRegistro && i.horaPreRegistro !== 'MANUAL') ? i.horaPreRegistro : '';
-                    csv += `"${i.nPapel}";"${i.copiloto}";"${i.dni || ''}";"${i.redes || ''}";"${i.piloto}";"${i.metodoPago}";"${origen}";"${(i.esMenor || tutorNombre || tutorDni) ? 'SI' : 'NO'}";"${tutorNombre}";"${tutorDni}";"${horaPre}";"${i.horaRegistroLogistica || ''}";"${i.horaEntradaRecinto || ''}";"${i.horaEntradaPista || i.horaEntradaTexto || ''}";"${i.horaSalida || i.horaSalidaTexto || ''}";"${i.duracion || i.duracionTotal || ''}";"${votos.ap}";"${votos.up}";"${votos.dw}";"${score}"\n`;
+                    csv += csvLine([i.nPapel, i.copiloto, i.dni || '', i.redes || '', i.piloto, i.metodoPago, origen, (i.esMenor || tutorNombre || tutorDni) ? 'SI' : 'NO', tutorNombre, tutorDni, horaPre, i.horaRegistroLogistica || '', i.horaEntradaRecinto || '', i.horaEntradaPista || i.horaEntradaTexto || '', i.horaSalida || i.horaSalidaTexto || '', i.duracion || i.duracionTotal || '', votos.ap, votos.up, votos.dw, score, estado]);
                 });
             };
 
-            procesarLista(d.espera);
-            procesarLista(d.completados);
-            csv += construirResumenVotosCSV(votosRows);
+            procesarLista(d.espera, "ESPERA");
+            procesarLista(d.completados, "COMPLETADO");
 
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `REPORTE_TIEMPOS_${new Date().toLocaleDateString()}.csv`;
+            link.download = `${slugEvento()}_COPILOTAJES_RESULTADOS.csv`;
             link.click();
 
             setTimeout(() => {
-                if(confirm("¿Deseas BORRAR todos los datos de la nube y empezar un nuevo evento?")) {
+                if(confirm("Exportaci?n generada. ?Quieres restablecer copilotajes, votos y sorteo para empezar de cero?")) {
                     set(ref(db, 'copilotajes/espera'), null);
                     set(ref(db, 'copilotajes/completados'), null);
                         set(ref(db, 'copilotajes/ultimo_numero'), 0);
@@ -473,15 +548,48 @@
             const file = e.target.files[0];
             const fr = new FileReader();
             fr.onload = async () => {
-                const list = fr.result.split('\n')
-                    .map(l => l.trim())
-                    .filter(l => l && !l.toLowerCase().includes('piloto'));
+                const rows = parseCSVText(fr.result);
+                const pilotosObj = {};
+                const inscritosDrift = {};
+                const list = [];
+                rows.forEach((row, idx) => {
+                    const dorsal = campoCSV(row, ["Dorsal"]) || String(idx + 1);
+                    const piloto = campoCSV(row, ["Piloto", "Nombre", "Nombre+Apellidos"]);
+                    const vehiculo = campoCSV(row, ["Vehiculo", "Vehículo", "Coche", "Coche Modelo", "coche_modelo", "Marca+Modelo"]);
+                    if(!piloto) return;
+                    const key = normalizarDorsal(dorsal);
+                    const p = {
+                        dorsal,
+                        piloto,
+                        alias: campoCSV(row, ["Alias"]),
+                        edad: campoCSV(row, ["Edad"]),
+                        residencia: campoCSV(row, ["Residencia"]),
+                        vehiculo,
+                        coche: vehiculo,
+                        motor: campoCSV(row, ["Motor"]),
+                        potencia: campoCSV(row, ["PotenciaCV", "Potencia", "Potencia (CV)"]),
+                        instagram: campoCSV(row, ["Instagram", "IG"]),
+                        modificaciones: campoCSV(row, ["Modificaciones", "Mods"]),
+                        curiosidades: campoCSV(row, ["Curiosidades"]),
+                        palmares: campoCSV(row, ["Palmares", "Palmarés"]),
+                        activoShow: !String(campoCSV(row, ["ActivoShow"]) || "SI").toLowerCase().startsWith("n"),
+                        activoTaxidrift: !String(campoCSV(row, ["ActivoTaxidrift"]) || "SI").toLowerCase().startsWith("n")
+                    };
+                    pilotosObj[key] = p;
+                    if(p.activoShow !== false) inscritosDrift[key] = { dorsal, piloto, coche: vehiculo, instagram: p.instagram };
+                    if(p.activoTaxidrift !== false) list.push(pilotoLabel(p));
+                });
+                if(!list.length) return alert("No se encontraron pilotos en el CSV.");
+                await set(ref(db, 'pilotos_evento'), pilotosObj);
+                await set(ref(db, 'inscritos_drift'), inscritosDrift);
                 await set(ref(db, 'copilotajes/config_pilotos'), list);
-                alert("Lista de pilotos actualizada.");
+                e.target.value = "";
+                alert("Lista de pilotos actualizada: " + list.length + " pilotos para Taxidrift.");
             };
-            fr.readAsText(file);
+            fr.readAsText(file, "UTF-8");
         };
     </script>
 </body>
 </html>
+
 

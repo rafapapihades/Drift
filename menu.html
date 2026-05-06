@@ -182,6 +182,18 @@
     .escapes::before { background: var(--orange); }
     .admin::before { background: var(--red); }
     .legacy::before { background: #777; }
+    .control .link-card { border-color: rgba(255, 30, 30, .75); }
+    .control .section-title { color: var(--red); }
+    .control .section-title::after { background: rgba(255, 30, 30, .55); }
+    .pista-grupo .link-card { border-color: rgba(0, 200, 83, .75); }
+    .pista-grupo .section-title { color: var(--green); }
+    .pista-grupo .section-title::after { background: rgba(0, 200, 83, .55); }
+    .registro-grupo .link-card { border-color: rgba(255, 204, 0, .75); }
+    .registro-grupo .section-title { color: var(--accent); }
+    .registro-grupo .section-title::after { background: rgba(255, 204, 0, .55); }
+    .publico-grupo .link-card { border-color: rgba(33, 150, 243, .75); }
+    .publico-grupo .section-title { color: var(--blue); }
+    .publico-grupo .section-title::after { background: rgba(33, 150, 243, .55); }
 
     footer {
       margin-top: 28px;
@@ -227,60 +239,31 @@
         <p class="tagline">Menú de acceso del evento</p>
       </div>
       <div class="status">
-        Abrir desde la misma carpeta
+        Enlaces GitHub Pages
         <b id="fecha"></b>
       </div>
     </header>
 
-    <section class="section">
-      <h2 class="section-title">Público y participantes</h2>
+    <section class="section control">
+      <h2 class="section-title">Control principal</h2>
       <div class="grid">
-        <a class="link-card publico" href="index.HTML">
+        <a class="link-card admin" href="https://rafapapihades.github.io/Drift/MASTER_SHOW.HTML">
           <div>
-            <h2>Público / Votación</h2>
-            <p>Pantalla para votar el show, ver rankings de escapes y recibir número para sorteo.</p>
+            <h2>Master Show</h2>
+            <p>Control principal del evento: pilotos, votaciones, pista, escapes, rankings y conexión ESP.</p>
           </div>
-          <div class="meta"><span>Abrir</span><span class="file">index.HTML</span></div>
+          <div class="meta"><span>Abrir</span><span class="file">MASTER_SHOW.HTML</span></div>
         </a>
 
-        <a class="link-card taxi" href="preinscripcion.html">
+        <a class="link-card admin" href="https://rafapapihades.github.io/Drift/copilotaje.html">
           <div>
-            <h2>Pre-registro</h2>
-            <p>Formulario público para inscribirse previamente en Taxi Drift.</p>
+            <h2>Copilotajes</h2>
+            <p>Cobro y gestión de copilotajes: pre-registros, pagos, cola, pilotos, exportación y sorteo.</p>
           </div>
-          <div class="meta"><span>Abrir</span><span class="file">preinscripcion.html</span></div>
+          <div class="meta"><span>Abrir</span><span class="file">copilotaje.html</span></div>
         </a>
 
-        <a class="link-card escapes" href="PARTICIPANTE.html">
-          <div>
-            <h2>Participante escapes</h2>
-            <p>Consulta de posición, resultados y rankings para inscritos de la competición de escapes.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">PARTICIPANTE.html</span></div>
-        </a>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2 class="section-title">Pista y speaker</h2>
-      <div class="grid">
-        <a class="link-card pista" href="pista.html">
-          <div>
-            <h2>Pista show</h2>
-            <p>Control de pista para salidas del show/drift y estado visible de pilotos en pista.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">pista.html</span></div>
-        </a>
-
-        <a class="link-card pista" href="pista_copilotajes.html">
-          <div>
-            <h2>Pista Taxi Drift</h2>
-            <p>Comisarios de pista: gestión de cola, acceso, viajes y pilotos de copilotos.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">pista_copilotajes.html</span></div>
-        </a>
-
-        <a class="link-card publico" href="Speaker.html">
+        <a class="link-card admin" href="https://rafapapihades.github.io/Drift/Speaker.html">
           <div>
             <h2>Speaker</h2>
             <p>Pantalla del speaker con pilotos en pista, votos acumulados y votos en vivo.</p>
@@ -290,26 +273,39 @@
       </div>
     </section>
 
-    <section class="section">
-      <h2 class="section-title">Organización</h2>
+    <section class="section pista-grupo">
+      <h2 class="section-title">Pista</h2>
       <div class="grid">
-        <a class="link-card admin" href="MASTER_SHOW.HTML">
+        <a class="link-card pista" href="https://rafapapihades.github.io/Drift/pista_copilotajes.html">
           <div>
-            <h2>Master Show</h2>
-            <p>Control principal del evento: pilotos, votaciones, pista, escapes, rankings y ESP.</p>
+            <h2>Pista Taxi Drift</h2>
+            <p>Gestión de Taxi Drift en pista: acceso, salida, regreso, cola y pilotos activos.</p>
           </div>
-          <div class="meta"><span>Abrir</span><span class="file">MASTER_SHOW.HTML</span></div>
+          <div class="meta"><span>Abrir</span><span class="file">pista_copilotajes.html</span></div>
         </a>
 
-        <a class="link-card taxi" href="copilotaje.html">
+        <a class="link-card pista" href="https://rafapapihades.github.io/Drift/pista.html">
           <div>
-            <h2>Copilotajes</h2>
-            <p>Logística Taxi Drift: carga de pilotos, pre-registros, pagos, cola, exportación y sorteo.</p>
+            <h2>Estado de pista</h2>
+            <p>Control de estado de pista para show/drift y pilotos que están dentro del trazado.</p>
           </div>
-          <div class="meta"><span>Abrir</span><span class="file">copilotaje.html</span></div>
+          <div class="meta"><span>Abrir</span><span class="file">pista.html</span></div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section registro-grupo">
+      <h2 class="section-title">Registros</h2>
+      <div class="grid">
+        <a class="link-card taxi" href="https://rafapapihades.github.io/Drift/preinscripcion.html">
+          <div>
+            <h2>Pre-registro</h2>
+            <p>Formulario público para inscribirse previamente en Taxi Drift.</p>
+          </div>
+          <div class="meta"><span>Abrir</span><span class="file">preinscripcion.html</span></div>
         </a>
 
-        <a class="link-card escapes" href="registro_escapes.html">
+        <a class="link-card taxi" href="https://rafapapihades.github.io/Drift/registro_escapes.html">
           <div>
             <h2>Registro escapes</h2>
             <p>Alta de participantes de escapes con dorsal automático y exportación CSV para MASTER_SHOW.</p>
@@ -319,15 +315,23 @@
       </div>
     </section>
 
-    <section class="section">
-      <h2 class="section-title">Respaldo</h2>
+    <section class="section publico-grupo">
+      <h2 class="section-title">Público y participantes</h2>
       <div class="grid">
-        <a class="link-card legacy" href="MASTER.HTML">
+        <a class="link-card publico" href="https://rafapapihades.github.io/Drift/index.HTML">
           <div>
-            <h2>Master antiguo</h2>
-            <p>Versión anterior de control. Mantener como referencia o emergencia si está disponible.</p>
+            <h2>Público / Votación</h2>
+            <p>Pantalla para votar el show, ver rankings de escapes y recibir número para sorteo.</p>
           </div>
-          <div class="meta"><span>Abrir</span><span class="file">MASTER.HTML</span></div>
+          <div class="meta"><span>Abrir</span><span class="file">index.HTML</span></div>
+        </a>
+
+        <a class="link-card publico" href="https://rafapapihades.github.io/Drift/PARTICIPANTE.html">
+          <div>
+            <h2>Participante escapes</h2>
+            <p>Consulta de posición, resultados y rankings para inscritos de la competición de escapes.</p>
+          </div>
+          <div class="meta"><span>Abrir</span><span class="file">PARTICIPANTE.html</span></div>
         </a>
       </div>
     </section>
@@ -343,3 +347,4 @@
   </script>
 </body>
 </html>
+

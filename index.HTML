@@ -317,7 +317,7 @@
                 box.style.display = 'block';
                 document.getElementById('s-info').innerText = "";
                 renderVotos(v);
-                if(v.timer !== undefined && v.timer > 0 && v.timer < 10) {
+                if(v.timer !== undefined && v.timer > 0 && v.timer <= 10) {
                     timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
                 } else {
                     timerDisplay.innerText = "";
@@ -368,7 +368,7 @@
                     <div class="vote-card" data-item="${id}">
                         <div class="vote-title">#${id} ${item.nombre || "PILOTO"}</div>
                         <div class="vote-sub">${coche.replace(/[()]/g, '')}</div>
-                        ${item.timer > 0 && item.timer < 10 ? `<div id="timer-${id}" style="color:#ff3333; font-weight:900; margin-top:8px;">CIERRE EN: ${item.timer}...</div>` : ''}
+                        ${v.timer > 0 && v.timer <= 10 ? `<div id="timer-${id}" style="color:#ff3333; font-weight:900; margin-top:8px;">CIERRE EN: ${v.timer}...</div>` : ''}
                         <span id="v-${id}-ap" class="v-btn" onclick="votar('${id}','ap')">👏</span>
                         <span id="v-${id}-up" class="v-btn" onclick="votar('${id}','up')">👍</span>
                         <span id="v-${id}-dw" class="v-btn" onclick="votar('${id}','dw')">👎</span>

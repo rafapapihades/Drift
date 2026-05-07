@@ -12,9 +12,9 @@
     
     body {
       background-color: var(--bg);
-      background-image: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('logo.png');
+      background-image: linear-gradient(rgba(0,0,0,0.78), rgba(0,0,0,0.92)), url('Fibra3.png');
       background-repeat: repeat;
-      background-size: 150px; 
+      background-size: 420px; 
       background-attachment: fixed;
       color: #fff;
       font-family: 'Arial Black', Gadget, sans-serif;
@@ -39,6 +39,7 @@
       margin: 0 auto;
       filter: drop-shadow(0 0 5px rgba(255, 204, 0, 0.5));
     }
+    .event-title { color:var(--yellow); font-weight:900; text-transform:uppercase; margin-top:8px; }
 
     /* BANNER ESTADO DE PISTA */
     #banner-pista-live {
@@ -75,6 +76,7 @@
     }
     
     .dorsal { font-size: 6em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
+    .car-photo { width:100%; max-height:240px; object-fit:cover; border-radius:18px; border:1px solid #333; margin-bottom:12px; }
     .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.2em; font-weight: bold; text-transform: uppercase; margin: 15px 0; display: inline-block; }
     .nombre-pista { font-size: 2em; font-weight: bold; text-transform: uppercase; margin: 5px 0; color: #fff; line-height: 1.1; }
 
@@ -89,14 +91,18 @@
     .bio-card { background: #111; border: 2px solid var(--yellow); border-radius: 30px; padding: 25px; max-width: 500px; margin: 50px auto; text-align: left; }
     .btn-cerrar { background: #333; color: #fff; border: none; width: 100%; padding: 15px; border-radius: 15px; margin-top: 25px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
     
-    .admin-csv { margin-top: 60px; text-align: center; opacity: 0.9; padding: 25px; border-top: 1px solid #333; background: rgba(0,0,0,0.7); border-radius: 20px 20px 0 0; }
+    .admin-csv { margin-top: 28px; text-align: center; opacity: 0.95; padding: 18px; border-top: 1px solid #333; background: rgba(0,0,0,0.7); border-radius: 20px 20px 0 0; max-width:600px; margin-left:auto; margin-right:auto; }
     #contador-fichas { font-size: 0.75em; color: var(--yellow); margin-top: 10px; display: block; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+    #lista-pilotos-evento { margin-top:12px; display:grid; gap:6px; text-align:left; font-family:Arial, sans-serif; }
+    .speaker-piloto-row { display:flex; justify-content:space-between; gap:10px; background:#090909; border:1px solid #252525; border-radius:8px; padding:8px 10px; font-size:.82rem; }
+    .speaker-piloto-row b { color:var(--yellow); }
   </style>
 </head>
 <body>
 
   <div class="header">
     <img src="logo.png" alt="Speaker Pro" class="header-img">
+    <div id="event-title" class="event-title"></div>
   </div>
 
   <div id="banner-pista-live">CARGANDO ESTADO...</div>
@@ -106,9 +112,8 @@
   </div>
 
   <div class="admin-csv">
-    <input type="file" id="csv-file" style="display:none;" onchange="importarCSV(event)">
-    <button onclick="document.getElementById('csv-file').click()" style="padding:13px 28px; border-radius:12px; cursor:pointer; background:#222; color:#eee; border:1px solid #444; font-weight: bold; text-transform: uppercase; font-size:0.9em;">ðŸ“‚ ACTUALIZAR CSV</button>
     <span id="contador-fichas">Sistema: 0 fichas cargadas</span>
+    <div id="lista-pilotos-evento"></div>
   </div>
 
   <div id="modal-bio"><div class="bio-card" id="bio-body"></div></div>
@@ -120,6 +125,11 @@
     let votacionActual = null;
     let taxiActivos = [];
     let acumuladoVotos = {};
+
+    db.ref('config_evento').on('value', s => {
+      const cfg = s.val() || {};
+      document.getElementById('event-title').innerText = cfg.nombre || "";
+    });
 
     // 1. ESCUCHAR ESTADO DE PISTA (BANNER)
     const banner = document.getElementById('banner-pista-live');
@@ -155,6 +165,7 @@
           nombre: p.piloto || "",
           motor: p.motor || "",
           potencia: p.potencia || "",
+          foto: p.foto || "",
           mods: p.modificaciones || "",
           curiosidades: p.curiosidades || "",
           palmares: p.palmares || "",
@@ -162,7 +173,18 @@
         };
       });
       document.getElementById('contador-fichas').innerText = `Sistema: ${Object.keys(cacheFichas).length} fichas cargadas`;
+      renderListaPilotosEvento(data);
     });
+
+    function renderListaPilotosEvento(data) {
+      const cont = document.getElementById('lista-pilotos-evento');
+      const rows = Object.values(data || {})
+        .filter(p => p && p.activoShow !== false)
+        .sort((a,b) => Number(a.dorsal) - Number(b.dorsal))
+        .map(p => `<div class="speaker-piloto-row"><span><b>#${escHtml(p.dorsal || '')}</b> ${escHtml(p.alias || p.piloto || '')}</span><span>${escHtml(p.vehiculo || p.coche || '')}</span></div>`)
+        .join('');
+      cont.innerHTML = rows || '<div style="color:#777">Sin pilotos activos cargados.</div>';
+    }
 
     // 3. ESCUCHAR PILOTOS EN PISTA (MULTITARJETA)
     db.ref('votacion_activa').on('value', snap => {
@@ -235,9 +257,10 @@
       const totalDw = liveDw + accDw;
       const card = document.createElement('div');
       card.className = "card-active";
+      const detalles = [p.coche, p.motor, p.potencia ? `${p.potencia} CV` : ""].filter(Boolean).join(" · ");
       card.innerHTML = `
-        <div class="dorsal">#${id}</div>
-        <div class="coche-tag">${p.coche || "TAXI DRIFT"}</div>
+        ${p.foto ? `<img class="car-photo" src="${escHtml(p.foto)}" alt="">` : `<div class="dorsal">#${id}</div>`}
+        <div class="coche-tag">${detalles || p.coche || "TAXI DRIFT"}</div>
         <div class="nombre-pista">${p.nombre || "PILOTO"}</div>
         <div class="votos-grid">
           <div class="v-box">
@@ -370,6 +393,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 

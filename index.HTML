@@ -146,7 +146,7 @@
 <body>
     <div class="overlay">
         <div class="glass-panel">
-            <img class="brand-logo" src="logo_peq.png" alt="Drift Show">
+            <img class="brand-logo" src="logo2.jpg" alt="Drift Show">
             <div id="event-title" class="event-title"></div>
             
             <div id="ui-show" style="display:none; width: 100%;">
@@ -310,7 +310,9 @@
         onValue(ref(db, 'estado_pista'), s => {
             const e = s.val();
             const msg = document.getElementById('s-mensaje');
-            msg.innerText = e?.mensaje || "";
+            let texto = e?.mensaje || "";
+            texto = texto.replace(/^[^A-ZÁÉÍÓÚÑ]*(EN PISTA|PISTA LIBRE)/i, '$1');
+            msg.innerText = texto;
             msg.style.color = e?.color || "white";
         });
 
@@ -427,5 +429,6 @@
     </script>
 </body>
 </html>
+
 
 

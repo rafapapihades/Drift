@@ -321,7 +321,7 @@
             const snap = await db.ref('copilotajes/completados').once('value');
             const activos = Object.values(snap.val() || {}).filter(i => !i.finalizado);
             if(!activos.length) {
-                await db.ref('estado_pista').set({ mensaje: '🟢 PISTA LIBRE', color: 'green', id: 'btn-libre' });
+                await db.ref('estado_pista').set({ mensaje: 'PISTA LIBRE', color: 'green', id: 'btn-libre' });
                 // Mantener votaciones individuales que estén cerrando aunque no queden coches activos.
             }
             const nombres = activos.map(i => limpiarNombrePiloto(i.piloto)).filter(Boolean);
@@ -352,7 +352,7 @@
                 if(previo && previo.cerrando) items[dorsal] = previo;
             });
             if(activos.length) await db.ref('estado_pista').set({
-                mensaje: '🏎️ EN PISTA: ' + nombres.join(' + '),
+                mensaje: 'EN PISTA: ' + nombres.join(' + '),
                 color: '#007bff',
                 id: 'btn-coche'
             });

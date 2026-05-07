@@ -6,7 +6,7 @@
     <title>ESTADO PILOTO - DRIFT SHOW</title>
     <style>
         body { 
-            background-image: linear-gradient(rgba(0,0,0,.72), rgba(0,0,0,.9)), url('Fibra1.png'); 
+            background-image: linear-gradient(rgba(0,0,0,.72), rgba(0,0,0,.9)), url('Fibra3.png'); 
             background-repeat: repeat; 
             background-size: 520px; 
             background-color: #000; 
@@ -30,6 +30,7 @@
         h2 { color: #ffcc00; text-transform: uppercase; margin-bottom: 5px; text-align: center; }
         .subtitle { color: #aaa; font-size: 0.9em; margin-bottom: 20px; text-align: center; }
         .brand-logo { width: min(360px, 92vw); height: auto; margin: 4px 0 14px; filter: drop-shadow(0 8px 16px #000); }
+        .event-title { color:#ffcc00; font-weight:900; text-transform:uppercase; margin:-4px 0 14px; text-align:center; }
 
         .card-input { 
             background: rgba(20, 20, 20, 0.9); 
@@ -159,6 +160,7 @@
     <div class="overlay"></div>
 
     <img class="brand-logo" src="logo_peq.png" alt="Drift Show">
+    <div id="event-title" class="event-title"></div>
 
     <h2>MI POSICIÓN</h2>
     <p class="subtitle">Ingresa tu dorsal o matrícula para consultar tus marcas</p>
@@ -214,6 +216,11 @@
         let consultaRealizada = false;
         let ultimoResultadoTimer = null;
         let modoEscapesActivo = false;
+
+        onValue(ref(db, 'config_evento'), snap => {
+            const cfg = snap.val() || {};
+            document.getElementById('event-title').innerText = cfg.nombre || "";
+        });
 
         onValue(ref(db, 'modo_actual'), snap => {
             modoEscapesActivo = (snap.val() || 'tab-show') === 'tab-esc';
@@ -403,5 +410,6 @@
 </script>
 </body>
 </html>
+
 
 

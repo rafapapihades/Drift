@@ -7,9 +7,10 @@
 
   <style>
     * { box-sizing: border-box; }
-    body { background: #000; color: #fff; font-family: sans-serif; padding: 0 10px 10px 10px; margin: 0; overflow-x: hidden; }
+    body { background-color:#000; background-image:linear-gradient(rgba(0,0,0,.72), rgba(0,0,0,.9)), url('Fibra3.png'); background-repeat:repeat; background-size:420px; color: #fff; font-family: sans-serif; padding: 0 10px 10px 10px; margin: 0; overflow-x: hidden; }
 
     .header-logo { display:block; margin:0 auto; width:100%; max-width:500px; height:auto; padding:5px 0; }
+    .event-title { color:#ffcc00; text-align:center; font-weight:900; text-transform:uppercase; margin:-4px 0 10px; }
     .card { background:#111; padding:15px; border-radius:12px; margin-bottom:10px; border:1px solid #333; width:100%; }
 
     .btn { width:100%; padding:18px; border-radius:10px; border:none; font-weight:bold; margin-bottom:8px; cursor:pointer; transition:0.3s; color:white; text-transform:uppercase; }
@@ -123,6 +124,7 @@
   </div>
 
   <img src="logo2.jpg" alt="Logo" class="header-logo">
+  <div id="event-title" class="event-title"></div>
 
   <div class="nav-header">
     <button id="nav-show" class="nav-btn active-nav" onclick="cambiarTab('tab-show')">SHOW / DRIFT</button>
@@ -1020,7 +1022,7 @@
             var dorsal = campoCSV(row, ["Dorsal"]) || String(idx + 1);
             var piloto = campoCSV(row, ["Piloto", "Nombre", "Nombre+Apellidos"]);
             var coche = campoCSV(row, ["Vehiculo", "Vehículo", "Coche", "Coche Modelo", "coche_modelo", "Marca+Modelo"]);
-            if(dorsal && piloto) obj[normalizarDorsal(dorsal)] = { dorsal:dorsal, piloto:piloto, coche:coche, instagram:campoCSV(row, ["Instagram", "IG"]) };
+            if(dorsal && piloto) obj[normalizarDorsal(dorsal)] = { dorsal:dorsal, piloto:piloto, alias:campoCSV(row, ["Alias"]), coche:coche, motor:campoCSV(row, ["Motor"]), potencia:campoCSV(row, ["PotenciaCV", "Potencia", "Potencia (CV)"]), instagram:campoCSV(row, ["Instagram", "IG"]), foto:campoCSV(row, ["Foto", "FotoCoche", "Imagen", "URLFoto"]) };
           });
 
           db.ref('inscritos_drift').set(obj).then(function(){
@@ -1187,8 +1189,11 @@ window.exportarVotos = async function () {
             h_ap += (v.ap||0); h_up += (v.up||0); h_dw += (v.dw||0);
           });
           items[d] = {
-            nombre: p ? p.piloto : ("PILOTO " + d),
+            nombre: p ? (p.alias || p.piloto) : ("PILOTO " + d),
             coche: p ? (p.coche||"") : "",
+            motor: p ? (p.motor||"") : "",
+            potencia: p ? (p.potencia||"") : "",
+            foto: p ? (p.foto||"") : "",
             ap:0, up:0, dw:0, h_ap:h_ap, h_up:h_up, h_dw:h_dw
           };
         });
@@ -1288,6 +1293,8 @@ window.exportarVotos = async function () {
 
       db.ref('config_evento').on('value', function(s){
         configEvento = s.val() || {};
+        var el = document.getElementById('event-title');
+        if(el) el.innerText = configEvento.nombre || "";
       });
 
       db.ref('inscritos_drift').on('value', function(s){
@@ -1342,7 +1349,8 @@ window.exportarVotos = async function () {
         var container = document.getElementById('votos-en-vivo');
         if(!v || !v.activa){ container.innerHTML=""; return; }
 
-        var html = (v.timer > 0) ? ("<div class='timer-master'>⏱️ CIERRE EN: " + v.timer + "s</div>") : "";
+        var timers = Object.values(v.items || {}).map(function(item){ return Number(item.timer || 0); }).filter(function(t){ return t > 0 && t <= 10; });
+        var html = timers.length ? ("<div class='timer-master'>⏱️ CIERRE EN: " + Math.max.apply(null, timers) + "s</div>") : "";
         if(v.items){
           html += Object.entries(v.items).map(function(pair){
             var id = pair[0], data = pair[1] || {};
@@ -1350,6 +1358,7 @@ window.exportarVotos = async function () {
             var sub = (id === 'BATALLA') ? "" : (coche ? ("<div class='p-sub'>" + coche + "</div>") : "");
             return "<div class='piloto-voto-row'>" +
               "<div class='p-info'>" + (id==='BATALLA' ? "🔥 BATALLA" : ("#" + id + " " + data.nombre)) + sub + "</div>" +
+              ((data.timer > 0 && data.timer <= 10) ? "<div class='timer-master'>CIERRE #" + id + ": " + data.timer + "s</div>" : "") +
               "<div class='p-stats'>" +
                 "<span>👏 " + (data.ap||0) + " (" + ((data.ap||0)+(data.h_ap||0)) + ")</span>" +
                 "<span>👍 " + (data.up||0) + " (" + ((data.up||0)+(data.h_up||0)) + ")</span>" +

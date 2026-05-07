@@ -220,13 +220,14 @@
             const d = snap.val();
             
             const dorsal = extraerDorsal(d.piloto) || "0";
+            const salidaId = crearSalidaId(dorsal);
 
             // CAPTURA DE TIEMPO DE ENTRADA
             const ahora = Date.now();
             const horaEntradaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
             const items = {};
-            items[dorsal] = crearItemVotoTaxi(dorsal, d, {});
+            items[dorsal] = crearItemVotoTaxi(dorsal, { ...d, salidaId }, {});
 
             const updates = {};
             updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 0, items: items };
@@ -235,6 +236,7 @@
             // Guardamos los campos de tiempo adicionales para el CSV
             updates[`copilotajes/completados/${newK}`] = { 
                 ...d, 
+                salidaId: salidaId,
                 tsEntrada: ahora, 
                 horaEntradaPista: horaEntradaTexto,
                 horaEntradaTexto: horaEntradaTexto, 
@@ -369,6 +371,10 @@
             return match ? match[1] : "";
         }
 
+        function crearSalidaId(dorsal) {
+            return `${dorsal}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        }
+
         function obtenerFichaPiloto(dorsal) {
             return fichasPilotos[String(dorsal)] || fichasPilotos[Number(dorsal)] || {};
         }
@@ -387,6 +393,7 @@
                 motor: ficha.motor || "",
                 potencia: ficha.potencia || "",
                 foto: ficha.foto || "",
+                salidaId: item.salidaId || previo.salidaId || crearSalidaId(dorsal),
                 nPapel: item.nPapel,
                 copiloto: item.copiloto || "",
                 piloto: item.piloto || "",
@@ -447,6 +454,7 @@
     </script>
 </body>
 </html>
+
 
 
 

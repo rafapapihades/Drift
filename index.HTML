@@ -6,9 +6,9 @@
     <title>DRIFT SHOW</title>
     <style>
         body { 
-            background-image: url('logo.jpg'); 
+            background-image: linear-gradient(rgba(0,0,0,.72), rgba(0,0,0,.9)), url('Fibra3.png'); 
             background-repeat: repeat; 
-            background-size: 400px; 
+            background-size: 420px; 
             background-color: #000; 
             color: #fff; 
             font-family: sans-serif; 
@@ -60,6 +60,7 @@
             font-size: 0.8em;
             margin-top: 3px;
         }
+        .vote-car-img { width:100%; max-height:150px; object-fit:cover; border-radius:10px; margin:8px 0; border:1px solid rgba(255,255,255,.15); }
         .vote-card .v-btn { font-size: 3.3em; margin: 4px 8px; }
         
         .rank-card { 
@@ -138,11 +139,15 @@
             color: #aaa;
         }
         #id-num { color: #ffcc00; font-size: 2em; display: block; font-weight: bold; letter-spacing: 3px; }
+        .brand-logo { width:min(260px,80vw); height:auto; margin-bottom:8px; }
+        .event-title { color:#ffcc00; font-weight:900; text-transform:uppercase; margin-bottom:14px; }
     </style>
 </head>
 <body>
     <div class="overlay">
         <div class="glass-panel">
+            <img class="brand-logo" src="logo_peq.png" alt="Drift Show">
+            <div id="event-title" class="event-title"></div>
             
             <div id="ui-show" style="display:none; width: 100%;">
                 <h1 id="s-mensaje" style="font-size: 2.8em; margin: 0; text-shadow: 2px 2px 4px #000;"></h1>
@@ -187,6 +192,11 @@
         let medidosEscapes = 0;
         let cronoEscapesTimer = null;
         let ultimoResultadoTimer = null;
+
+        onValue(ref(db, 'config_evento'), snap => {
+            const cfg = snap.val() || {};
+            document.getElementById('event-title').innerText = cfg.nombre || "";
+        });
 
         function generarUserId() {
             return Math.floor(10000 + Math.random() * 90000).toString();
@@ -317,8 +327,9 @@
                 box.style.display = 'block';
                 document.getElementById('s-info').innerText = "";
                 renderVotos(v);
-                if(v.timer !== undefined && v.timer > 0 && v.timer <= 10) {
-                    timerDisplay.innerText = `CIERRE EN: ${v.timer}...`;
+                const timers = Object.values(v.items || {}).map(item => Number(item.timer || 0)).filter(t => t > 0 && t <= 10);
+                if(timers.length) {
+                    timerDisplay.innerText = `CIERRE EN: ${Math.max(...timers)}...`;
                 } else {
                     timerDisplay.innerText = "";
                 }
@@ -364,11 +375,13 @@
             const items = Object.entries(v.items || {}).filter(([id]) => id !== "BATALLA");
             lista.innerHTML = items.map(([id, item]) => {
                 const coche = item.coche ? ` (${item.coche})` : "";
+                const detalles = [item.coche, item.motor, item.potencia ? `${item.potencia} CV` : ""].filter(Boolean).join(" · ");
                 return `
                     <div class="vote-card" data-item="${id}">
-                        <div class="vote-title">#${id} ${item.nombre || "PILOTO"}</div>
-                        <div class="vote-sub">${coche.replace(/[()]/g, '')}</div>
-                        ${v.timer > 0 && v.timer <= 10 ? `<div id="timer-${id}" style="color:#ff3333; font-weight:900; margin-top:8px;">CIERRE EN: ${v.timer}...</div>` : ''}
+                        ${item.foto ? `<img class="vote-car-img" src="${escHtml(item.foto)}" alt="">` : ''}
+                        <div class="vote-title">${item.nombre || "PILOTO"}</div>
+                        <div class="vote-sub">${escHtml(detalles || coche.replace(/[()]/g, ''))}</div>
+                        ${item.timer > 0 && item.timer <= 10 ? `<div id="timer-${id}" style="color:#ff3333; font-weight:900; margin-top:8px;">CIERRE EN: ${item.timer}...</div>` : ''}
                         <span id="v-${id}-ap" class="v-btn" onclick="votar('${id}','ap')">👏</span>
                         <span id="v-${id}-up" class="v-btn" onclick="votar('${id}','up')">👍</span>
                         <span id="v-${id}-dw" class="v-btn" onclick="votar('${id}','dw')">👎</span>

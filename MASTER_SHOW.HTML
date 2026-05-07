@@ -1184,6 +1184,7 @@ window.exportarVotos = async function () {
 
         dorsalesArr.forEach(function(d){
           var p = inscritosD[d];
+          var salidaId = d + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
           var h_ap=0, h_up=0, h_dw=0;
           historial.filter(function(h){ return h.dorsal===d; }).forEach(function(v){
             h_ap += (v.ap||0); h_up += (v.up||0); h_dw += (v.dw||0);
@@ -1194,11 +1195,12 @@ window.exportarVotos = async function () {
             motor: p ? (p.motor||"") : "",
             potencia: p ? (p.potencia||"") : "",
             foto: p ? (p.foto||"") : "",
+            salidaId: salidaId,
             ap:0, up:0, dw:0, h_ap:h_ap, h_up:h_up, h_dw:h_dw
           };
         });
 
-        if(dorsalesArr.length > 1) items["BATALLA"] = { nombre:"🔥 BATALLA", coche:"", ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
+        if(dorsalesArr.length > 1) items["BATALLA"] = { nombre:"🔥 BATALLA", coche:"", salidaId:"BATALLA_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7), ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 };
 
         // --- CORRECCIÓN 1: Asegura que el público vea la pantalla de votos al abrir ---
         await db.ref('modo_actual').set('tab-show');

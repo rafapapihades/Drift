@@ -13,6 +13,7 @@
         }
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.9); border-radius: 12px; border-bottom: 3px solid var(--red); margin-bottom: 15px; }
         .header-logo { display: block; margin: 0 auto; width: 100%; max-width: 400px; height: auto; }
+        .event-title { color:var(--accent); font-weight:900; text-transform:uppercase; margin-top:8px; }
         
         .pista-status-bar {
             width: 100%; padding: 15px; border-radius: 10px; text-align: center;
@@ -63,7 +64,7 @@
         </div>
     </div>
 
-    <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"></div>
+    <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"><div id="event-title" class="event-title"></div></div>
     
     <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">ESTADO: CONECTANDO...</div>
 
@@ -91,6 +92,11 @@
         let confirmAction = null;
         let pilotosDisponibles = [];
 
+        db.ref('config_evento').on('value', s => {
+            const cfg = s.val() || {};
+            document.getElementById('event-title').innerText = cfg.nombre || "";
+        });
+
         window.showConfirm = (texto, cb) => {
             document.getElementById('confirm-text').innerText = texto;
             document.getElementById('custom-confirm').style.display = 'flex';
@@ -117,6 +123,16 @@
             pilotosDisponibles = Object.entries(data).map(([dorsal, p]) => {
                 return { dorsal, label: `[#${dorsal}] ${p.piloto} | ${p.coche}` };
             });
+        });
+
+        db.ref('copilotajes').on('value', s => {
+            const data = s.val() || {};
+            const config = data.config_pilotos || [];
+            const bajas = data.pilotos_baja || [];
+            const activos = config.filter(p => !bajas.includes(p));
+            if(activos.length) {
+                pilotosDisponibles = activos.map(p => ({ dorsal: extraerDorsal(p), label: p }));
+            }
         });
 
         function generarFilaHTML(id, item, esRecinto, esPista) {
@@ -205,7 +221,7 @@
             };
 
             const updates = {};
-            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 999, items: items };
+            updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 0, items: items };
             
             const newK = db.ref('copilotajes/completados').push().key;
             // Guardamos los campos de tiempo adicionales para el CSV
@@ -297,7 +313,7 @@
             if(Object.keys(items).length === 0) {
                 await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
             } else {
-                await db.ref('votacion_activa').update({ dorsal: Object.keys(items).join(' '), activa:true, timer:999 });
+                await db.ref('votacion_activa').update({ dorsal: Object.keys(items).join(' '), activa:true, timer:0 });
             }
         }
 
@@ -329,7 +345,7 @@
                     copiloto: item.copiloto || "",
                     piloto: item.piloto || "",
                     cerrando: false,
-                    timer: 999
+                    timer: 0
                 };
             });
             Object.entries(itemsActuales).forEach(([dorsal, previo]) => {
@@ -343,7 +359,7 @@
             await db.ref('votacion_activa').set({
                 dorsal: Object.keys(items).join(' '),
                 activa: true,
-                timer: 999,
+                timer: 0,
                 items: items
             });
             return activos.length;
@@ -405,5 +421,6 @@
     </script>
 </body>
 </html>
+
 
 

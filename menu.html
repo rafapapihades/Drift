@@ -2,319 +2,831 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MENU - DRIFT SHOW</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DRIFT SHOW</title>
   <style>
     :root {
-      --bg: #050505;
-      --panel: rgba(12, 12, 12, 0.92);
-      --line: #2a2a2a;
-      --text: #f5f5f5;
-      --muted: #a9a9a9;
-      --accent: #ffcc00;
-      --red: #ff1e1e;
-      --green: #00c853;
-      --blue: #2196f3;
-      --orange: #ff9800;
+      --bg:#050505;
+      --panel:#111;
+      --panel2:#171717;
+      --line:#333;
+      --text:#f4f4f4;
+      --muted:#aaa;
+      --yellow:#ffcc00;
+      --blue:#007bff;
+      --green:#008a13;
+      --red:#d00000;
     }
-
-    * { box-sizing: border-box; }
-
+    * { box-sizing:border-box; }
     body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,.88)),
-        url("Fibra1.png");
-      background-color: var(--bg);
-      background-size: 520px;
-      color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
+      margin:0;
+      min-height:100vh;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background-color:var(--bg);
+      background-image:linear-gradient(rgba(0,0,0,.68), rgba(0,0,0,.92)), url('Fibra1.png');
+      background-size:520px;
+      padding:14px;
     }
-
-    main {
-      width: min(1180px, calc(100% - 28px));
-      margin: 0 auto;
-      padding: 28px 0 40px;
+    .wrap { max-width:1180px; margin:0 auto 50px; }
+    .top {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:14px;
     }
-
-    header {
-      border-bottom: 1px solid var(--line);
-      padding-bottom: 18px;
-      margin-bottom: 22px;
+    .logo { height:78px; object-fit:contain; }
+    h1 { margin:0; color:var(--yellow); font-size:1.65rem; text-transform:uppercase; }
+    .subtitle { margin:5px 0 0; color:var(--muted); font-weight:700; }
+    .panel {
+      background:rgba(17,17,17,.94);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px;
+      margin-bottom:14px;
+      box-shadow:0 12px 30px rgba(0,0,0,.26);
     }
-
-    .brand-logo {
-      display: block;
-      width: min(440px, 100%);
-      height: auto;
-      margin: 0 auto;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,.85));
+    .config-grid, .form-grid {
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
     }
-
-    .tagline {
-      margin: 10px 0 0;
-      color: var(--muted);
-      font-size: 1rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      text-align: center;
+    label { display:block; color:var(--muted); font-size:.74rem; font-weight:900; text-transform:uppercase; margin-bottom:5px; }
+    input, select, textarea {
+      width:100%;
+      background:#050505;
+      color:#fff;
+      border:1px solid #444;
+      border-radius:8px;
+      padding:11px;
+      font-size:1rem;
     }
-
-    .section {
-      margin-top: 26px;
+    textarea { min-height:74px; resize:vertical; }
+    .wide { grid-column:span 2; }
+    .full { grid-column:1 / -1; }
+    .tabs {
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      gap:8px;
+      margin:10px 0 14px;
     }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--accent);
-      font-size: .88rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      margin: 0 0 12px;
+    .tab-btn, button {
+      border:0;
+      border-radius:8px;
+      padding:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      color:#fff;
+      background:#252525;
+      cursor:pointer;
     }
-
-    .section-title::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: var(--line);
+    .tab-btn.active { background:var(--yellow); color:#000; }
+    .btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .btn-save { background:var(--yellow); color:#000; }
+    .btn-blue { background:var(--blue); }
+    .btn-green { background:var(--green); }
+    .btn-red { background:var(--red); }
+    .btn-dark { background:#222; border:1px solid #444; }
+    .tab { display:none; }
+    .tab.active { display:block; }
+    .table-wrap { overflow:auto; border:1px solid #292929; border-radius:10px; margin-top:12px; }
+    table { width:100%; border-collapse:collapse; min-width:860px; }
+    th, td { border-bottom:1px solid #262626; padding:9px; text-align:left; vertical-align:top; }
+    th { background:#050505; color:var(--yellow); font-size:.75rem; text-transform:uppercase; position:sticky; top:0; }
+    td { color:#eee; font-size:.9rem; }
+    .actions { display:flex; gap:6px; }
+    .actions button { padding:8px 10px; font-size:.75rem; }
+    .stats {
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+      margin-top:10px;
     }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
+    .stat {
+      background:#050505;
+      border:1px solid #303030;
+      border-radius:10px;
+      padding:13px;
     }
-
-    .link-card {
-      min-height: 178px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--text);
-      text-decoration: none;
-      border-radius: 8px;
-      padding: 18px;
-      position: relative;
-      overflow: hidden;
+    .stat span { display:block; color:var(--muted); font-size:.72rem; font-weight:900; text-transform:uppercase; }
+    .stat b { display:block; font-size:1.65rem; color:var(--yellow); margin-top:4px; }
+    .hint { color:var(--muted); font-size:.86rem; line-height:1.35; }
+    .file-input { display:none; }
+    .toast {
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:#111;
+      border:2px solid var(--yellow);
+      color:#fff;
+      border-radius:10px;
+      padding:12px 16px;
+      font-weight:900;
+      display:none;
+      z-index:50;
+      max-width:min(560px, calc(100vw - 24px));
+      text-align:center;
     }
-
-    .link-card::before {
-      content: "";
-      position: absolute;
-      inset: 0 auto 0 0;
-      width: 5px;
-      background: var(--accent);
-    }
-
-    .link-card:hover,
-    .link-card:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-      transform: translateY(-1px);
-    }
-
-    .link-card h2 {
-      margin: 0 0 8px;
-      font-size: 1.28rem;
-      line-height: 1.05;
-      text-transform: uppercase;
-      letter-spacing: 0;
-    }
-
-    .link-card p {
-      margin: 0;
-      color: var(--muted);
-      font-size: .95rem;
-      line-height: 1.35;
-    }
-
-    .meta {
-      margin-top: 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      color: var(--accent);
-      font-weight: 900;
-      text-transform: uppercase;
-      font-size: .82rem;
-    }
-
-    .file {
-      color: #777;
-      font-family: Consolas, monospace;
-      text-transform: none;
-      font-weight: 700;
-      overflow-wrap: anywhere;
-    }
-
-    .publico::before { background: var(--blue); }
-    .taxi::before { background: var(--accent); }
-    .pista::before { background: var(--green); }
-    .escapes::before { background: var(--orange); }
-    .admin::before { background: var(--red); }
-    .legacy::before { background: #777; }
-    .control .link-card { border-color: rgba(255, 30, 30, .75); }
-    .control .section-title { color: var(--red); }
-    .control .section-title::after { background: rgba(255, 30, 30, .55); }
-    .pista-grupo .link-card { border-color: rgba(0, 200, 83, .75); }
-    .pista-grupo .section-title { color: var(--green); }
-    .pista-grupo .section-title::after { background: rgba(0, 200, 83, .55); }
-    .registro-grupo .link-card { border-color: rgba(255, 204, 0, .75); }
-    .registro-grupo .section-title { color: var(--accent); }
-    .registro-grupo .section-title::after { background: rgba(255, 204, 0, .55); }
-    .publico-grupo .link-card { border-color: rgba(33, 150, 243, .75); }
-    .publico-grupo .section-title { color: var(--blue); }
-    .publico-grupo .section-title::after { background: rgba(33, 150, 243, .55); }
-
-    footer {
-      margin-top: 28px;
-      padding-top: 18px;
-      border-top: 1px solid var(--line);
-      color: #777;
-      font-size: .86rem;
-      text-align: center;
-    }
-
-    @media (max-width: 880px) {
-      .grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 560px) {
-      main {
-        width: min(100% - 18px, 1180px);
-        padding-top: 18px;
-      }
-      .grid {
-        grid-template-columns: 1fr;
-      }
-      .link-card {
-        min-height: 150px;
-      }
+    @media (max-width:760px) {
+      body { padding:10px; }
+      .top { align-items:flex-start; }
+      .logo { height:56px; }
+      .config-grid, .form-grid, .tabs, .stats { grid-template-columns:1fr; }
+      .wide { grid-column:1 / -1; }
+      h1 { font-size:1.25rem; }
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
-  <main>
-    <header>
+  <div class="wrap">
+    <header class="top">
       <div>
-        <img class="brand-logo" src="logo_peq.png" alt="Drift Show">
-        <p class="tagline">Menú de acceso del evento</p>
+        <h1>Gestión de datos del evento</h1>
+        <p class="subtitle">Importar, editar, exportar y preparar archivos unificados</p>
       </div>
+      <img class="logo" src="logo_peq.png" alt="Drift Show">
     </header>
 
-    <section class="section control">
-      <h2 class="section-title">Control principal</h2>
-      <div class="grid">
-        <a class="link-card admin" href="https://rafapapihades.github.io/Drift/datos_evento.html">
-          <div>
-            <h2>Datos evento</h2>
-            <p>Gestión de archivos: nombre del evento, pilotos, escapes, copilotajes, exportaciones CSV y Excel completo.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">datos_evento.html</span></div>
-        </a>
-
-        <a class="link-card admin" href="https://rafapapihades.github.io/Drift/MASTER_SHOW.HTML">
-          <div>
-            <h2>Master Show</h2>
-            <p>Control principal del evento: pilotos, votaciones, pista, escapes, rankings y conexión ESP.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">MASTER_SHOW.HTML</span></div>
-        </a>
-
-        <a class="link-card admin" href="https://rafapapihades.github.io/Drift/copilotaje.html">
-          <div>
-            <h2>Copilotajes</h2>
-            <p>Cobro y gestión de copilotajes: pre-registros, pagos, cola, pilotos, exportación y sorteo.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">copilotaje.html</span></div>
-        </a>
-
-        <a class="link-card admin" href="https://rafapapihades.github.io/Drift/Speaker.html">
-          <div>
-            <h2>Speaker</h2>
-            <p>Pantalla del speaker con pilotos en pista, votos acumulados y votos en vivo.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">Speaker.html</span></div>
-        </a>
+    <section class="panel">
+      <div class="config-grid">
+        <div class="wide">
+          <label>Nombre del evento</label>
+          <input id="cfg-nombre" placeholder="Drift Show Sueca">
+        </div>
+        <div>
+          <label>Fecha</label>
+          <input id="cfg-fecha" type="date">
+        </div>
+        <div>
+          <label>Lugar</label>
+          <input id="cfg-lugar" placeholder="Sueca">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-save" onclick="guardarConfig()">Guardar datos del evento</button>
+        <button class="btn-green" onclick="exportarExcelCompleto()">Exportar evento completo</button>
       </div>
     </section>
 
-    <section class="section pista-grupo">
-      <h2 class="section-title">Pista</h2>
-      <div class="grid">
-        <a class="link-card pista" href="https://rafapapihades.github.io/Drift/pista_copilotajes.html">
-          <div>
-            <h2>Pista Taxi Drift</h2>
-            <p>Gestión de Taxi Drift en pista: acceso, salida, regreso, cola y pilotos activos.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">pista_copilotajes.html</span></div>
-        </a>
+    <nav class="tabs">
+      <button class="tab-btn active" onclick="abrirTab('pilotos', this)">Pilotos</button>
+      <button class="tab-btn" onclick="abrirTab('escapes', this)">Escapes</button>
+      <button class="tab-btn" onclick="abrirTab('copilotajes', this)">Copilotajes</button>
+      <button class="tab-btn" onclick="abrirTab('votos', this)">Votos</button>
+      <button class="tab-btn" onclick="abrirTab('resumen', this)">Resumen</button>
+    </nav>
 
-        <a class="link-card pista" href="https://rafapapihades.github.io/Drift/pista.html">
-          <div>
-            <h2>Estado de pista</h2>
-            <p>Control de estado de pista para show/drift y pilotos que están dentro del trazado.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">pista.html</span></div>
-        </a>
+    <section id="tab-pilotos" class="tab active panel">
+      <h1>Pilotos</h1>
+      <p class="hint">Fuente común para MASTER, Speaker y Taxidrift. Al guardar, se publica también el formato que ya consumen las páginas actuales.</p>
+      <div class="form-grid">
+        <div><label>Dorsal auto</label><input id="p-dorsal" inputmode="numeric" placeholder="Auto si vacío"></div>
+        <div class="wide"><label>Piloto</label><input id="p-piloto"></div>
+        <div><label>Alias</label><input id="p-alias"></div>
+        <div><label>Edad</label><input id="p-edad" inputmode="numeric"></div>
+        <div><label>Residencia</label><input id="p-residencia"></div>
+        <div class="wide"><label>Vehículo</label><input id="p-vehiculo"></div>
+        <div><label>Motor</label><input id="p-motor"></div>
+        <div><label>Potencia CV</label><input id="p-potencia" inputmode="numeric"></div>
+        <div><label>Instagram</label><input id="p-instagram"></div>
+        <div class="wide"><label>Foto coche / URL</label><input id="p-foto" placeholder="foto_coche.jpg o https://..."></div>
+        <div><label>Activo Show</label><select id="p-show"><option>Sí</option><option>No</option></select></div>
+        <div><label>Activo Taxidrift</label><select id="p-taxi"><option>Sí</option><option>No</option></select></div>
+        <div class="wide"><label>Modificaciones</label><textarea id="p-mods"></textarea></div>
+        <div class="wide"><label>Curiosidades</label><textarea id="p-curiosidades"></textarea></div>
+        <div class="wide"><label>Palmarés</label><textarea id="p-palmares"></textarea></div>
       </div>
+      <div class="btn-row">
+        <button class="btn-save" onclick="guardarPiloto()">Guardar piloto</button>
+        <button class="btn-dark" onclick="limpiarPiloto()">Nuevo</button>
+        <button class="btn-blue" onclick="document.getElementById('file-pilotos').click()">Importar CSV</button>
+        <button class="btn-green" onclick="exportarPilotos()">Exportar CSV</button>
+      </div>
+      <input id="file-pilotos" class="file-input" type="file" accept=".csv" onchange="importarPilotos(event)">
+      <div id="tabla-pilotos" class="table-wrap"></div>
     </section>
 
-    <section class="section registro-grupo">
-      <h2 class="section-title">Registros</h2>
-      <div class="grid">
-        <a class="link-card taxi" href="https://rafapapihades.github.io/Drift/preinscripcion.html">
-          <div>
-            <h2>Pre-registro</h2>
-            <p>Formulario público para inscribirse previamente en Taxi Drift.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">preinscripcion.html</span></div>
-        </a>
-
-        <a class="link-card taxi" href="https://rafapapihades.github.io/Drift/registro_escapes.html">
-          <div>
-            <h2>Registro escapes</h2>
-            <p>Alta de participantes de escapes con dorsal automático y exportación CSV para MASTER_SHOW.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">registro_escapes.html</span></div>
-        </a>
+    <section id="tab-escapes" class="tab panel">
+      <h1>Escapes</h1>
+      <p class="hint">Participantes de la competición de escapes. Se guarda directamente en los inscritos que usa MASTER_SHOW.</p>
+      <div class="form-grid">
+        <div><label>Dorsal auto</label><input id="e-dorsal" inputmode="numeric" placeholder="Auto si vacío"></div>
+        <div class="wide"><label>Nombre</label><input id="e-nombre"></div>
+        <div><label>Instagram</label><input id="e-instagram"></div>
+        <div><label>Matrícula</label><input id="e-matricula"></div>
+        <div class="wide"><label>Vehículo</label><input id="e-vehiculo"></div>
+        <div><label>Combustible</label><select id="e-combustible"><option>Gasolina</option><option>Diésel</option></select></div>
+        <div><label>Potencia CV</label><input id="e-potencia" inputmode="numeric"></div>
       </div>
+      <div class="btn-row">
+        <button class="btn-save" onclick="guardarEscape()">Guardar participante</button>
+        <button class="btn-dark" onclick="limpiarEscape()">Nuevo</button>
+        <button class="btn-blue" onclick="document.getElementById('file-escapes').click()">Importar CSV</button>
+        <button class="btn-green" onclick="exportarEscapesInscritos()">Exportar CSV</button>
+      </div>
+      <input id="file-escapes" class="file-input" type="file" accept=".csv" onchange="importarEscapes(event)">
+      <div id="tabla-escapes" class="table-wrap"></div>
     </section>
 
-    <section class="section publico-grupo">
-      <h2 class="section-title">Público y participantes</h2>
-      <div class="grid">
-        <a class="link-card publico" href="https://rafapapihades.github.io/Drift/index.HTML">
-          <div>
-            <h2>Público / Votación</h2>
-            <p>Pantalla para votar el show, ver rankings de escapes y recibir número para sorteo.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">index.HTML</span></div>
-        </a>
-
-        <a class="link-card publico" href="https://rafapapihades.github.io/Drift/PARTICIPANTE.html">
-          <div>
-            <h2>Participante escapes</h2>
-            <p>Consulta de posición, resultados y rankings para inscritos de la competición de escapes.</p>
-          </div>
-          <div class="meta"><span>Abrir</span><span class="file">PARTICIPANTE.html</span></div>
-        </a>
+    <section id="tab-copilotajes" class="tab panel">
+      <h1>Copilotajes</h1>
+      <p class="hint">Edición de registros de espera y completados por si hay que corregir nombre, pago, tutor o tiempos.</p>
+      <div class="form-grid">
+        <div><label>Turno auto</label><input id="c-turno" inputmode="numeric" placeholder="Auto si vacío"></div>
+        <div class="wide"><label>Copiloto</label><input id="c-copiloto"></div>
+        <div><label>DNI</label><input id="c-dni"></div>
+        <div><label>Redes</label><input id="c-redes"></div>
+        <div class="wide"><label>Piloto</label><input id="c-piloto"></div>
+        <div><label>Pago</label><select id="c-pago"><option>EFECTIVO</option><option>TARJETA</option><option>INVITADO</option></select></div>
+        <div><label>Origen</label><select id="c-origen"><option>TAQUILLA</option><option>PRE-REGISTRO</option></select></div>
+        <div><label>Menor</label><select id="c-menor"><option>No</option><option>Sí</option></select></div>
+        <div><label>Tutor</label><input id="c-tutor"></div>
+        <div><label>DNI Tutor</label><input id="c-dni-tutor"></div>
+        <div><label>H. Registro</label><input id="c-h-logistica"></div>
+        <div><label>H. Recinto</label><input id="c-h-recinto"></div>
+        <div><label>H. Pista</label><input id="c-h-pista"></div>
+        <div><label>H. Salida</label><input id="c-h-salida"></div>
+        <div><label>Duración</label><input id="c-duracion"></div>
+        <div><label>Estado</label><select id="c-estado"><option value="espera">Espera</option><option value="completados">Completado</option></select></div>
       </div>
+      <div class="btn-row">
+        <button class="btn-save" onclick="guardarCopilotaje()">Guardar copilotaje</button>
+        <button class="btn-dark" onclick="limpiarCopilotaje()">Nuevo</button>
+        <button class="btn-green" onclick="exportarCopilotajes()">Exportar CSV</button>
+      </div>
+      <div id="tabla-copilotajes" class="table-wrap"></div>
     </section>
 
-    <footer>
-      DRIFT SHOW · TAXI DRIFT · ESCAPES
-    </footer>
-  </main>
+    <section id="tab-votos" class="tab panel">
+      <h1>Votos</h1>
+      <p class="hint">Consulta y exportación. Los votos no son editables desde aquí para evitar descuadres.</p>
+      <div class="btn-row">
+        <button class="btn-green" onclick="exportarVotosShow()">Exportar votos CSV</button>
+        <button class="btn-red" onclick="resetVotos()">Restablecer votos y sorteo</button>
+      </div>
+      <div id="tabla-votos" class="table-wrap"></div>
+    </section>
+
+    <section id="tab-resumen" class="tab panel">
+      <h1>Resumen</h1>
+      <div class="stats">
+        <div class="stat"><span>Pilotos</span><b id="st-pilotos">0</b></div>
+        <div class="stat"><span>Escapes inscritos</span><b id="st-escapes">0</b></div>
+        <div class="stat"><span>Copilotajes</span><b id="st-copilotajes">0</b></div>
+        <div class="stat"><span>Escapes medidos</span><b id="st-medidos">0</b></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-green" onclick="exportarExcelCompleto()">Exportar evento completo</button>
+        <button class="btn-red" onclick="resetTodoEvento()">Restablecer todo el evento</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    firebase.initializeApp({ databaseURL:"https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
+    var db = firebase.database();
+
+    var configEvento = {};
+    var pilotos = {};
+    var escapes = {};
+    var copilotajes = {};
+    var rankingEscapes = {};
+    var historialVotos = {};
+    var editPilotoKey = "";
+    var editEscapeKey = "";
+    var editCopKey = "";
+
+    function abrirTab(id, btn){
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      document.getElementById('tab-' + id).classList.add('active');
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+    }
+
+    function toast(msg){
+      var el = document.getElementById('toast');
+      el.innerText = msg;
+      el.style.display = 'block';
+      setTimeout(function(){ el.style.display = 'none'; }, 2600);
+    }
+
+    function val(id){ return document.getElementById(id).value.trim(); }
+    function setVal(id, v){ document.getElementById(id).value = v || ""; }
+    function siNo(v){ return String(v || "").toLowerCase().startsWith("s") ? "Sí" : "No"; }
+    function boolSi(v){ return String(v || "").toLowerCase().startsWith("s"); }
+    function html(v){ return String(v || "").replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+    function normalizar(v){ return String(v || "").replace(/^\uFEFF/, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
+    function normalizarDorsal(v){ var s = String(v || "").trim().replace(/^#/, ""); return /^\d+$/.test(s) ? String(parseInt(s, 10)) : normalizar(s); }
+    function siguienteNumero(lista, campo){
+      var usados = Object.values(lista || {}).map(function(p){ return Number(p && p[campo]); }).filter(Boolean);
+      var n = 1;
+      while(usados.includes(n)) n++;
+      return String(n);
+    }
+    function normComb(v){ return normalizar(v).includes("diesel") ? "Diésel" : "Gasolina"; }
+    function csvCell(v){ return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
+    function csvLine(arr){ return arr.map(csvCell).join(";") + "\n"; }
+    function slugEvento(){
+      var base = [configEvento.nombre || "DRIFT_SHOW", configEvento.lugar || "", configEvento.fecha || ""].filter(Boolean).join("_");
+      return normalizar(base).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase() || "DRIFT_SHOW";
+    }
+    function download(filename, content, type){
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([content], { type:type || "text/csv;charset=utf-8;" }));
+      a.download = filename;
+      a.click();
+    }
+    function exportCsv(filename, csv, resetFn, pregunta){
+      download(slugEvento() + "_" + filename, "\ufeff" + csv, "text/csv;charset=utf-8;");
+      if(resetFn && confirm((pregunta || "Exportación generada. ¿Quieres restablecer estos datos?"))) resetFn();
+    }
+    function parseCSVLine(line, sep){
+      var out = [], cur = "", inside = false;
+      for(var i = 0; i < line.length; i++){
+        var ch = line[i];
+        if(ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if(ch === '"') inside = !inside;
+        else if(ch === sep && !inside) { out.push(cur.trim()); cur = ""; }
+        else cur += ch;
+      }
+      out.push(cur.trim());
+      return out.map(function(x){ return x.replace(/^"(.*)"$/, "$1").replace(/""/g, '"'); });
+    }
+    function parseCSV(text){
+      var lines = String(text || "").split(/\r?\n/).filter(function(l){ return l.trim(); });
+      if(!lines.length) return [];
+      var sep = lines[0].includes(";") ? ";" : ",";
+      var head = parseCSVLine(lines[0], sep).map(normalizar);
+      return lines.slice(1).map(function(line){
+        var c = parseCSVLine(line, sep);
+        if(c.length === 1 && c[0].includes(sep)) c = parseCSVLine(c[0], sep);
+        var obj = {};
+        head.forEach(function(h, i){ obj[h] = c[i] || ""; });
+        return obj;
+      });
+    }
+    function campo(row, names){
+      for(var i = 0; i < names.length; i++){
+        var key = normalizar(names[i]);
+        if(row[key] != null && row[key] !== "") return row[key];
+      }
+      var keys = Object.keys(row);
+      for(var j = 0; j < names.length; j++){
+        var wanted = normalizar(names[j]).replace(/[^a-z0-9]/g, "");
+        var found = keys.find(function(k){ return k.replace(/[^a-z0-9]/g, "") === wanted; });
+        if(found && row[found] != null && row[found] !== "") return row[found];
+      }
+      return "";
+    }
+
+    function guardarConfig(){
+      configEvento = { nombre:val('cfg-nombre'), fecha:val('cfg-fecha'), lugar:val('cfg-lugar'), updatedAt:Date.now() };
+      db.ref('config_evento').set(configEvento).then(function(){ toast("Datos del evento guardados"); });
+    }
+
+    db.ref('config_evento').on('value', function(s){
+      configEvento = s.val() || {};
+      setVal('cfg-nombre', configEvento.nombre || "");
+      setVal('cfg-fecha', configEvento.fecha || "");
+      setVal('cfg-lugar', configEvento.lugar || "");
+    });
+
+    db.ref('pilotos_evento').on('value', function(s){ pilotos = s.val() || {}; renderPilotos(); renderResumen(); });
+    db.ref('inscritos_esc').on('value', function(s){ escapes = s.val() || {}; renderEscapes(); renderResumen(); });
+    db.ref('copilotajes').on('value', function(s){ copilotajes = s.val() || {}; renderCopilotajes(); renderResumen(); });
+    db.ref('ranking_escapes').on('value', function(s){ rankingEscapes = s.val() || {}; renderResumen(); });
+    db.ref('historial_votos').on('value', function(s){ historialVotos = s.val() || {}; renderVotos(); });
+
+    function pilotoDesdeForm(){
+      var dorsal = val('p-dorsal') || siguienteNumero(pilotos, 'dorsal');
+      if(!dorsal || !val('p-piloto')) { alert("Falta dorsal o piloto."); return null; }
+      return {
+        dorsal:dorsal,
+        piloto:val('p-piloto'),
+        alias:val('p-alias'),
+        edad:val('p-edad'),
+        residencia:val('p-residencia'),
+        vehiculo:val('p-vehiculo'),
+        coche:val('p-vehiculo'),
+        motor:val('p-motor'),
+        potencia:val('p-potencia'),
+        instagram:val('p-instagram'),
+        foto:val('p-foto'),
+        modificaciones:val('p-mods'),
+        curiosidades:val('p-curiosidades'),
+        palmares:val('p-palmares'),
+        activoShow:boolSi(val('p-show')),
+        activoTaxidrift:boolSi(val('p-taxi'))
+      };
+    }
+    async function publicarPilotosCompat(obj){
+      var inscritos = {};
+      var taxi = [];
+      Object.values(obj).forEach(function(p){
+        if(p.activoShow !== false) inscritos[normalizarDorsal(p.dorsal)] = { dorsal:p.dorsal, piloto:p.piloto, alias:p.alias || "", coche:p.vehiculo || p.coche || "", motor:p.motor || "", potencia:p.potencia || "", instagram:p.instagram || "", foto:p.foto || "", ficha:p };
+        if(p.activoTaxidrift !== false) taxi.push([p.dorsal, p.piloto, p.vehiculo || p.coche || ""].join(","));
+      });
+      await db.ref('inscritos_drift').set(inscritos);
+      await db.ref('copilotajes/config_pilotos').set(taxi);
+    }
+    window.guardarPiloto = async function(){
+      var p = pilotoDesdeForm(); if(!p) return;
+      if(editPilotoKey && editPilotoKey !== normalizarDorsal(p.dorsal)) delete pilotos[editPilotoKey];
+      pilotos[normalizarDorsal(p.dorsal)] = p;
+      await db.ref('pilotos_evento').set(pilotos);
+      await publicarPilotosCompat(pilotos);
+      limpiarPiloto();
+      toast("Piloto guardado");
+    };
+    window.limpiarPiloto = function(){
+      editPilotoKey = "";
+      ['p-dorsal','p-piloto','p-alias','p-edad','p-residencia','p-vehiculo','p-motor','p-potencia','p-instagram','p-foto','p-mods','p-curiosidades','p-palmares'].forEach(function(id){ setVal(id,""); });
+      document.getElementById('p-show').value = "Sí";
+      document.getElementById('p-taxi').value = "Sí";
+    };
+    window.editarPiloto = function(key){
+      var p = pilotos[key]; if(!p) return;
+      editPilotoKey = key;
+      setVal('p-dorsal', p.dorsal);
+      setVal('p-piloto', p.piloto);
+      setVal('p-alias', p.alias);
+      setVal('p-edad', p.edad);
+      setVal('p-residencia', p.residencia);
+      setVal('p-vehiculo', p.vehiculo || p.coche);
+      setVal('p-motor', p.motor);
+      setVal('p-potencia', p.potencia);
+      setVal('p-instagram', p.instagram);
+      setVal('p-foto', p.foto);
+      setVal('p-mods', p.modificaciones);
+      setVal('p-curiosidades', p.curiosidades);
+      setVal('p-palmares', p.palmares);
+      document.getElementById('p-show').value = p.activoShow === false ? "No" : "Sí";
+      document.getElementById('p-taxi').value = p.activoTaxidrift === false ? "No" : "Sí";
+      window.scrollTo({ top:0, behavior:"smooth" });
+    };
+    window.borrarPiloto = async function(key){
+      if(!confirm("¿Borrar piloto #" + (pilotos[key] && pilotos[key].dorsal || key) + "?")) return;
+      delete pilotos[key];
+      await db.ref('pilotos_evento').set(pilotos);
+      await publicarPilotosCompat(pilotos);
+      toast("Piloto borrado");
+    };
+    function renderPilotos(){
+      var arr = Object.values(pilotos).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); });
+      document.getElementById('tabla-pilotos').innerHTML = tabla(['Dorsal','Piloto','Vehículo','Instagram','Show','Taxidrift','Acciones'], arr.map(function(p){
+        var key = normalizarDorsal(p.dorsal);
+        return [p.dorsal, p.piloto, p.vehiculo || p.coche || "", p.instagram || "", p.activoShow === false ? "No" : "Sí", p.activoTaxidrift === false ? "No" : "Sí", acciones("editarPiloto('" + key + "')", "borrarPiloto('" + key + "')")];
+      }));
+    }
+    window.importarPilotos = function(event){
+      var file = event.target.files && event.target.files[0]; if(!file) return;
+      var fr = new FileReader();
+      fr.onload = async function(e){
+        var rows = parseCSV(e.target.result);
+        var obj = {};
+        rows.forEach(function(r, idx){
+          var dorsal = campo(r, ["Dorsal"]) || String(idx + 1);
+          var p = {
+            dorsal:dorsal,
+            piloto:campo(r, ["Piloto","Nombre","Nombre+Apellidos"]) || "",
+            alias:campo(r, ["Alias"]) || "",
+            edad:campo(r, ["Edad"]) || "",
+            residencia:campo(r, ["Residencia"]) || "",
+            vehiculo:campo(r, ["Vehiculo","Vehículo","Coche","Coche Modelo","coche_modelo","Marca+Modelo"]) || "",
+            coche:campo(r, ["Vehiculo","Vehículo","Coche","Coche Modelo","coche_modelo","Marca+Modelo"]) || "",
+            motor:campo(r, ["Motor"]) || "",
+            potencia:campo(r, ["PotenciaCV","Potencia","Potencia (CV)"]) || "",
+            instagram:campo(r, ["Instagram","IG"]) || "",
+            foto:campo(r, ["Foto", "FotoCoche", "Imagen", "URLFoto"]) || "",
+            modificaciones:campo(r, ["Modificaciones","Mods"]) || "",
+            curiosidades:campo(r, ["Curiosidades"]) || "",
+            palmares:campo(r, ["Palmares","Palmarés"]) || "",
+            activoShow:!String(campo(r, ["ActivoShow"]) || "Sí").toLowerCase().startsWith("n"),
+            activoTaxidrift:!String(campo(r, ["ActivoTaxidrift"]) || "Sí").toLowerCase().startsWith("n")
+          };
+          if(p.piloto) obj[normalizarDorsal(dorsal)] = p;
+        });
+        pilotos = obj;
+        await db.ref('pilotos_evento').set(obj);
+        await publicarPilotosCompat(obj);
+        event.target.value = "";
+        toast("Importados " + Object.keys(obj).length + " pilotos");
+      };
+      fr.readAsText(file, "UTF-8");
+    };
+    window.exportarPilotos = function(){
+      var csv = "Dorsal;Piloto;Alias;Edad;Residencia;Vehiculo;Motor;PotenciaCV;Modificaciones;Curiosidades;Palmares;Instagram;Foto;ActivoShow;ActivoTaxidrift\n";
+      Object.values(pilotos).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); }).forEach(function(p){
+        csv += csvLine([p.dorsal,p.piloto,p.alias,p.edad,p.residencia,p.vehiculo || p.coche,p.motor,p.potencia,p.modificaciones,p.curiosidades,p.palmares,p.instagram,p.foto,p.activoShow === false ? "No" : "Sí",p.activoTaxidrift === false ? "No" : "Sí"]);
+      });
+      exportCsv("PILOTOS_EVENTO.csv", csv, async function(){
+        if(confirm("Esto borrará pilotos_evento, inscritos_drift y la lista de pilotos de copilotajes. ¿Seguro?")){
+          await db.ref('pilotos_evento').remove();
+          await db.ref('inscritos_drift').remove();
+          await db.ref('copilotajes/config_pilotos').remove();
+        }
+      }, "Exportación de pilotos generada. ¿Quieres restablecer la lista de pilotos?");
+    };
+
+    function escapeDesdeForm(){
+      var dorsal = val('e-dorsal') || siguienteNumero(escapes, 'dorsal');
+      if(!dorsal || !val('e-nombre')) { alert("Falta dorsal o nombre."); return null; }
+      return { dorsal:dorsal, piloto:val('e-nombre'), instagram:val('e-instagram'), matricula:val('e-matricula').toUpperCase(), coche:val('e-vehiculo'), combustible:normComb(val('e-combustible')), combustibleTexto:normComb(val('e-combustible')), potencia:val('e-potencia') };
+    }
+    window.guardarEscape = async function(){
+      var p = escapeDesdeForm(); if(!p) return;
+      if(editEscapeKey && editEscapeKey !== normalizarDorsal(p.dorsal)) delete escapes[editEscapeKey];
+      escapes[normalizarDorsal(p.dorsal)] = p;
+      await db.ref('inscritos_esc').set(escapes);
+      limpiarEscape();
+      toast("Participante de escapes guardado");
+    };
+    window.limpiarEscape = function(){
+      editEscapeKey = "";
+      ['e-dorsal','e-nombre','e-instagram','e-matricula','e-vehiculo','e-potencia'].forEach(function(id){ setVal(id,""); });
+      document.getElementById('e-combustible').value = "Gasolina";
+    };
+    window.editarEscape = function(key){
+      var p = escapes[key]; if(!p) return;
+      editEscapeKey = key;
+      setVal('e-dorsal', p.dorsal);
+      setVal('e-nombre', p.piloto);
+      setVal('e-instagram', p.instagram);
+      setVal('e-matricula', p.matricula);
+      setVal('e-vehiculo', p.coche);
+      document.getElementById('e-combustible').value = normComb(p.combustibleTexto || p.combustible);
+      setVal('e-potencia', p.potencia);
+      window.scrollTo({ top:0, behavior:"smooth" });
+    };
+    window.borrarEscape = async function(key){
+      if(!confirm("¿Borrar participante de escapes #" + (escapes[key] && escapes[key].dorsal || key) + "?")) return;
+      delete escapes[key];
+      await db.ref('inscritos_esc').set(escapes);
+      toast("Participante borrado");
+    };
+    function renderEscapes(){
+      var arr = Object.values(escapes).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); });
+      document.getElementById('tabla-escapes').innerHTML = tabla(['Dorsal','Nombre','Matrícula','Vehículo','Combustible','CV','Acciones'], arr.map(function(p){
+        var key = normalizarDorsal(p.dorsal);
+        return [p.dorsal,p.piloto,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia,acciones("editarEscape('" + key + "')", "borrarEscape('" + key + "')")];
+      }));
+    }
+    window.importarEscapes = function(event){
+      var file = event.target.files && event.target.files[0]; if(!file) return;
+      var fr = new FileReader();
+      fr.onload = async function(e){
+        var rows = parseCSV(e.target.result);
+        var obj = {};
+        rows.forEach(function(r, idx){
+          var dorsal = campo(r, ["Dorsal"]) || String(idx + 1);
+          var comb = campo(r, ["Combustible"]);
+          var p = { dorsal:dorsal, piloto:campo(r, ["Nombre","Nombre+Apellidos","Piloto"]) || "", instagram:campo(r, ["Instagram"]) || "", matricula:(campo(r, ["Matricula","Matrícula"]) || "").toUpperCase(), coche:campo(r, ["Vehiculo","Vehículo","Marca+Modelo","MarcaModelo","Coche"]) || "", combustible:normComb(comb), combustibleTexto:normComb(comb), potencia:campo(r, ["PotenciaCV","Potencia (CV)","Potencia"]) || "" };
+          if(p.piloto) obj[normalizarDorsal(dorsal)] = p;
+        });
+        escapes = obj;
+        await db.ref('inscritos_esc').set(obj);
+        await db.ref('ranking_escapes').remove();
+        await db.ref('crono_evento').remove();
+        event.target.value = "";
+        toast("Importados " + Object.keys(obj).length + " participantes de escapes");
+      };
+      fr.readAsText(file, "UTF-8");
+    };
+    window.exportarEscapesInscritos = function(){
+      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV\n";
+      Object.values(escapes).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); }).forEach(function(p){
+        csv += csvLine([p.dorsal,p.piloto,p.instagram,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia]);
+      });
+      exportCsv("PARTICIPANTES_ESCAPES.csv", csv, async function(){
+        if(confirm("¿Borrar inscritos y resultados de escapes?")){
+          await db.ref('inscritos_esc').remove();
+          await db.ref('ranking_escapes').remove();
+          await db.ref('crono_evento').remove();
+          await db.ref('escape_prueba_actual').remove();
+        }
+      }, "Exportación de participantes de escapes generada. ¿Quieres restablecer escapes?");
+    };
+
+    function copRows(){
+      var rows = [];
+      Object.entries(copilotajes.espera || {}).forEach(function(pair){ rows.push({ key:pair[0], estado:"espera", data:pair[1] || {} }); });
+      Object.entries(copilotajes.completados || {}).forEach(function(pair){ rows.push({ key:pair[0], estado:"completados", data:pair[1] || {} }); });
+      return rows.sort(function(a,b){ return Number(a.data.nPapel || 0) - Number(b.data.nPapel || 0); });
+    }
+    window.editarCopilotaje = function(key, estado){
+      var p = (copilotajes[estado] || {})[key]; if(!p) return;
+      editCopKey = key;
+      setVal('c-turno', p.nPapel);
+      setVal('c-copiloto', p.copiloto);
+      setVal('c-dni', p.dni);
+      setVal('c-redes', p.redes);
+      setVal('c-piloto', p.piloto);
+      document.getElementById('c-pago').value = p.metodoPago || "EFECTIVO";
+      document.getElementById('c-origen').value = p.origenRegistro || ((p.horaPreRegistro && p.horaPreRegistro !== "MANUAL") ? "PRE-REGISTRO" : "TAQUILLA");
+      document.getElementById('c-menor').value = (p.esMenor || p.nombreTutor || p.tutor) ? "Sí" : "No";
+      setVal('c-tutor', p.nombreTutor || p.tutor);
+      setVal('c-dni-tutor', p.dniTutor || p.tutor_dni);
+      setVal('c-h-logistica', p.horaRegistroLogistica);
+      setVal('c-h-recinto', p.horaEntradaRecinto);
+      setVal('c-h-pista', p.horaEntradaPista || p.horaEntradaTexto);
+      setVal('c-h-salida', p.horaSalida || p.horaSalidaTexto);
+      setVal('c-duracion', p.duracion || p.duracionTotal);
+      document.getElementById('c-estado').value = estado;
+      window.scrollTo({ top:0, behavior:"smooth" });
+    };
+    window.limpiarCopilotaje = function(){
+      editCopKey = "";
+      ['c-turno','c-copiloto','c-dni','c-redes','c-piloto','c-tutor','c-dni-tutor','c-h-logistica','c-h-recinto','c-h-pista','c-h-salida','c-duracion'].forEach(function(id){ setVal(id,""); });
+      document.getElementById('c-pago').value = "EFECTIVO";
+      document.getElementById('c-origen').value = "TAQUILLA";
+      document.getElementById('c-menor').value = "No";
+      document.getElementById('c-estado').value = "espera";
+    };
+    window.guardarCopilotaje = async function(){
+      if(!val('c-copiloto')) return alert("Falta copiloto.");
+      var estado = val('c-estado') || "espera";
+      var key = editCopKey || db.ref('copilotajes/' + estado).push().key;
+      var turno = val('c-turno') || siguienteNumero(Object.fromEntries(copRows().map(function(r){ return [r.key, r.data]; })), 'nPapel');
+      var row = {
+        nPapel:turno, copiloto:val('c-copiloto'), dni:val('c-dni'), redes:val('c-redes'), piloto:val('c-piloto'),
+        metodoPago:val('c-pago'), origenRegistro:val('c-origen'), esMenor:boolSi(val('c-menor')), nombreTutor:val('c-tutor'), dniTutor:val('c-dni-tutor'),
+        horaRegistroLogistica:val('c-h-logistica'), horaEntradaRecinto:val('c-h-recinto'), horaEntradaPista:val('c-h-pista'), horaSalida:val('c-h-salida'), duracion:val('c-duracion'),
+        finalizado:estado === "completados", tsSalida:Date.now()
+      };
+      var updates = {};
+      updates['copilotajes/' + estado + '/' + key] = row;
+      var other = estado === "espera" ? "completados" : "espera";
+      if(editCopKey) updates['copilotajes/' + other + '/' + editCopKey] = null;
+      await db.ref().update(updates);
+      limpiarCopilotaje();
+      toast("Copilotaje guardado");
+    };
+    window.borrarCopilotaje = async function(key, estado){
+      if(!confirm("¿Borrar el copilotaje seleccionado?")) return;
+      await db.ref('copilotajes/' + estado + '/' + key).remove();
+      toast("Copilotaje borrado");
+    };
+    function renderCopilotajes(){
+      var rows = copRows();
+      document.getElementById('tabla-copilotajes').innerHTML = tabla(['Turno','Copiloto','Piloto','Pago','Estado','Recinto','Salida','Duración','Acciones'], rows.map(function(r){
+        var i = r.data;
+        return [i.nPapel,i.copiloto,i.piloto,i.metodoPago,r.estado,i.horaEntradaRecinto || "",i.horaSalida || i.horaSalidaTexto || "",i.duracion || i.duracionTotal || "",acciones("editarCopilotaje('" + r.key + "','" + r.estado + "')", "borrarCopilotaje('" + r.key + "','" + r.estado + "')")];
+      }));
+    }
+    function copilotajesCSV(){
+      var csv = "Turno;Copiloto;DNI;Redes;Piloto;Pago;Origen;EsMenor;Tutor;DNITutor;HoraPreRegistro;HoraLogistica;HoraRecinto;HoraPista;HoraSalida;Duracion;Estado\n";
+      copRows().forEach(function(r){
+        var i = r.data, tutor = i.nombreTutor || i.tutor || "", dniTutor = i.dniTutor || i.tutor_dni || "";
+        csv += csvLine([i.nPapel,i.copiloto,i.dni,i.redes,i.piloto,i.metodoPago,i.origenRegistro || "",(i.esMenor || tutor || dniTutor) ? "Sí" : "No",tutor,dniTutor,i.horaPreRegistro && i.horaPreRegistro !== "MANUAL" ? i.horaPreRegistro : "",i.horaRegistroLogistica,i.horaEntradaRecinto,i.horaEntradaPista || i.horaEntradaTexto,i.horaSalida || i.horaSalidaTexto,i.duracion || i.duracionTotal,r.estado]);
+      });
+      return csv;
+    }
+    window.exportarCopilotajes = function(){
+      exportCsv("COPILOTAJES_RESULTADOS.csv", copilotajesCSV(), async function(){
+        if(confirm("¿Borrar espera, completados y contador de copilotajes?")){
+          await db.ref('copilotajes/espera').remove();
+          await db.ref('copilotajes/completados').remove();
+          await db.ref('copilotajes/ultimo_numero').set(0);
+        }
+      }, "Exportación de copilotajes generada. ¿Quieres restablecer copilotajes?");
+    };
+
+    function rankingVotos(){
+      var agg = {};
+      Object.values(historialVotos || {}).forEach(function(v){
+        var d = String(v.dorsal || ""); if(!d) return;
+        if(!agg[d]) agg[d] = { dorsal:d, piloto:v.piloto || v.info || "", ap:0, up:0, dw:0, veces:0 };
+        agg[d].ap += Number(v.ap || 0); agg[d].up += Number(v.up || 0); agg[d].dw += Number(v.dw || 0); agg[d].veces++;
+      });
+      return Object.values(agg).map(function(p){ p.score = (p.ap * 2) + p.up - p.dw; return p; }).sort(function(a,b){ return (b.score-a.score) || (b.ap-a.ap); });
+    }
+    function votosCSV(){
+      var csv = "Rank;Dorsal;Piloto;Aplausos;Up;Down;Score;Veces\n";
+      rankingVotos().forEach(function(p,i){ csv += csvLine([i+1,p.dorsal,p.piloto,p.ap,p.up,p.dw,p.score,p.veces]); });
+      return csv;
+    }
+    function renderVotos(){
+      document.getElementById('tabla-votos').innerHTML = tabla(['Rank','Dorsal','Piloto','Aplausos','Up','Down','Score','Veces'], rankingVotos().map(function(p,i){ return [i+1,p.dorsal,p.piloto,p.ap,p.up,p.dw,p.score,p.veces]; }));
+    }
+    window.exportarVotosShow = function(){
+      exportCsv("VOTOS_SHOW_RESULTADOS.csv", votosCSV(), resetVotos, "Exportación de votos generada. ¿Quieres restablecer votos y sorteo?");
+    };
+    window.resetVotos = async function(){
+      if(!confirm("¿Borrar historial de votos, registro de votos, votación activa y números de sorteo?")) return;
+      await db.ref('historial_votos').remove();
+      await db.ref('registro_votos').remove();
+      await db.ref('participantes_sorteo').remove();
+      await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
+      await db.ref('sorteo_reset_ts').set(Date.now());
+      toast("Votos y sorteo restablecidos");
+    };
+
+    function escapesResultadosCSV(){
+      var lista = Object.values(rankingEscapes || {});
+      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV;PicoDB;MediaHzBajos;Fecha\n";
+      lista.sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); }).forEach(function(p){
+        csv += csvLine([p.dorsal,p.piloto,p.instagram,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia,p.db || "",p.hz || "",p.ts ? new Date(p.ts).toLocaleString('es-ES') : ""]);
+      });
+      return csv;
+    }
+    function escapesRankingsCSV(){
+      var lista = Object.values(rankingEscapes || {});
+      var csv = "Categoria;Rank;Dorsal;Nombre;Vehiculo;Combustible;Valor\n";
+      [
+        ["DB_MAX_GASOLINA","gasolina","db","desc"],
+        ["DB_MAX_DIESEL","diesel","db","desc"],
+        ["MEDIA_HZ_GASOLINA","gasolina","hz","asc"],
+        ["MEDIA_HZ_DIESEL","diesel","hz","asc"]
+      ].forEach(function(cfg){
+        var arr = lista.filter(function(p){ return normalizar(p.combustibleTexto || p.combustible).includes(cfg[1]) && Number(p[cfg[2]]) > 0; });
+        arr.sort(cfg[3] === "desc" ? function(a,b){ return Number(b[cfg[2]])-Number(a[cfg[2]]); } : function(a,b){ return Number(a[cfg[2]])-Number(b[cfg[2]]); });
+        arr.forEach(function(p,i){ csv += csvLine([cfg[0],i+1,p.dorsal,p.piloto,p.coche,p.combustibleTexto || p.combustible,p[cfg[2]]]); });
+      });
+      return csv;
+    }
+
+    function renderResumen(){
+      document.getElementById('st-pilotos').innerText = Object.keys(pilotos || {}).length;
+      document.getElementById('st-escapes').innerText = Object.keys(escapes || {}).length;
+      document.getElementById('st-copilotajes').innerText = copRows().length;
+      document.getElementById('st-medidos').innerText = Object.keys(rankingEscapes || {}).length;
+    }
+    window.resetTodoEvento = async function(){
+      if(!confirm("Esto borrará resultados y datos operativos del evento. ¿Seguro?")) return;
+      await db.ref('copilotajes/espera').remove();
+      await db.ref('copilotajes/completados').remove();
+      await db.ref('copilotajes/ultimo_numero').set(0);
+      await db.ref('ranking_escapes').remove();
+      await db.ref('crono_evento').remove();
+      await db.ref('escape_prueba_actual').remove();
+      await db.ref('historial_votos').remove();
+      await db.ref('registro_votos').remove();
+      await db.ref('participantes_sorteo').remove();
+      await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
+      await db.ref('sorteo_reset_ts').set(Date.now());
+      toast("Evento restablecido");
+    };
+
+    function tabla(headers, rows){
+      if(!rows.length) return '<table><thead><tr>' + headers.map(function(h){ return '<th>' + html(h) + '</th>'; }).join('') + '</tr></thead><tbody><tr><td colspan="' + headers.length + '">Sin datos</td></tr></tbody></table>';
+      return '<table><thead><tr>' + headers.map(function(h){ return '<th>' + html(h) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function(r){
+        return '<tr>' + r.map(function(c, idx){ return '<td>' + (idx === r.length - 1 && String(c).includes('<button') ? c : html(c)) + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table>';
+    }
+    function acciones(edit, del){
+      return '<div class="actions"><button class="btn-blue" onclick="' + edit + '">Editar</button><button class="btn-red" onclick="' + del + '">Borrar</button></div>';
+    }
+
+    function sheetXml(name, rows){
+      function x(v){ return String(v == null ? "" : v).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'})[c]; }); }
+      return '<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="' + x(name).slice(0,31) + '"><Table>' + rows.map(function(r){ return '<Row>' + r.map(function(c){ return '<Cell><Data ss:Type="String">' + x(c) + '</Data></Cell>'; }).join('') + '</Row>'; }).join('') + '</Table></Worksheet></Workbook>';
+    }
+    function csvToRows(csv){
+      var lines = csv.split(/\r?\n/).filter(function(l){ return l.trim(); });
+      return lines.map(function(l){ return parseCSVLine(l, ";"); });
+    }
+    window.exportarExcelCompleto = function(){
+      var resumen = [
+        ["Campo","Valor"],
+        ["Evento", configEvento.nombre || ""],
+        ["Fecha", configEvento.fecha || ""],
+        ["Lugar", configEvento.lugar || ""],
+        ["Pilotos", Object.keys(pilotos || {}).length],
+        ["Escapes inscritos", Object.keys(escapes || {}).length],
+        ["Copilotajes", copRows().length],
+        ["Escapes medidos", Object.keys(rankingEscapes || {}).length],
+        ["Votos ranking", rankingVotos().length]
+      ];
+      var workbook = '<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' +
+        xmlWorksheet("Resumen", resumen) +
+        xmlWorksheet("Pilotos", csvToRows(pilotosCSV())) +
+        xmlWorksheet("Copilotajes", csvToRows(copilotajesCSV())) +
+        xmlWorksheet("Votos Show", csvToRows(votosCSV())) +
+        xmlWorksheet("Escapes Resultados", csvToRows(escapesResultadosCSV())) +
+        xmlWorksheet("Escapes Rankings", csvToRows(escapesRankingsCSV())) +
+      '</Workbook>';
+      download(slugEvento() + "_EVENTO_COMPLETO.xls", "\ufeff" + workbook, "application/vnd.ms-excel;charset=utf-8;");
+      if(confirm("Excel completo generado. ¿Quieres restablecer todo el evento?")) resetTodoEvento();
+    };
+    function xmlWorksheet(name, rows){
+      function x(v){ return String(v == null ? "" : v).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'})[c]; }); }
+      return '<Worksheet ss:Name="' + x(name).slice(0,31) + '"><Table>' + rows.map(function(r){ return '<Row>' + r.map(function(c){ return '<Cell><Data ss:Type="String">' + x(c) + '</Data></Cell>'; }).join('') + '</Row>'; }).join('') + '</Table></Worksheet>';
+    }
+    function pilotosCSV(){
+      var csv = "Dorsal;Piloto;Alias;Edad;Residencia;Vehiculo;Motor;PotenciaCV;Modificaciones;Curiosidades;Palmares;Instagram;Foto;ActivoShow;ActivoTaxidrift\n";
+      Object.values(pilotos).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); }).forEach(function(p){
+        csv += csvLine([p.dorsal,p.piloto,p.alias,p.edad,p.residencia,p.vehiculo || p.coche,p.motor,p.potencia,p.modificaciones,p.curiosidades,p.palmares,p.instagram,p.foto,p.activoShow === false ? "No" : "Sí",p.activoTaxidrift === false ? "No" : "Sí"]);
+      });
+      return csv;
+    }
+  </script>
 </body>
 </html>
+
 

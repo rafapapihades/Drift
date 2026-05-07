@@ -167,7 +167,7 @@
                                 <div class="m-num">${num}</div>
                             </div>
                             <small style="color:#aaa;margin-left:5px">${nom}</small>
-                            ${esRecinto ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">✎ REASIGNAR</button>` : ''}
+                            ${(esRecinto || esPista) ? `<br><button class="btn-reasignar" onclick="activarSelector('${id}','${item.piloto}')">REASIGNAR</button>` : ''}
                         </div>
                         ${esPista ? `<span class="time-info" data-ts="${item.tsEntrada}">⏱️ <span class="cronometro">...</span></span>` : ''}
                     </td>
@@ -187,9 +187,20 @@
                 </select>`;
         };
 
-        window.guardarPiloto = (id, nuevo) => {
+        window.guardarPiloto = async (id, nuevo) => {
             if(nuevo === "CANCEL") { renderizarTodo(); return; }
-            db.ref(`copilotajes/espera/${id}`).update({ piloto: nuevo });
+            const esperaSnap = await db.ref(`copilotajes/espera/${id}`).once('value');
+            const pistaSnap = await db.ref(`copilotajes/completados/${id}`).once('value');
+            const updates = {};
+
+            if(esperaSnap.exists()) updates[`copilotajes/espera/${id}/piloto`] = nuevo;
+            if(pistaSnap.exists()) updates[`copilotajes/completados/${id}/piloto`] = nuevo;
+            if(!esperaSnap.exists() && !pistaSnap.exists()) updates[`copilotajes/espera/${id}/piloto`] = nuevo;
+
+            await db.ref().update(updates);
+            if(pistaSnap.exists() && !(pistaSnap.val() || {}).finalizado) {
+                await actualizarEstadoPistaActiva();
+            }
         };
 
         window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({

@@ -1204,44 +1204,53 @@ window.exportarVotos = async function () {
         await db.ref('modo_actual').set('tab-show');
 
         await db.ref('votacion_activa').set({ dorsal: val, activa:true, timer:0, items: items });
-        await db.ref('estado_pista').set({ mensaje:'🏎️ EN PISTA: ' + val, color:'#007bff', id:'btn-coche' });
+        var nombresEstado = dorsalesArr.map(function(d){
+          var p = inscritosD[d];
+          return p ? (p.alias || p.piloto || d) : d;
+        }).join(' + ');
+        await db.ref('estado_pista').set({ mensaje:'??? EN PISTA: ' + nombresEstado, color:'#007bff', id:'btn-coche' });
       };
 
       window.setEstado = async function(msg, col, id){
         await db.ref('estado_pista').set({ mensaje: msg, color: col, id: id });
-
         if(id === 'btn-libre'){
-          
-          // --- CORRECCIÓN 2: Permite que el público vote al siguiente piloto ---
           document.getElementById('d-show').value = "";
           document.getElementById('preview-show').innerText = "Introduce dorsal...";
-
-          var snap = await getOnce('votacion_activa');
-          var v = snap.val();
-
-          if(v && v.activa){
-            var count = 10;
-            await db.ref('votacion_activa').update({ timer: count });
-            var interval = setInterval(async function(){
-              count--;
-              await db.ref('votacion_activa').update({ timer: count });
-              if(count <= 0){
-                clearInterval(interval);
-                var finalSnap = await getOnce('votacion_activa');
-                var finalV = finalSnap.val();
-                if(finalV && finalV.items){
-                  Object.entries(finalV.items).forEach(function(pair){
-                    var idItem = pair[0], data = pair[1];
-                    if((data.ap||0)+(data.up||0)+(data.dw||0) > 0){
-                      db.ref('historial_votos').push({ dorsal:idItem, info:data.nombre, participantes:(idItem === 'BATALLA' ? finalV.dorsal : ''), ap:data.ap||0, up:data.up||0, dw:data.dw||0, ts:Date.now() });
-                    }
-                  });
-                }
-                await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
-              }
-            }, 1000);
-          }
+          iniciarCierreVotacionGlobal();
         }
+      };
+
+      async function iniciarCierreVotacionGlobal(){
+        var snap = await getOnce('votacion_activa');
+        var v = snap.val();
+        if(!v || !v.activa || Number(v.timer || 0) > 0) return;
+        var count = 10;
+        await db.ref('votacion_activa').update({ timer: count });
+        if(v.items){
+          Object.keys(v.items).forEach(function(idItem){
+            db.ref('votacion_activa/items/' + idItem).update({ timer: count, cerrando: true });
+          });
+        }
+        var interval = setInterval(async function(){
+          count--;
+          var updates = { 'votacion_activa/timer': count };
+          Object.keys((v && v.items) || {}).forEach(function(idItem){ updates['votacion_activa/items/' + idItem + '/timer'] = count; });
+          await db.ref().update(updates);
+          if(count <= 0){
+            clearInterval(interval);
+            var finalSnap = await getOnce('votacion_activa');
+            var finalV = finalSnap.val();
+            if(finalV && finalV.items){
+              Object.entries(finalV.items).forEach(function(pair){
+                var idItem = pair[0], data = pair[1];
+                if((data.ap||0)+(data.up||0)+(data.dw||0) > 0){
+                  db.ref('historial_votos').push({ dorsal:idItem, info:data.nombre, participantes:(idItem === 'BATALLA' ? finalV.dorsal : ''), ap:data.ap||0, up:data.up||0, dw:data.dw||0, ts:Date.now() });
+                }
+              });
+            }
+            await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
+          }
+        }, 1000);
       };
 
       // ===== listeners Firebase (sin tocar lógica) =====
@@ -1385,4 +1394,5 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+
 

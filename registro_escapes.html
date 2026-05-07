@@ -91,7 +91,7 @@
 </head>
 <body>
   <main class="container">
-    <img src="logo.jpg" alt="Drift Show" class="logo">
+    <img src="logo_peq.png" alt="Drift Show" class="logo">
     <h1>Registro Competición Escapes</h1>
 
     <section class="panel">
@@ -227,13 +227,15 @@
     };
 
     window.reiniciarTodo = function(){
-      if(!confirm("¿Borrar todos los inscritos de escapes de este dispositivo?")) return;
+      if(!confirm("Vas a borrar todos los inscritos de escapes de este dispositivo. ?Continuar?")) return;
+      if(!confirm("Segunda confirmaci?n: esta lista local quedar? vac?a. ?Seguro?")) return;
+      var txt = prompt("Escribe BORRAR para confirmar el reinicio de la lista.");
+      if(String(txt || "").trim().toUpperCase() !== "BORRAR") return;
       participantes = [];
       guardarLocal();
       limpiarFormulario();
       render();
     };
-
     window.exportarCSV = function(){
       if(!participantes.length) return alert("No hay inscritos para exportar.");
       var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV\n";
@@ -405,3 +407,4 @@
   </script>
 </body>
 </html>
+

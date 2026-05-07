@@ -63,7 +63,7 @@
 
     <div class="header-top">
         <img src="logotaxi.jpg" alt="Logo" class="header-logo">
-        <input type="text" id="nombre-evento" class="event-name-input" placeholder="NOMBRE DEL EVENTO">
+        <div id="nombre-evento" class="event-name-input">NOMBRE DEL EVENTO</div>
     </div>
 
     <div class="main-card">
@@ -267,6 +267,13 @@
 
         // REGISTRAR Y PASAR A COLA
         window.registrar = async () => {
+            const nombre = document.getElementById('c-nombre').value.trim();
+            const dni = document.getElementById('c-dni').value.trim();
+            const fecha = document.getElementById('c-nac').value.trim();
+            if(!nombre || !dni || !fecha) {
+                alert("Faltan datos obligatorios: nombre, DNI y fecha de nacimiento.");
+                return;
+            }
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
             const nombreTutor = document.getElementById('c-nombre-tutor').value.trim() || registroRecuperado?.tutor || registroRecuperado?.nombreTutor || "";
             const dniTutor = document.getElementById('c-dni-tutor').value.trim() || registroRecuperado?.tutor_dni || registroRecuperado?.dniTutor || "";
@@ -274,9 +281,9 @@
             
             const payload = {
                 nPapel: num,
-                copiloto: document.getElementById('c-nombre').value.trim(),
-                dni: document.getElementById('c-dni').value.trim(),
-                fechaNac: document.getElementById('c-nac').value.trim(),
+                copiloto: nombre,
+                dni: dni,
+                fechaNac: fecha,
                 redes: document.getElementById('c-redes').value.trim(),
                 piloto: document.getElementById('c-piloto').value,
                 metodoPago: metodoPago,
@@ -308,6 +315,8 @@
         // ESCUCHA DE DATOS (PILOTOS Y TABLA)
         onValue(ref(db, 'config_evento'), (snap) => {
             configEvento = snap.val() || {};
+            const el = document.getElementById('nombre-evento');
+            if(el) el.innerText = configEvento.nombre || "NOMBRE DEL EVENTO";
         });
 
         onValue(ref(db, 'pilotos_evento'), (snap) => {
@@ -330,7 +339,8 @@
             // Pilotos
             const config = listaPilotosTaxidrift(data);
             const bajas = data.pilotos_baja || [];
-            const activos = config.filter(p => !bajas.includes(p));
+            const defaultPiloto = "CUALQUIER PILOTO (MÁS RÁPIDO)";
+            const activos = [defaultPiloto].concat(config.filter(p => !bajas.includes(p)));
             
             document.getElementById('c-piloto').innerHTML = activos.map(p => `<option value="${p}">${p}</option>`).join('');
             aplicarPilotoPreseleccionado();

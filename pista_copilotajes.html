@@ -91,6 +91,7 @@
 
         let confirmAction = null;
         let pilotosDisponibles = [];
+        let fichasPilotos = {};
 
         db.ref('config_evento').on('value', s => {
             const cfg = s.val() || {};
@@ -120,6 +121,7 @@
 
         db.ref('inscritos_drift').on('value', s => {
             const data = s.val() || {};
+            fichasPilotos = data;
             pilotosDisponibles = Object.entries(data).map(([dorsal, p]) => {
                 return { dorsal, label: `[#${dorsal}] ${p.piloto} | ${p.coche}` };
             });
@@ -206,19 +208,14 @@
             if(!snap.exists()) return;
             const d = snap.val();
             
-            const dMatch = d.piloto.match(/\[#(\d+)\]/) || d.piloto.match(/^(\d+)/);
-            const dorsal = dMatch ? dMatch[1] : "0";
-            const nombreLimpio = d.piloto.split('|')[0].replace(/\[.*?\]/g,'').trim();
+            const dorsal = extraerDorsal(d.piloto) || "0";
 
             // CAPTURA DE TIEMPO DE ENTRADA
             const ahora = Date.now();
             const horaEntradaTexto = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
             const items = {};
-            items[dorsal] = { 
-                nombre: nombreLimpio + " & " + d.copiloto, 
-                coche: "TAXI DRIFT", nPapel: d.nPapel, copiloto: d.copiloto, piloto: d.piloto, ap:0, up:0, dw:0, h_ap:0, h_up:0, h_dw:0 
-            };
+            items[dorsal] = crearItemVotoTaxi(dorsal, d, {});
 
             const updates = {};
             updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 0, items: items };
@@ -332,21 +329,7 @@
                 const dorsal = extraerDorsal(item.piloto) || String(item.nPapel || "");
                 if(!dorsal) return;
                 const previo = itemsActuales[dorsal] || {};
-                items[dorsal] = {
-                    nombre: `${limpiarNombrePiloto(item.piloto)} & ${item.copiloto || ""}`,
-                    coche: "TAXI DRIFT",
-                    ap: previo.ap || 0,
-                    up: previo.up || 0,
-                    dw: previo.dw || 0,
-                    h_ap: previo.h_ap || 0,
-                    h_up: previo.h_up || 0,
-                    h_dw: previo.h_dw || 0,
-                    nPapel: item.nPapel,
-                    copiloto: item.copiloto || "",
-                    piloto: item.piloto || "",
-                    cerrando: false,
-                    timer: 0
-                };
+                items[dorsal] = crearItemVotoTaxi(dorsal, item, previo);
             });
             Object.entries(itemsActuales).forEach(([dorsal, previo]) => {
                 if(previo && previo.cerrando) items[dorsal] = previo;
@@ -373,6 +356,38 @@
             const txt = String(piloto || "");
             const match = txt.match(/\[#(\d+)\]/) || txt.match(/^(\d+)/);
             return match ? match[1] : "";
+        }
+
+        function obtenerFichaPiloto(dorsal) {
+            return fichasPilotos[String(dorsal)] || fichasPilotos[Number(dorsal)] || {};
+        }
+
+        function nombrePilotoDesdeFicha(dorsal, pilotoTexto) {
+            const ficha = obtenerFichaPiloto(dorsal);
+            if(ficha.alias || ficha.piloto) return ficha.alias || ficha.piloto;
+            return limpiarNombrePiloto(pilotoTexto).replace(/^\d+\s*[,.-]?\s*/, '').split(',')[0].trim();
+        }
+
+        function crearItemVotoTaxi(dorsal, item, previo) {
+            const ficha = obtenerFichaPiloto(dorsal);
+            return {
+                nombre: `${nombrePilotoDesdeFicha(dorsal, item.piloto)} & ${item.copiloto || ""}`,
+                coche: ficha.coche || "TAXI DRIFT",
+                motor: ficha.motor || "",
+                potencia: ficha.potencia || "",
+                foto: ficha.foto || "",
+                nPapel: item.nPapel,
+                copiloto: item.copiloto || "",
+                piloto: item.piloto || "",
+                ap: previo.ap || 0,
+                up: previo.up || 0,
+                dw: previo.dw || 0,
+                h_ap: previo.h_ap || 0,
+                h_up: previo.h_up || 0,
+                h_dw: previo.h_dw || 0,
+                cerrando: previo.cerrando || false,
+                timer: previo.timer || 0
+            };
         }
 
         function renderizarTodo() {

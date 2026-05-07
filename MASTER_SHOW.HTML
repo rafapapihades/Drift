@@ -1208,7 +1208,7 @@ window.exportarVotos = async function () {
           var p = inscritosD[d];
           return p ? (p.alias || p.piloto || d) : d;
         }).join(' + ');
-        await db.ref('estado_pista').set({ mensaje:'??? EN PISTA: ' + nombresEstado, color:'#007bff', id:'btn-coche' });
+        await db.ref('estado_pista').set({ mensaje:'EN PISTA: ' + nombresEstado, color:'#007bff', id:'btn-coche' });
       };
 
       window.setEstado = async function(msg, col, id){
@@ -1359,7 +1359,7 @@ window.exportarVotos = async function () {
         if(!v || !v.activa){ container.innerHTML=""; return; }
 
         var timers = Object.values(v.items || {}).map(function(item){ return Number(item.timer || 0); }).filter(function(t){ return t > 0 && t <= 10; });
-        var html = timers.length ? ("<div class='timer-master'>⏱️ CIERRE EN: " + Math.max.apply(null, timers) + "s</div>") : "";
+        var html = timers.length ? ("<div class='timer-master'>CIERRE EN: " + Math.max.apply(null, timers) + "s</div>") : "";
         if(v.items){
           html += Object.entries(v.items).map(function(pair){
             var id = pair[0], data = pair[1] || {};
@@ -1367,7 +1367,6 @@ window.exportarVotos = async function () {
             var sub = (id === 'BATALLA') ? "" : (coche ? ("<div class='p-sub'>" + coche + "</div>") : "");
             return "<div class='piloto-voto-row'>" +
               "<div class='p-info'>" + (id==='BATALLA' ? "🔥 BATALLA" : ("#" + id + " " + data.nombre)) + sub + "</div>" +
-              ((data.timer > 0 && data.timer <= 10) ? "<div class='timer-master'>CIERRE #" + id + ": " + data.timer + "s</div>" : "") +
               "<div class='p-stats'>" +
                 "<span>👏 " + (data.ap||0) + " (" + ((data.ap||0)+(data.h_ap||0)) + ")</span>" +
                 "<span>👍 " + (data.up||0) + " (" + ((data.up||0)+(data.h_up||0)) + ")</span>" +
@@ -1394,5 +1393,4 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
-
 

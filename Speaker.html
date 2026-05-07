@@ -76,7 +76,7 @@
     }
     
     .dorsal { font-size: 6em; font-weight: 900; color: var(--blue); line-height: 1; font-style: italic; margin: 0; }
-    .car-photo { width:100%; max-height:240px; object-fit:cover; border-radius:18px; border:1px solid #333; margin-bottom:12px; }
+    .car-photo { width:100%; aspect-ratio:16/9; object-fit:contain; background:#000; border-radius:18px; border:1px solid #333; margin-bottom:12px; display:block; }
     .coche-tag { background: var(--blue); color: #fff; padding: 8px 20px; border-radius: 10px; font-size: 1.2em; font-weight: bold; text-transform: uppercase; margin: 15px 0; display: inline-block; }
     .nombre-pista { font-size: 2em; font-weight: bold; text-transform: uppercase; margin: 5px 0; color: #fff; line-height: 1.1; }
 
@@ -393,6 +393,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 

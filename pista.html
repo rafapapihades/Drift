@@ -118,15 +118,48 @@
     sessionRef.onDisconnect().update({ lastSeen: 0 });
 
     // MANDAR ESTADO
-    window.enviarEstado = (msg, col, id) => {
+    window.enviarEstado = async (msg, col, id) => {
       if (navigator.vibrate) navigator.vibrate(60); // Vibración táctil
-      db.ref('estado_pista').set({ 
+      await db.ref('estado_pista').set({ 
         mensaje: msg, 
         color: col, 
         id: id,
         ts: Date.now() 
       });
+      if(id === 'btn-libre') iniciarCierreVotacionGlobal();
     };
+
+    async function iniciarCierreVotacionGlobal(){
+      const snap = await db.ref('votacion_activa').once('value');
+      const v = snap.val();
+      if(!v || !v.activa || Number(v.timer || 0) > 0) return;
+      let count = 10;
+      await db.ref('votacion_activa').update({ timer: count });
+      if(v.items) {
+        Object.keys(v.items).forEach(idItem => {
+          db.ref('votacion_activa/items/' + idItem).update({ timer: count, cerrando: true });
+        });
+      }
+      const interval = setInterval(async () => {
+        count--;
+        const updates = { 'votacion_activa/timer': count };
+        Object.keys((v && v.items) || {}).forEach(idItem => updates['votacion_activa/items/' + idItem + '/timer'] = count);
+        await db.ref().update(updates);
+        if(count <= 0) {
+          clearInterval(interval);
+          const finalSnap = await db.ref('votacion_activa').once('value');
+          const finalV = finalSnap.val();
+          if(finalV && finalV.items) {
+            Object.entries(finalV.items).forEach(([idItem, data]) => {
+              if((data.ap||0)+(data.up||0)+(data.dw||0) > 0) {
+                db.ref('historial_votos').push({ dorsal:idItem, info:data.nombre, participantes:(idItem === 'BATALLA' ? finalV.dorsal : ''), ap:data.ap||0, up:data.up||0, dw:data.dw||0, ts:Date.now() });
+              }
+            });
+          }
+          await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
+        }
+      }, 1000);
+    }
 
     // RECIBIR ESTADO (Para que el botón se ilumine si el Master o alguien lo cambia)
     db.ref('estado_pista').on('value', (s) => {
@@ -169,6 +202,7 @@
   </script>
 </body>
 </html>
+
 
 
 

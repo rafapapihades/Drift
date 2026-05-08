@@ -105,6 +105,7 @@
     const sessionRef = db.ref('pista_sessions/' + sessionId);
     let mensajeActivoTs = 0;
     let vibracionMensajeTimer = null;
+    let mensajePendienteVibracion = false;
 
     function actualizarSesion(extra = {}) {
       sessionRef.update({
@@ -115,18 +116,27 @@
     }
     function iniciarVibracionMensaje() {
       if (!navigator.vibrate || vibracionMensajeTimer) return;
-      navigator.vibrate([220, 140, 220, 140, 420]);
+      mensajePendienteVibracion = true;
+      navigator.vibrate(750);
       vibracionMensajeTimer = setInterval(() => {
-        const panelVisible = document.getElementById('mensaje-master').style.display === 'flex';
-        if (!panelVisible) return detenerVibracionMensaje();
-        navigator.vibrate([220, 140, 220, 140, 420]);
-      }, 1600);
+        if (!mensajePendienteVibracion) return detenerVibracionMensaje();
+        navigator.vibrate(750);
+      }, 1100);
     }
     function detenerVibracionMensaje() {
+      mensajePendienteVibracion = false;
       if (vibracionMensajeTimer) clearInterval(vibracionMensajeTimer);
       vibracionMensajeTimer = null;
       if (navigator.vibrate) navigator.vibrate(0);
     }
+    function reintentarVibracionPendiente() {
+      if (mensajePendienteVibracion && navigator.vibrate) navigator.vibrate(750);
+    }
+    document.addEventListener('click', reintentarVibracionPendiente);
+    document.addEventListener('touchstart', reintentarVibracionPendiente, { passive:true });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && mensajePendienteVibracion) iniciarVibracionMensaje();
+    });
 
     actualizarSesion();
     setInterval(() => actualizarSesion(), 8000);
@@ -200,8 +210,11 @@
         const pendiente = leidoLocal < data.ts;
         panel.style.display = pendiente ? 'flex' : 'none';
         actualizarSesion({ lastMessageTs: data.ts });
-        if (pendiente) iniciarVibracionMensaje();
-        else detenerVibracionMensaje();
+        if (pendiente) {
+          mensajePendienteVibracion = true;
+          if (!vibracionMensajeTimer) iniciarVibracionMensaje();
+          else reintentarVibracionPendiente();
+        } else detenerVibracionMensaje();
       } else {
         mensajeActivoTs = 0;
         texto.innerText = '';
@@ -221,6 +234,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 

@@ -82,10 +82,24 @@
     .hint { margin:10px 0 0; color:var(--muted); font-size:.78em; line-height:1.35; }
     .status { margin-top:10px; color:var(--accent); font-size:.82em; font-weight:900; text-align:center; }
     @media (max-width:640px) {
+      body { padding:10px; align-items:flex-start; justify-content:flex-start; }
+      .container { max-width:100%; padding:14px; border-radius:14px; overflow:hidden; }
       .grid { grid-template-columns:1fr; }
       .summary { flex-direction:column; }
-      table { font-size:.78em; }
-      th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) { display:none; }
+      .actions { display:grid; grid-template-columns:1fr; }
+      .actions button { width:100%; min-width:0; }
+      table, thead, tbody, tr, td { display:block; width:100%; }
+      table { font-size:.82em; }
+      thead { display:none; }
+      tr { display:grid; grid-template-columns:54px 1fr; gap:4px 10px; padding:12px 0; border-bottom:1px solid #242424; }
+      td { border:0; padding:0; min-width:0; }
+      td:first-child { grid-row:1 / span 2; font-size:1.1em; }
+      td:nth-child(2) { font-size:1.02em; }
+      td:nth-child(3) { color:#ddd; }
+      td:nth-child(4), td:nth-child(5) { display:none; }
+      td:nth-child(6) { grid-column:1 / -1; margin-top:8px; }
+      .row-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+      .row-actions button { width:100%; padding:12px 8px; }
     }
   </style>
 </head>
@@ -407,4 +421,5 @@
   </script>
 </body>
 </html>
+
 

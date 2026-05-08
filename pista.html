@@ -104,6 +104,7 @@
     localStorage.setItem(SESSION_KEY, sessionId);
     const sessionRef = db.ref('pista_sessions/' + sessionId);
     let mensajeActivoTs = 0;
+    let vibracionMensajeTimer = null;
 
     function actualizarSesion(extra = {}) {
       sessionRef.update({
@@ -111,6 +112,20 @@
         ua: navigator.userAgent,
         ...extra
       });
+    }
+    function iniciarVibracionMensaje() {
+      if (!navigator.vibrate || vibracionMensajeTimer) return;
+      navigator.vibrate([220, 140, 220, 140, 420]);
+      vibracionMensajeTimer = setInterval(() => {
+        const panelVisible = document.getElementById('mensaje-master').style.display === 'flex';
+        if (!panelVisible) return detenerVibracionMensaje();
+        navigator.vibrate([220, 140, 220, 140, 420]);
+      }, 1600);
+    }
+    function detenerVibracionMensaje() {
+      if (vibracionMensajeTimer) clearInterval(vibracionMensajeTimer);
+      vibracionMensajeTimer = null;
+      if (navigator.vibrate) navigator.vibrate(0);
     }
 
     actualizarSesion();
@@ -182,13 +197,16 @@
         mensajeActivoTs = data.ts;
         texto.innerText = data.texto;
         const leidoLocal = Number(localStorage.getItem(LAST_READ_KEY) || 0);
-        panel.style.display = leidoLocal >= data.ts ? 'none' : 'flex';
+        const pendiente = leidoLocal < data.ts;
+        panel.style.display = pendiente ? 'flex' : 'none';
         actualizarSesion({ lastMessageTs: data.ts });
-        if (leidoLocal < data.ts && navigator.vibrate) navigator.vibrate([120, 80, 120]);
+        if (pendiente) iniciarVibracionMensaje();
+        else detenerVibracionMensaje();
       } else {
         mensajeActivoTs = 0;
         texto.innerText = '';
         panel.style.display = 'none';
+        detenerVibracionMensaje();
         actualizarSesion({ lastMessageTs: 0 });
       }
     });
@@ -197,11 +215,13 @@
       if(!mensajeActivoTs) return;
       document.getElementById('mensaje-master').style.display = 'none';
       localStorage.setItem(LAST_READ_KEY, String(mensajeActivoTs));
+      detenerVibracionMensaje();
       actualizarSesion({ lastReadTs: mensajeActivoTs });
     };
   </script>
 </body>
 </html>
+
 
 
 

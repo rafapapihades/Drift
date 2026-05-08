@@ -165,6 +165,13 @@
           <label>Lugar</label>
           <input id="cfg-lugar" placeholder="Sueca">
         </div>
+        <div>
+          <label>Preinscripción Taxidrift</label>
+          <select id="cfg-pre-pilotos">
+            <option value="elegir">Permitir elegir piloto</option>
+            <option value="asignar">Asignar en pista</option>
+          </select>
+        </div>
       </div>
       <div class="btn-row">
         <button class="btn-save" onclick="guardarConfig()">Guardar datos del evento</button>
@@ -386,7 +393,7 @@
     }
 
     function guardarConfig(){
-      configEvento = { nombre:val('cfg-nombre'), fecha:val('cfg-fecha'), lugar:val('cfg-lugar'), updatedAt:Date.now() };
+      configEvento = { nombre:val('cfg-nombre'), fecha:val('cfg-fecha'), lugar:val('cfg-lugar'), preinscripcionPilotos:val('cfg-pre-pilotos') || "elegir", updatedAt:Date.now() };
       db.ref('config_evento').set(configEvento).then(function(){ toast("Datos del evento guardados"); });
     }
 
@@ -395,6 +402,7 @@
       setVal('cfg-nombre', configEvento.nombre || "");
       setVal('cfg-fecha', configEvento.fecha || "");
       setVal('cfg-lugar', configEvento.lugar || "");
+      setVal('cfg-pre-pilotos', configEvento.preinscripcionPilotos || "elegir");
     });
 
     db.ref('pilotos_evento').on('value', function(s){ pilotos = s.val() || {}; renderPilotos(); renderResumen(); });

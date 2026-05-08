@@ -81,6 +81,9 @@
         <select id="piloto-select">
             <option value="CUALQUIERA">Cualquier Piloto (Más rápido)</option>
         </select>
+        <p id="piloto-modo-info" style="display:none; font-size: 0.72em; color: var(--accent); margin-top: -8px; font-style: italic; line-height: 1.25;">
+            La organización asignará el piloto en pista según disponibilidad.
+        </p>
         <p style="font-size: 0.65em; color: var(--accent); margin-top: -8px; font-style: italic; line-height: 1.2;">
             * Por motivos de fuerza mayor (averías, tiempos de espera), la organización se reserva el derecho de asignar un piloto distinto al seleccionado.
         </p>
@@ -117,22 +120,53 @@
     const firebaseConfig = { databaseURL: "https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" };
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    let configEvento = {};
+    let pilotosConfig = [];
+    let pilotosBaja = [];
 
     onValue(ref(db, 'config_evento'), (snap) => {
-        const cfg = snap.val() || {};
-        document.getElementById('event-title').innerText = cfg.nombre || "";
+        configEvento = snap.val() || {};
+        document.getElementById('event-title').innerText = configEvento.nombre || "";
+        renderPilotos();
     });
 
     // Cargar pilotos de la base de datos
     onValue(ref(db, 'copilotajes/config_pilotos'), (snap) => {
-        const pilotos = snap.val() || {};
+        pilotosConfig = Object.values(snap.val() || {});
+        renderPilotos();
+    });
+
+    onValue(ref(db, 'copilotajes/pilotos_baja'), (snap) => {
+        pilotosBaja = snap.val() || [];
+        renderPilotos();
+    });
+
+    function renderPilotos() {
         const sel = document.getElementById('piloto-select');
-        let html = '<option value="CUALQUIERA">Cualquier Piloto (Más rápido)</option>';
-        Object.values(pilotos).forEach(p => {
-            html += `<option value="${p}">${p}</option>`;
+        const info = document.getElementById('piloto-modo-info');
+        const permitirElegir = (configEvento.preinscripcionPilotos || "elegir") !== "asignar";
+        const defaultPiloto = "CUALQUIER PILOTO (MÁS RÁPIDO)";
+
+        if(!permitirElegir) {
+            sel.innerHTML = `<option value="${defaultPiloto}">${defaultPiloto}</option>`;
+            sel.style.display = "none";
+            info.style.display = "block";
+            return;
+        }
+
+        const activos = pilotosConfig.filter(p => !pilotosBaja.includes(p));
+        let html = `<option value="${defaultPiloto}">Cualquier Piloto (Más rápido)</option>`;
+        activos.forEach(p => {
+            html += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
         });
         sel.innerHTML = html;
-    });
+        sel.style.display = "block";
+        info.style.display = "none";
+    }
+
+    function escapeHtml(v) {
+        return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+    }
 
     // Detectar si es menor de edad por la fecha escrita (DD/MM/AAAA)
     window.checkEdadManual = (el) => {
@@ -202,4 +236,5 @@
 
 </body>
 </html>
+
 

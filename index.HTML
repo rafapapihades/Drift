@@ -130,6 +130,31 @@
             font-size: .95em;
         }
         .esc-current-card b { color: #fff; }
+        .premio-card {
+            display:none;
+            background: linear-gradient(180deg, rgba(255,204,0,.18), rgba(0,0,0,.82));
+            border: 2px solid #ffcc00;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+        .premio-card h2 { margin:0 0 6px; color:#ffcc00; text-transform:uppercase; font-size:1.35em; }
+        .premio-card p { margin:0 0 12px; color:#ddd; font-size:.86em; }
+        .premio-options { display:grid; gap:10px; }
+        .premio-btn {
+            width:100%;
+            border:1px solid rgba(255,255,255,.18);
+            background:#090909;
+            color:#fff;
+            border-radius:12px;
+            padding:14px 10px;
+            font-weight:900;
+            text-align:left;
+            cursor:pointer;
+        }
+        .premio-btn.selected { border-color:#ffcc00; box-shadow:0 0 18px rgba(255,204,0,.35); }
+        .premio-btn b { display:block; color:#ffcc00; font-size:1.15em; }
+        .premio-btn small { display:block; color:#aaa; margin-top:4px; }
 
         .sorteo-info {
             margin-top: 25px;
@@ -163,6 +188,7 @@
                 <div class="esc-crono">
                     <span>MEDIDOS <b id="esc-progreso">0/0</b></span>
                 </div>
+                <div id="premio-publico-esc" class="premio-card"></div>
                 <div id="coche-prueba-esc" class="esc-current-card" style="display:none"></div>
                 <div id="ultimo-resultado-esc" class="esc-result-card" style="display:none"></div>
                 <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 0;">DB GASOLINA</h2>
@@ -192,6 +218,8 @@
         let medidosEscapes = 0;
         let cronoEscapesTimer = null;
         let ultimoResultadoTimer = null;
+        let premioPublicoActual = null;
+        let premioSeleccion = "";
 
         onValue(ref(db, 'config_evento'), snap => {
             const cfg = snap.val() || {};
@@ -258,6 +286,11 @@
             renderCochePruebaEscape(s.val());
         });
 
+        onValue(ref(db, 'premio_publico_escapes'), s => {
+            premioPublicoActual = s.val();
+            renderPremioPublicoEscapes();
+        });
+
         function renderUltimoResultadoEscape(r) {
             const box = document.getElementById('ultimo-resultado-esc');
             if(!box || !r) {
@@ -307,6 +340,59 @@
         function escHtml(v) {
             return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
         }
+
+        async function renderPremioPublicoEscapes() {
+            const box = document.getElementById('premio-publico-esc');
+            if(!box) return;
+            const p = premioPublicoActual;
+            if(!p || (!p.activa && !p.ganador)) {
+                box.style.display = 'none';
+                box.innerHTML = '';
+                premioSeleccion = "";
+                return;
+            }
+            box.style.display = 'block';
+            if(p.activa) {
+                const votoSnap = await get(ref(db, `premio_publico_escapes/votos/${USER_ID}`));
+                premioSeleccion = votoSnap.val()?.categoria || "";
+                const candidatos = Object.values(p.candidatos || {});
+                box.innerHTML = `
+                    <h2>Premio del Público</h2>
+                    <p>${escHtml(p.pregunta || "Elige el coche con mejor sonoridad")}</p>
+                    <div class="premio-options">
+                        ${candidatos.map(c => `
+                            <button class="premio-btn ${premioSeleccion === c.categoria ? 'selected' : ''}" onclick="votarPremioPublico('${escHtml(c.categoria)}')">
+                                <b>${escHtml(c.categoria === 'diesel' ? 'DIÉSEL' : 'GASOLINA')} · #${escHtml(c.dorsal)} ${escHtml(c.piloto)}</b>
+                                <small>${escHtml(c.coche)} · ${Math.round(Number(c.hz || 0))} Hz · ${Number(c.db || 0).toFixed(1)} dB</small>
+                            </button>
+                        `).join('')}
+                    </div>`;
+                return;
+            }
+            const g = p.ganador || {};
+            box.innerHTML = `
+                <h2>Premio del Público</h2>
+                <p>Ganador de la votación final</p>
+                <div class="premio-btn selected">
+                    <b>${escHtml(g.categoria === 'diesel' ? 'DIÉSEL' : 'GASOLINA')} · #${escHtml(g.dorsal)} ${escHtml(g.piloto)}</b>
+                    <small>${escHtml(g.coche)} · ${Number(g.votos || 0)} votos</small>
+                </div>`;
+        }
+
+        window.votarPremioPublico = async (categoria) => {
+            const p = premioPublicoActual;
+            if(!p || !p.activa || !categoria) return;
+            const previoSnap = await get(ref(db, `premio_publico_escapes/votos/${USER_ID}`));
+            const previo = previoSnap.val()?.categoria || "";
+            if(previo === categoria) return;
+            const updates = {};
+            if(previo) updates[`premio_publico_escapes/candidatos/${previo}/votos`] = increment(-1);
+            updates[`premio_publico_escapes/candidatos/${categoria}/votos`] = increment(1);
+            updates[`premio_publico_escapes/votos/${USER_ID}`] = { categoria, ts: Date.now() };
+            await update(ref(db), updates);
+            premioSeleccion = categoria;
+            renderPremioPublicoEscapes();
+        };
 
         onValue(ref(db, 'estado_pista'), s => {
             const e = s.val();
@@ -433,7 +519,6 @@
     </script>
 </body>
 </html>
-
 
 
 

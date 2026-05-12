@@ -142,6 +142,20 @@
         .esc-result-box b { display: block; font-size: 1.45em; margin: 4px 0; }
         .podio-ok { color: #00ff99; }
         .podio-out { color: #ffcc00; }
+        .premio-card {
+            width: 90%;
+            max-width: 620px;
+            background: linear-gradient(180deg, rgba(255,204,0,.18), rgba(0,0,0,.86));
+            border: 2px solid #ffcc00;
+            border-radius: 15px;
+            padding: 16px;
+            margin: 0 0 22px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .premio-card h3 { margin:0 0 8px; color:#ffcc00; text-transform:uppercase; }
+        .premio-card p { margin:6px 0; color:#ddd; font-weight:800; }
+        .premio-card b { color:#fff; }
 
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4); }
@@ -174,6 +188,7 @@
     </div>
 
     <div id="ultimo-resultado-esc" class="esc-result-card" style="display:none"></div>
+    <div id="premio-publico-esc" class="premio-card" style="display:none"></div>
 
     <h2 id="ranking-title" style="margin-top:30px; font-size:1.2em">RANKING GENERAL</h2>
     <div id="esc-stats" class="esc-stats">
@@ -213,6 +228,7 @@
         let consultaRealizada = false;
         let ultimoResultadoTimer = null;
         let modoEscapesActivo = false;
+        let premioPublicoEscapes = null;
 
         onValue(ref(db, 'config_evento'), snap => {
             const cfg = snap.val() || {};
@@ -239,6 +255,36 @@
         onValue(ref(db, 'ultimo_resultado_escapes'), snap => {
             renderUltimoResultadoEscape(snap.val());
         });
+
+        onValue(ref(db, 'premio_publico_escapes'), snap => {
+            premioPublicoEscapes = snap.val();
+            renderPremioPublicoEscapes();
+        });
+
+        function renderPremioPublicoEscapes() {
+            const box = document.getElementById('premio-publico-esc');
+            const p = premioPublicoEscapes;
+            if(!box || !p || (!p.activa && !p.ganador)) {
+                if(box) { box.style.display = 'none'; box.innerHTML = ''; }
+                return;
+            }
+            box.style.display = 'block';
+            if(p.activa) {
+                const candidatos = Object.values(p.candidatos || {});
+                box.innerHTML = `
+                    <h3>Premio del Público abierto</h3>
+                    <p>Votación final entre los mejores coches de sonoridad.</p>
+                    ${candidatos.map(c => `<p><b>${escHtml(c.categoria === 'diesel' ? 'DIÉSEL' : 'GASOLINA')} · #${escHtml(c.dorsal)} ${escHtml(c.piloto)}</b><br>${escHtml(c.coche)}</p>`).join('')}
+                `;
+                return;
+            }
+            const g = p.ganador || {};
+            box.innerHTML = `
+                <h3>Premio del Público</h3>
+                <p>Ganador: <b>${escHtml(g.categoria === 'diesel' ? 'DIÉSEL' : 'GASOLINA')} · #${escHtml(g.dorsal)} ${escHtml(g.piloto)}</b></p>
+                <p>${escHtml(g.coche || '')} · ${Number(g.votos || 0)} votos</p>
+            `;
+        }
 
         function renderUltimoResultadoEscape(r) {
             const box = document.getElementById('ultimo-resultado-esc');
@@ -407,6 +453,7 @@
 </script>
 </body>
 </html>
+
 
 
 

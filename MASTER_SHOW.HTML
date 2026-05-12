@@ -420,20 +420,33 @@
         var raw = String(val || "").trim();
         var texto = normalizarTexto(raw);
         var dorsal = normalizarDorsal(raw);
+        var soloNumeros = /^\d+$/.test(raw);
         if(!texto){
           selectedEscDorsal = "";
           renderFichaEscape(null);
           document.getElementById('preview-esc').innerText = Object.keys(inscritosE).length ? "Busca dorsal, nombre o matricula." : "Primero carga un CSV de escapes.";
           return;
         }
-        var found = Object.entries(inscritosE).find(function(pair){
+        var entriesEsc = Object.entries(inscritosE || {});
+        var found = entriesEsc.find(function(pair){
           var key = pair[0], p = pair[1] || {};
           return normalizarDorsal(key) === dorsal ||
-                 normalizarDorsal(p.dorsal) === dorsal ||
-                 normalizarTexto(p.piloto).includes(texto) ||
-                 normalizarTexto(p.matricula).includes(texto) ||
-                 normalizarTexto(p.coche).includes(texto);
+                 normalizarDorsal(p.dorsal) === dorsal;
         });
+        if(!found && soloNumeros && raw.length >= 3) {
+          found = entriesEsc.find(function(pair){
+            var p = pair[1] || {};
+            return normalizarTexto(p.matricula).includes(texto);
+          });
+        }
+        if(!found && !soloNumeros) {
+          found = entriesEsc.find(function(pair){
+            var p = pair[1] || {};
+            return normalizarTexto(p.piloto).includes(texto) ||
+                   normalizarTexto(p.matricula).includes(texto) ||
+                   normalizarTexto(p.coche).includes(texto);
+          });
+        }
         if(!found){
           selectedEscDorsal = "";
           renderFichaEscape(null);
@@ -1507,5 +1520,4 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
-
 

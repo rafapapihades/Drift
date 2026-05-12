@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campeonato Escapes - Drift Show</title>
+  <style>
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      min-height:100vh;
+      padding:18px;
+      background:#000 url('Fibra3.png') center/420px;
+      color:#fff;
+      font-family:Arial, sans-serif;
+    }
+    .wrap { max-width:1100px; margin:0 auto; }
+    .logo { width:min(300px,80vw); display:block; margin:0 auto 12px; }
+    h1 { margin:0 0 16px; color:#ffcc00; text-align:center; text-transform:uppercase; font-family:Impact, "Arial Black", sans-serif; letter-spacing:.03em; }
+    .panel { background:rgba(10,10,10,.92); border:1px solid #333; border-radius:14px; padding:16px; margin-bottom:16px; }
+    .hint { color:#aaa; text-align:center; margin:0; font-weight:800; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+    .stat { background:#050505; border:1px solid #333; border-left:5px solid #ffcc00; border-radius:10px; padding:14px; text-align:center; }
+    .stat span { display:block; color:#aaa; text-transform:uppercase; font-size:.78em; font-weight:900; }
+    .stat b { display:block; color:#ffcc00; font-size:2em; margin-top:4px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:10px; border-bottom:1px solid #252525; text-align:left; vertical-align:top; }
+    th { color:#ffcc00; text-transform:uppercase; font-size:.78em; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#221800; color:#ffcc00; font-weight:900; font-size:.78em; }
+    .winner { color:#00ff99; font-weight:900; }
+    .empty { text-align:center; color:#aaa; padding:18px; }
+    .btn {
+      border:0;
+      border-radius:10px;
+      padding:13px 16px;
+      background:#ffcc00;
+      color:#000;
+      font-weight:900;
+      text-transform:uppercase;
+      cursor:pointer;
+      width:100%;
+      margin-top:10px;
+    }
+    @media (max-width:700px) {
+      .stats { grid-template-columns:1fr; }
+      table, thead, tbody, tr, td { display:block; width:100%; }
+      thead { display:none; }
+      tr { border-bottom:1px solid #333; padding:10px 0; }
+      td { border:0; padding:4px 0; }
+      td:before { content:attr(data-label) ": "; color:#ffcc00; font-weight:900; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <img class="logo" src="logo2.jpg" alt="Drift Show">
+    <h1>Campeonato Nacional de Escapes</h1>
+
+    <section class="stats">
+      <div class="stat"><span>Rondas guardadas</span><b id="st-rondas">0</b></div>
+      <div class="stat"><span>Participantes únicos</span><b id="st-participantes">0</b></div>
+      <div class="stat"><span>Puntos</span><b>--</b></div>
+    </section>
+
+    <section class="panel">
+      <p class="hint">Ranking de campeonato preparado. El reparto de puntos se activará cuando definamos el sistema.</p>
+      <button class="btn" onclick="publicarCampeonato()">PUBLICAR CAMPEONATO EN PÚBLICO / PARTICIPANTES</button>
+    </section>
+
+    <section class="panel">
+      <h1 style="font-size:1.5em">Rondas</h1>
+      <div id="tabla-rondas"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const db = getDatabase(initializeApp({ databaseURL:"https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" }));
+    let rondas = {};
+
+    onValue(ref(db, 'campeonato_escapes/rondas'), snap => {
+      rondas = snap.val() || {};
+      render();
+    });
+
+    function render() {
+      const arr = Object.values(rondas).sort((a,b) => Number(b.createdAt||0) - Number(a.createdAt||0));
+      document.getElementById('st-rondas').innerText = arr.length;
+      const participantes = new Set();
+      arr.forEach(r => Object.values(r.resultados || {}).forEach(p => participantes.add(String(p.matricula || p.dorsal || p.piloto))));
+      document.getElementById('st-participantes').innerText = participantes.size;
+      const cont = document.getElementById('tabla-rondas');
+      if(!arr.length) {
+        cont.innerHTML = '<div class="empty">Todavía no hay rondas guardadas</div>';
+        return;
+      }
+      cont.innerHTML = '<table><thead><tr><th>Ronda</th><th>Fecha</th><th>Resultados</th><th>Premio público</th></tr></thead><tbody>' +
+        arr.map(r => {
+          const pp = r.premioPublico || {};
+          const g = pp.ganador || {};
+          const ganador = g.piloto ? `<span class="winner">#${esc(g.dorsal)} ${esc(g.piloto)}</span><br><small>${esc(g.coche || '')}</small>` : `<span class="pill">${esc(pp.estado || 'pendiente')}</span>`;
+          return `<tr>
+            <td data-label="Ronda"><b>${esc(r.nombre || r.id)}</b><br><small>${esc(r.lugar || '')}</small></td>
+            <td data-label="Fecha">${esc(r.fecha || '')}</td>
+            <td data-label="Resultados">${Object.keys(r.resultados || {}).length}</td>
+            <td data-label="Premio público">${ganador}</td>
+          </tr>`;
+        }).join('') + '</tbody></table>';
+    }
+
+    window.publicarCampeonato = async function() {
+      await set(ref(db, 'campeonato_escapes_publicado'), { visible:true, rondas:rondas, updatedAt:Date.now() });
+      alert('Campeonato publicado. Los puntos se mostrarán cuando definamos el reparto.');
+    };
+
+    function esc(v) {
+      return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>

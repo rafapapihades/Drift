@@ -227,6 +227,8 @@
         <div class="mini-rank-box" id="rank-hz-gas"><b>MEDIA HZ GASOLINA</b></div>
         <div class="mini-rank-box" id="rank-hz-diesel"><b>MEDIA HZ DIESEL</b></div>
       </div>
+      <button class="btn" style="background:#ffcc00;color:#000" onclick="finalizarPruebaEscapes()">FINALIZAR PRUEBA Y ABRIR PREMIO DEL PÚBLICO</button>
+      <button class="btn" style="background:#6b1b8f" onclick="cerrarPremioPublicoEscapes()">CERRAR PREMIO DEL PÚBLICO</button>
       <button class="btn btn-reset" onclick="exportarEscapes()">DESCARGAR RESULTADOS ESCAPES</button>
     </div>
 
@@ -921,6 +923,116 @@
         return out;
       }
 
+      function ordenarRankingEscapes(lista, comb, campo){
+        var arr = (lista || []).filter(function(p){
+          return normComb(p.combustible || p.combustibleTexto) === comb && Number(p[campo]) > 0;
+        });
+        arr.sort(campo === 'db'
+          ? function(a,b){ return Number(b.db||0)-Number(a.db||0); }
+          : function(a,b){ return Number(a.hz||99999)-Number(b.hz||99999); });
+        return arr;
+      }
+
+      function crearRondaIdEscapes(){
+        var base = (configEvento.nombre || "RONDA").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase() || "RONDA";
+        return base + "_" + new Date().toISOString().slice(0,10).replace(/-/g, "") + "_" + Date.now();
+      }
+
+      function candidatoPremioPublico(p, categoria){
+        return {
+          id: categoria,
+          categoria: categoria,
+          dorsal: p.dorsal || "",
+          piloto: p.piloto || "",
+          matricula: p.matricula || "",
+          coche: p.coche || "",
+          combustible: p.combustibleTexto || p.combustible || "",
+          potencia: p.potencia || "",
+          db: p.db || 0,
+          hz: p.hz || 0,
+          votos: 0
+        };
+      }
+
+      window.finalizarPruebaEscapes = async function(){
+        var snap = await getOnce('ranking_escapes');
+        if(!snap.exists()) return alert("No hay resultados de escapes para finalizar.");
+        var lista = Object.values(snap.val() || {});
+        if(!lista.length) return alert("No hay resultados de escapes para finalizar.");
+
+        var mejorGasHz = ordenarRankingEscapes(lista, 'gasolina', 'hz')[0];
+        var mejorDieselHz = ordenarRankingEscapes(lista, 'diesel', 'hz')[0];
+        if(!mejorGasHz || !mejorDieselHz) {
+          return alert("Para abrir el Premio del Público hacen falta resultados de sonoridad en gasolina y diésel.");
+        }
+
+        var rondaId = crearRondaIdEscapes();
+        var nombreRonda = configEvento.nombre || "Ronda Drift Show";
+        var rankings = {
+          dbGasolina: ordenarRankingEscapes(lista, 'gasolina', 'db'),
+          dbDiesel: ordenarRankingEscapes(lista, 'diesel', 'db'),
+          hzGasolina: ordenarRankingEscapes(lista, 'gasolina', 'hz'),
+          hzDiesel: ordenarRankingEscapes(lista, 'diesel', 'hz')
+        };
+        var ronda = {
+          id: rondaId,
+          nombre: nombreRonda,
+          fecha: configEvento.fecha || new Date().toISOString().slice(0,10),
+          lugar: configEvento.lugar || "",
+          resultados: snap.val() || {},
+          rankings: rankings,
+          premioPublico: { estado:"abierto", ganador:null },
+          puntosAsignados: false,
+          createdAt: Date.now()
+        };
+
+        var candidatos = {
+          gasolina: candidatoPremioPublico(mejorGasHz, "gasolina"),
+          diesel: candidatoPremioPublico(mejorDieselHz, "diesel")
+        };
+
+        await db.ref().update({
+          ['campeonato_escapes/rondas/' + rondaId]: ronda,
+          'premio_publico_escapes': {
+            activa: true,
+            rondaId: rondaId,
+            nombreRonda: nombreRonda,
+            pregunta: "Premio del Público: ¿qué coche ha tenido mejor sonoridad?",
+            candidatos: candidatos,
+            abiertoAt: Date.now()
+          },
+          'modo_actual': 'tab-esc'
+        });
+        alert("Prueba finalizada. Premio del Público abierto entre gasolina y diésel.");
+      };
+
+      window.cerrarPremioPublicoEscapes = async function(){
+        var snap = await getOnce('premio_publico_escapes');
+        var premio = snap.val();
+        if(!premio || !premio.activa) return alert("No hay Premio del Público activo.");
+        var candidatos = premio.candidatos || {};
+        var lista = Object.values(candidatos);
+        if(!lista.length) return alert("No hay candidatos en la votación.");
+        lista.sort(function(a,b){ return Number(b.votos||0) - Number(a.votos||0); });
+        var ganador = lista[0];
+        ganador.cerradoAt = Date.now();
+        var updates = {
+          'premio_publico_escapes/activa': false,
+          'premio_publico_escapes/ganador': ganador,
+          'premio_publico_escapes/cerradoAt': Date.now()
+        };
+        if(premio.rondaId) {
+          updates['campeonato_escapes/rondas/' + premio.rondaId + '/premioPublico'] = {
+            estado: "cerrado",
+            candidatos: candidatos,
+            ganador: ganador,
+            cerradoAt: Date.now()
+          };
+        }
+        await db.ref().update(updates);
+        alert("Premio del Público cerrado. Ganador: #" + (ganador.dorsal || "") + " " + (ganador.piloto || ""));
+      };
+
       function descargarCsv(filename, content){
         var link = document.createElement("a");
         link.href = URL.createObjectURL(new Blob(["\ufeff" + content], { type:"text/csv;charset=utf-8;" }));
@@ -1395,4 +1507,5 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+
 

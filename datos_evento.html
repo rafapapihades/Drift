@@ -228,6 +228,7 @@
         <div class="wide"><label>Vehículo</label><input id="e-vehiculo"></div>
         <div><label>Combustible</label><select id="e-combustible"><option>Gasolina</option><option>Diésel</option></select></div>
         <div><label>Potencia CV</label><input id="e-potencia" inputmode="numeric"></div>
+        <div><label>Pagado</label><select id="e-pagado"><option value="No">No</option><option value="SI">Sí</option></select></div>
       </div>
       <div class="btn-row">
         <button class="btn-save" onclick="guardarEscape()">Guardar participante</button>
@@ -545,7 +546,7 @@
     function escapeDesdeForm(){
       var dorsal = val('e-dorsal') || siguienteNumero(escapes, 'dorsal');
       if(!dorsal || !val('e-nombre')) { alert("Falta dorsal o nombre."); return null; }
-      return { dorsal:dorsal, piloto:val('e-nombre'), instagram:val('e-instagram'), matricula:val('e-matricula').toUpperCase(), coche:val('e-vehiculo'), combustible:normComb(val('e-combustible')), combustibleTexto:normComb(val('e-combustible')), potencia:val('e-potencia') };
+      return { dorsal:dorsal, piloto:val('e-nombre'), instagram:val('e-instagram'), matricula:val('e-matricula').toUpperCase(), coche:val('e-vehiculo'), combustible:normComb(val('e-combustible')), combustibleTexto:normComb(val('e-combustible')), potencia:val('e-potencia'), pagado:boolSi(val('e-pagado')) };
     }
     window.guardarEscape = async function(){
       var p = escapeDesdeForm(); if(!p) return;
@@ -559,6 +560,7 @@
       editEscapeKey = "";
       ['e-dorsal','e-nombre','e-instagram','e-matricula','e-vehiculo','e-potencia'].forEach(function(id){ setVal(id,""); });
       document.getElementById('e-combustible').value = "Gasolina";
+      document.getElementById('e-pagado').value = "No";
     };
     window.editarEscape = function(key){
       var p = escapes[key]; if(!p) return;
@@ -570,6 +572,7 @@
       setVal('e-vehiculo', p.coche);
       document.getElementById('e-combustible').value = normComb(p.combustibleTexto || p.combustible);
       setVal('e-potencia', p.potencia);
+      document.getElementById('e-pagado').value = p.pagado ? "SI" : "No";
       window.scrollTo({ top:0, behavior:"smooth" });
     };
     window.borrarEscape = async function(key){
@@ -580,9 +583,9 @@
     };
     function renderEscapes(){
       var arr = Object.values(escapes).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); });
-      document.getElementById('tabla-escapes').innerHTML = tabla(['Dorsal','Nombre','Matrícula','Vehículo','Combustible','CV','Acciones'], arr.map(function(p){
+      document.getElementById('tabla-escapes').innerHTML = tabla(['Dorsal','Nombre','Matrícula','Vehículo','Combustible','CV','Pagado','Acciones'], arr.map(function(p){
         var key = normalizarDorsal(p.dorsal);
-        return [p.dorsal,p.piloto,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia,acciones("editarEscape('" + key + "')", "borrarEscape('" + key + "')")];
+        return [p.dorsal,p.piloto,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia,p.pagado ? "SI" : "No",acciones("editarEscape('" + key + "')", "borrarEscape('" + key + "')")];
       }));
     }
     window.importarEscapes = function(event){
@@ -594,7 +597,7 @@
         rows.forEach(function(r, idx){
           var dorsal = campo(r, ["Dorsal"]) || String(idx + 1);
           var comb = campo(r, ["Combustible"]);
-          var p = { dorsal:dorsal, piloto:campo(r, ["Nombre","Nombre+Apellidos","Piloto"]) || "", instagram:campo(r, ["Instagram"]) || "", matricula:(campo(r, ["Matricula","Matrícula"]) || "").toUpperCase(), coche:campo(r, ["Vehiculo","Vehículo","Marca+Modelo","MarcaModelo","Coche"]) || "", combustible:normComb(comb), combustibleTexto:normComb(comb), potencia:campo(r, ["PotenciaCV","Potencia (CV)","Potencia"]) || "" };
+          var p = { dorsal:dorsal, piloto:campo(r, ["Nombre","Nombre+Apellidos","Piloto"]) || "", instagram:campo(r, ["Instagram"]) || "", matricula:(campo(r, ["Matricula","Matrícula"]) || "").toUpperCase(), coche:campo(r, ["Vehiculo","Vehículo","Marca+Modelo","MarcaModelo","Coche"]) || "", combustible:normComb(comb), combustibleTexto:normComb(comb), potencia:campo(r, ["PotenciaCV","Potencia (CV)","Potencia"]) || "", pagado:boolSi(campo(r, ["Pagado","Pago","Paid"])) };
           if(p.piloto) obj[normalizarDorsal(dorsal)] = p;
         });
         escapes = obj;
@@ -607,9 +610,9 @@
       fr.readAsText(file, "UTF-8");
     };
     window.exportarEscapesInscritos = function(){
-      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV\n";
+      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV;Pagado\n";
       Object.values(escapes).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); }).forEach(function(p){
-        csv += csvLine([p.dorsal,p.piloto,p.instagram,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia]);
+        csv += csvLine([p.dorsal,p.piloto,p.instagram,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia,p.pagado ? "SI" : "No"]);
       });
       exportCsv("PARTICIPANTES_ESCAPES.csv", csv, async function(){
         if(confirm("¿Borrar inscritos y resultados de escapes?")){
@@ -836,3 +839,4 @@
   </script>
 </body>
 </html>
+

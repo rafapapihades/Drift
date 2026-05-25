@@ -231,7 +231,7 @@
         }
 
         function escapePagado(p) {
-            if(!p || !Object.prototype.hasOwnProperty.call(p, 'pagado')) return true;
+            if(!p || !Object.prototype.hasOwnProperty.call(p, 'pagado')) return false;
             const v = String(p.pagado || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             return p.pagado === true || ['si','s','yes','y','true','1','pagado','ok'].includes(v);
         }
@@ -525,5 +525,4 @@
     </script>
 </body>
 </html>
-
 

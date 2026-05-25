@@ -319,6 +319,18 @@
         return /^\d+$/.test(s) ? String(parseInt(s, 10)) : normalizarTexto(s);
       }
 
+      function pagadoCSV(v){
+        var raw = String(v == null ? "" : v).trim();
+        if(!raw) return true;
+        var s = normalizarTexto(raw);
+        return ["si","s","yes","y","true","1","pagado","ok"].includes(s);
+      }
+
+      function inscritoEscPagado(p){
+        if(!p || !Object.prototype.hasOwnProperty.call(p, 'pagado')) return true;
+        return p.pagado === true || pagadoCSV(p.pagado);
+      }
+
       function parseCSVLine(line, sep){
         var out = [], cur = "", inside = false;
         for(var i = 0; i < line.length; i++){
@@ -387,6 +399,7 @@
             var dorsalRaw = campoCSV(row, ["Dorsal"]) || String(idx + 1);
             var piloto = campoCSV(row, ["Nombre", "Nombre+Apellidos", "Piloto"]);
             if(!piloto) return;
+            if(!pagadoCSV(campoCSV(row, ["Pagado", "Pago", "Paid"]))) return;
             var comb = campoCSV(row, ["Combustible"]);
             var key = normalizarDorsal(dorsalRaw);
             obj[key] = {
@@ -1439,7 +1452,11 @@ window.exportarVotos = async function () {
       });
 
       db.ref('inscritos_esc').on('value', function(s){
-        inscritosE = s.val() || {};
+        var data = s.val() || {};
+        inscritosE = {};
+        Object.entries(data).forEach(function(pair){
+          if(inscritoEscPagado(pair[1])) inscritosE[pair[0]] = pair[1];
+        });
         renderListaEscapesCargados();
         actualizarTiemposEscapes();
       });

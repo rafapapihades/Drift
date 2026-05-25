@@ -43,6 +43,23 @@
       outline:none;
     }
     input:focus, select:focus { border-color:var(--accent); }
+    .check-row {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-height:46px;
+      padding:10px 12px;
+      background:#000;
+      border:1px solid #444;
+      border-radius:8px;
+      color:#fff;
+      font-weight:900;
+      text-transform:uppercase;
+    }
+    .check-row input { width:auto; min-height:0; transform:scale(1.4); accent-color:var(--accent); }
+    .paid-pill { display:inline-block; padding:4px 8px; border-radius:999px; font-weight:900; font-size:.78em; }
+    .paid-ok { background:#073d1e; color:#00ff88; border:1px solid #0c8f46; }
+    .paid-no { background:#351010; color:#ff7777; border:1px solid #6b1a1a; }
     .dorsal-box {
       display:flex;
       align-items:center;
@@ -97,7 +114,8 @@
       td:nth-child(2) { font-size:1.02em; }
       td:nth-child(3) { color:#ddd; }
       td:nth-child(4), td:nth-child(5) { display:none; }
-      td:nth-child(6) { grid-column:1 / -1; margin-top:8px; }
+      td:nth-child(6) { grid-column:2; }
+      td:nth-child(7) { grid-column:1 / -1; margin-top:8px; }
       .row-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
       .row-actions button { width:100%; padding:12px 8px; }
     }
@@ -106,38 +124,40 @@
 <body>
   <main class="container">
     <img src="logo_peq.png" alt="Drift Show" class="logo">
-    <h1>Registro Competición Escapes</h1>
+    <h1>Registro CompeticiÃ³n Escapes</h1>
 
     <section class="panel">
       <span class="section-title">Nuevo participante</span>
       <div class="dorsal-box">
-        <span>Próximo dorsal</span>
+        <span>PrÃ³ximo dorsal</span>
         <b id="next-dorsal">1</b>
       </div>
       <div class="grid">
         <input id="nombre" type="text" placeholder="Nombre y Apellidos">
         <input id="instagram" type="text" placeholder="Instagram">
-        <input id="matricula" type="text" placeholder="Matrícula">
+        <input id="matricula" type="text" placeholder="MatrÃ­cula">
         <input id="coche" type="text" placeholder="Marca + Modelo">
         <select id="combustible">
           <option value="Gasolina">Gasolina</option>
-          <option value="Diésel">Diésel</option>
+          <option value="DiÃ©sel">DiÃ©sel</option>
         </select>
         <input id="potencia" type="number" min="0" placeholder="Potencia (CV)">
+        <label class="check-row"><input id="pagado" type="checkbox"> Pagado</label>
       </div>
       <div class="actions" style="margin-top:12px">
         <button class="btn-main" onclick="guardarParticipante()">Guardar participante</button>
         <button class="btn-dark" onclick="limpiarFormulario()">Limpiar</button>
       </div>
-      <p class="hint">El dorsal se asigna solo con el siguiente número libre. Si borras el último participante, ese dorsal vuelve a quedar disponible.</p>
+      <p class="hint">El dorsal se asigna solo con el siguiente nÃºmero libre. Si borras el Ãºltimo participante, ese dorsal vuelve a quedar disponible.</p>
     </section>
 
     <section class="panel">
       <span class="section-title">Lista de inscritos</span>
       <div class="summary">
         <div><b id="total">0</b>Inscritos</div>
+        <div><b id="pagados">0</b>Pagados</div>
         <div><b id="gasolina">0</b>Gasolina</div>
-        <div><b id="diesel">0</b>Diésel</div>
+        <div><b id="diesel">0</b>DiÃ©sel</div>
       </div>
       <div class="actions" style="margin-bottom:12px">
         <button class="btn-ok" onclick="exportarCSV()">Exportar CSV MASTER_SHOW</button>
@@ -182,12 +202,15 @@
     }
 
     function valor(id){ return document.getElementById(id).value.trim(); }
+    function estaPagado(p){ return p && (p.pagado === true || ["si","s","yes","y","true","1","pagado","ok"].includes(normalizarTexto(p.pagado))); }
+    function textoPagado(v){ return v ? "SI" : "NO"; }
+    function boolSi(v){ return ["si","s","yes","y","true","1","pagado","ok"].includes(normalizarTexto(v)); }
 
     window.guardarParticipante = function(){
       var nombre = valor("nombre");
       var matricula = valor("matricula").toUpperCase();
       var coche = valor("coche");
-      if(!nombre || !matricula || !coche) return alert("Faltan nombre, matrícula o coche.");
+      if(!nombre || !matricula || !coche) return alert("Faltan nombre, matrÃ­cula o coche.");
 
       var dorsal = editandoDorsal || siguienteDorsal();
       var p = {
@@ -197,7 +220,8 @@
         matricula: matricula,
         coche: coche,
         combustible: document.getElementById("combustible").value,
-        potencia: valor("potencia")
+        potencia: valor("potencia"),
+        pagado: document.getElementById("pagado").checked
       };
 
       var idx = participantes.findIndex(function(x){ return String(x.dorsal) === String(dorsal); });
@@ -213,6 +237,7 @@
       editandoDorsal = null;
       ["nombre","instagram","matricula","coche","potencia"].forEach(function(id){ document.getElementById(id).value = ""; });
       document.getElementById("combustible").value = "Gasolina";
+      document.getElementById("pagado").checked = false;
       document.querySelector(".btn-main").innerText = "Guardar participante";
       renderDorsal();
     };
@@ -226,17 +251,26 @@
       document.getElementById("instagram").value = p.instagram || "";
       document.getElementById("matricula").value = p.matricula || "";
       document.getElementById("coche").value = p.coche || "";
-      document.getElementById("combustible").value = normalizarCombustible(p.combustible) === "diesel" ? "Diésel" : "Gasolina";
+      document.getElementById("combustible").value = normalizarCombustible(p.combustible) === "diesel" ? "DiÃ©sel" : "Gasolina";
       document.getElementById("potencia").value = p.potencia || "";
+      document.getElementById("pagado").checked = estaPagado(p);
       document.querySelector(".btn-main").innerText = "Guardar cambios dorsal " + p.dorsal;
       window.scrollTo({ top:0, behavior:"smooth" });
     };
 
     window.borrar = function(dorsal){
-      if(!confirm("¿Borrar el dorsal " + dorsal + "?")) return;
+      if(!confirm("Â¿Borrar el dorsal " + dorsal + "?")) return;
       participantes = participantes.filter(function(p){ return String(p.dorsal) !== String(dorsal); });
       guardarLocal();
       limpiarFormulario();
+      render();
+    };
+
+    window.togglePagado = function(dorsal, checked){
+      var p = participantes.find(function(x){ return String(x.dorsal) === String(dorsal); });
+      if(!p) return;
+      p.pagado = !!checked;
+      guardarLocal();
       render();
     };
 
@@ -251,13 +285,14 @@
       render();
     };
     window.exportarCSV = function(){
-      if(!participantes.length) return alert("No hay inscritos para exportar.");
-      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV\n";
-      participantes
+      var pagados = participantes.filter(estaPagado);
+      if(!pagados.length) return alert("No hay inscritos pagados para exportar.");
+      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV;Pagado\n";
+      pagados
         .slice()
         .sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); })
         .forEach(function(p){
-          csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.combustible, p.potencia].map(csvCell).join(";") + "\n";
+          csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.combustible, p.potencia, textoPagado(estaPagado(p))].map(csvCell).join(";") + "\n";
         });
       var a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type:"text/csv;charset=utf-8;" }));
@@ -288,7 +323,8 @@
             matricula: (campoCSV(row, ["Matricula", "Matr?cula"]) || "").toUpperCase(),
             coche: campoCSV(row, ["Vehiculo", "Veh?culo", "Marca+Modelo", "MarcaModelo", "Coche"]),
             combustible: normalizarCombustible(comb) === "diesel" ? "Di?sel" : "Gasolina",
-            potencia: campoCSV(row, ["PotenciaCV", "Potencia (CV)", "Potencia"])
+            potencia: campoCSV(row, ["PotenciaCV", "Potencia (CV)", "Potencia"]),
+            pagado: boolSi(campoCSV(row, ["Pagado", "Pago", "Paid"]))
           });
         });
         participantes = importados.sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
@@ -361,9 +397,10 @@
     }
 
     window.publicarFirebase = async function(){
-      if(!participantes.length) return alert("No hay inscritos para publicar.");
+      var pagados = participantes.filter(estaPagado);
+      if(!pagados.length) return alert("No hay inscritos pagados para publicar.");
       var obj = {};
-      participantes.forEach(function(p){
+      pagados.forEach(function(p){
         var key = normalizarDorsal(p.dorsal);
         obj[key] = {
           dorsal: p.dorsal,
@@ -373,15 +410,16 @@
           coche: p.coche || "",
           combustible: normalizarCombustible(p.combustible),
           combustibleTexto: p.combustible || "",
-          potencia: p.potencia || ""
+          potencia: p.potencia || "",
+          pagado: true
         };
       });
       await db.ref('inscritos_esc').set(obj);
       await db.ref('ranking_escapes').remove();
       await db.ref('crono_evento').remove();
       await db.ref('escape_prueba_actual').remove();
-      document.getElementById("status").innerText = "Publicado en MASTER: " + Object.keys(obj).length + " inscritos.";
-      alert("Participantes publicados en MASTER_SHOW.");
+      document.getElementById("status").innerText = "Publicado en MASTER: " + Object.keys(obj).length + " pagados de " + participantes.length + " inscritos.";
+      alert("Participantes pagados publicados en MASTER_SHOW.");
     };
 
     function renderDorsal(){
@@ -391,11 +429,12 @@
     function render(){
       renderDorsal();
       document.getElementById("total").innerText = participantes.length;
+      document.getElementById("pagados").innerText = participantes.filter(estaPagado).length;
       document.getElementById("gasolina").innerText = participantes.filter(function(p){ return normalizarCombustible(p.combustible) === "gasolina"; }).length;
       document.getElementById("diesel").innerText = participantes.filter(function(p){ return normalizarCombustible(p.combustible) === "diesel"; }).length;
 
       if(!participantes.length) {
-        document.getElementById("tabla").innerHTML = '<div class="empty">Todavía no hay inscritos.</div>';
+        document.getElementById("tabla").innerHTML = '<div class="empty">TodavÃ­a no hay inscritos.</div>';
         return;
       }
       var rows = participantes.map(function(p){
@@ -405,10 +444,11 @@
           '<td>' + esc(p.matricula) + '</td>' +
           '<td>' + esc(p.coche) + '</td>' +
           '<td>' + esc(p.combustible) + '<br><small>' + esc(p.potencia) + ' CV</small></td>' +
+          '<td><label class="paid-pill ' + (estaPagado(p) ? 'paid-ok' : 'paid-no') + '"><input type="checkbox" ' + (estaPagado(p) ? 'checked' : '') + ' onchange="togglePagado(\'' + p.dorsal + '\', this.checked)"> ' + (estaPagado(p) ? 'PAGADO' : 'NO') + '</label></td>' +
           '<td><div class="row-actions"><button class="btn-dark" onclick="editar(\'' + p.dorsal + '\')">Editar</button><button class="btn-danger" onclick="borrar(\'' + p.dorsal + '\')">Borrar</button></div></td>' +
         '</tr>';
       }).join("");
-      document.getElementById("tabla").innerHTML = '<table><thead><tr><th>Dorsal</th><th>Participante</th><th>Matrícula</th><th>Coche</th><th>Motor</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+      document.getElementById("tabla").innerHTML = '<table><thead><tr><th>Dorsal</th><th>Participante</th><th>MatrÃ­cula</th><th>Coche</th><th>Motor</th><th>Pagado</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
     }
 
     function esc(v){

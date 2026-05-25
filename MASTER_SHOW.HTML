@@ -321,13 +321,13 @@
 
       function pagadoCSV(v){
         var raw = String(v == null ? "" : v).trim();
-        if(!raw) return true;
+        if(!raw) return false;
         var s = normalizarTexto(raw);
         return ["si","s","yes","y","true","1","pagado","ok"].includes(s);
       }
 
       function inscritoEscPagado(p){
-        if(!p || !Object.prototype.hasOwnProperty.call(p, 'pagado')) return true;
+        if(!p || !Object.prototype.hasOwnProperty.call(p, 'pagado')) return false;
         return p.pagado === true || pagadoCSV(p.pagado);
       }
 
@@ -1537,4 +1537,5 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+
 

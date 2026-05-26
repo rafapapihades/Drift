@@ -162,6 +162,7 @@
       <div class="actions" style="margin-bottom:12px">
         <button class="btn-ok" onclick="exportarCSV()">Exportar CSV MASTER_SHOW</button>
         <button class="btn-dark" onclick="importFile.click()">Importar CSV</button>
+        <button class="btn-dark" onclick="cargarDesdeGestion()">Cargar desde gestión</button>
         <button class="btn-ok" onclick="publicarFirebase()">Publicar en MASTER</button>
         <button class="btn-danger" onclick="reiniciarTodo()">Reiniciar lista</button>
       </div>
@@ -396,11 +397,35 @@
       return normalizarTexto(v).includes("diesel") ? "diesel" : "gasolina";
     }
 
+    window.cargarDesdeGestion = async function(){
+      if(participantes.length && !confirm("Esto reemplazará la lista local de registro por los inscritos guardados en Gestión de datos del evento. ¿Continuar?")) return;
+      var snap = await db.ref('inscritos_esc').once('value');
+      var data = snap.val() || {};
+      participantes = Object.values(data)
+        .map(function(p){
+          return {
+            dorsal: p.dorsal || "",
+            piloto: p.piloto || "",
+            instagram: p.instagram || "",
+            matricula: p.matricula || "",
+            coche: p.coche || "",
+            combustible: p.combustibleTexto || p.combustible || "Gasolina",
+            potencia: p.potencia || "",
+            pagado: estaPagado(p)
+          };
+        })
+        .filter(function(p){ return p.dorsal && p.piloto; })
+        .sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
+      guardarLocal();
+      limpiarFormulario();
+      render();
+      document.getElementById("status").innerText = "Lista local sincronizada desde Gestión: " + participantes.length + " inscritos, " + participantes.filter(estaPagado).length + " pagados.";
+    };
+
     window.publicarFirebase = async function(){
-      var pagados = participantes.filter(estaPagado);
-      if(!pagados.length) return alert("No hay inscritos pagados para publicar.");
+      if(!participantes.length) return alert("No hay inscritos para publicar.");
       var obj = {};
-      pagados.forEach(function(p){
+      participantes.forEach(function(p){
         var key = normalizarDorsal(p.dorsal);
         obj[key] = {
           dorsal: p.dorsal,
@@ -411,15 +436,15 @@
           combustible: normalizarCombustible(p.combustible),
           combustibleTexto: p.combustible || "",
           potencia: p.potencia || "",
-          pagado: true
+          pagado: estaPagado(p)
         };
       });
       await db.ref('inscritos_esc').set(obj);
       await db.ref('ranking_escapes').remove();
       await db.ref('crono_evento').remove();
       await db.ref('escape_prueba_actual').remove();
-      document.getElementById("status").innerText = "Publicado en MASTER: " + Object.keys(obj).length + " pagados de " + participantes.length + " inscritos.";
-      alert("Participantes pagados publicados en MASTER_SHOW.");
+      document.getElementById("status").innerText = "Publicado en MASTER: " + participantes.filter(estaPagado).length + " pagados de " + participantes.length + " inscritos.";
+      alert("Participantes publicados. En competición solo aparecerán los marcados como pagados.");
     };
 
     function renderDorsal(){

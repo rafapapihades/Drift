@@ -167,7 +167,7 @@
         <button class="btn-danger" onclick="reiniciarTodo()">Reiniciar lista</button>
       </div>
       <input id="importFile" type="file" accept=".csv" style="display:none" onchange="importarCSV(event)">
-      <div class="status" id="status">Trabajo local. Publica en MASTER cuando quieras usar esta lista.</div>
+      <div class="status" id="status">Sincronizando con Gestión de datos del evento...</div>
       <div id="tabla"></div>
     </section>
   </main>
@@ -178,12 +178,23 @@
     firebase.initializeApp({ databaseURL:"https://lectura-sonido-drift-show-default-rtdb.firebaseio.com" });
     var db = firebase.database();
     var STORAGE_KEY = "registro_escapes_participantes_v1";
-    var participantes = cargarLocal();
+    var participantes = [];
     var editandoDorsal = null;
     var configEvento = {};
 
     db.ref('config_evento').on('value', function(s){
       configEvento = s.val() || {};
+    });
+
+    db.ref('inscritos_esc').on('value', function(s){
+      var data = s.val() || {};
+      participantes = Object.values(data)
+        .map(normalizarParticipanteFirebase)
+        .filter(function(p){ return p.dorsal && p.piloto; })
+        .sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(participantes));
+      render();
+      document.getElementById("status").innerText = "Sincronizado con Gestión de datos del evento.";
     });
 
     function cargarLocal(){
@@ -193,6 +204,34 @@
 
     function guardarLocal(){
       localStorage.setItem(STORAGE_KEY, JSON.stringify(participantes));
+    }
+
+    function normalizarParticipanteFirebase(p){
+      p = p || {};
+      return {
+        dorsal: String(p.dorsal || ""),
+        piloto: p.piloto || "",
+        instagram: p.instagram || "",
+        matricula: p.matricula || "",
+        coche: p.coche || "",
+        combustible: p.combustibleTexto || p.combustible || "Gasolina",
+        potencia: p.potencia || "",
+        pagado: estaPagado(p)
+      };
+    }
+
+    function participanteParaFirebase(p){
+      return {
+        dorsal: String(p.dorsal || ""),
+        piloto: p.piloto || "",
+        instagram: p.instagram || "",
+        matricula: p.matricula || "",
+        coche: p.coche || "",
+        combustible: normalizarCombustible(p.combustible),
+        combustibleTexto: p.combustible || "",
+        potencia: p.potencia || "",
+        pagado: estaPagado(p)
+      };
     }
 
     function siguienteDorsal(){
@@ -207,7 +246,7 @@
     function textoPagado(v){ return v ? "SI" : "NO"; }
     function boolSi(v){ return ["si","s","yes","y","true","1","pagado","ok"].includes(normalizarTexto(v)); }
 
-    window.guardarParticipante = function(){
+    window.guardarParticipante = async function(){
       var nombre = valor("nombre");
       var matricula = valor("matricula").toUpperCase();
       var coche = valor("coche");
@@ -225,13 +264,8 @@
         pagado: document.getElementById("pagado").checked
       };
 
-      var idx = participantes.findIndex(function(x){ return String(x.dorsal) === String(dorsal); });
-      if(idx >= 0) participantes[idx] = p;
-      else participantes.push(p);
-      participantes.sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
-      guardarLocal();
+      await db.ref('inscritos_esc/' + normalizarDorsal(dorsal)).set(participanteParaFirebase(p));
       limpiarFormulario();
-      render();
     };
 
     window.limpiarFormulario = function(){
@@ -259,31 +293,28 @@
       window.scrollTo({ top:0, behavior:"smooth" });
     };
 
-    window.borrar = function(dorsal){
+    window.borrar = async function(dorsal){
       if(!confirm("Â¿Borrar el dorsal " + dorsal + "?")) return;
-      participantes = participantes.filter(function(p){ return String(p.dorsal) !== String(dorsal); });
-      guardarLocal();
+      await db.ref('inscritos_esc/' + normalizarDorsal(dorsal)).remove();
       limpiarFormulario();
-      render();
     };
 
-    window.togglePagado = function(dorsal, checked){
+    window.togglePagado = async function(dorsal, checked){
       var p = participantes.find(function(x){ return String(x.dorsal) === String(dorsal); });
       if(!p) return;
-      p.pagado = !!checked;
-      guardarLocal();
-      render();
+      await db.ref('inscritos_esc/' + normalizarDorsal(dorsal) + '/pagado').set(!!checked);
     };
 
-    window.reiniciarTodo = function(){
-      if(!confirm("Vas a borrar todos los inscritos de escapes de este dispositivo. ?Continuar?")) return;
-      if(!confirm("Segunda confirmaci?n: esta lista local quedar? vac?a. ?Seguro?")) return;
+    window.reiniciarTodo = async function(){
+      if(!confirm("Vas a borrar todos los inscritos de escapes del evento. ?Continuar?")) return;
+      if(!confirm("Segunda confirmaci?n: se borrará también de Gestión de datos del evento. ?Seguro?")) return;
       var txt = prompt("Escribe BORRAR para confirmar el reinicio de la lista.");
       if(String(txt || "").trim().toUpperCase() !== "BORRAR") return;
-      participantes = [];
-      guardarLocal();
+      await db.ref('inscritos_esc').remove();
+      await db.ref('ranking_escapes').remove();
+      await db.ref('crono_evento').remove();
+      await db.ref('escape_prueba_actual').remove();
       limpiarFormulario();
-      render();
     };
     window.exportarCSV = function(){
       var pagados = participantes.filter(estaPagado);
@@ -300,7 +331,7 @@
       a.download = slugEvento() + "_PARTICIPANTES_ESCAPES.csv";
       a.click();
       setTimeout(function(){
-        if(confirm("Exportaci?n generada. ?Quieres reiniciar esta lista local de escapes?")) reiniciarTodo();
+        if(confirm("Exportaci?n generada. ?Quieres reiniciar la lista de escapes del evento?")) reiniciarTodo();
       }, 700);
     };
 
@@ -308,16 +339,16 @@
       var file = event.target.files && event.target.files[0];
       if(!file) return;
       var reader = new FileReader();
-      reader.onload = function(e){
+      reader.onload = async function(e){
         var rows = parseCSVText(e.target.result);
         if(!rows.length) return alert("CSV vac?o.");
-        var importados = [];
+        var importados = {};
         rows.forEach(function(row, idx){
           var dorsal = campoCSV(row, ["Dorsal"]) || String(idx + 1);
           var nombre = campoCSV(row, ["Nombre", "Nombre+Apellidos", "Piloto"]);
           var comb = campoCSV(row, ["Combustible"]);
           if(!nombre) return;
-          importados.push({
+          var p = {
             dorsal: dorsal,
             piloto: nombre,
             instagram: campoCSV(row, ["Instagram", "IG"]),
@@ -326,13 +357,15 @@
             combustible: normalizarCombustible(comb) === "diesel" ? "Di?sel" : "Gasolina",
             potencia: campoCSV(row, ["PotenciaCV", "Potencia (CV)", "Potencia"]),
             pagado: boolSi(campoCSV(row, ["Pagado", "Pago", "Paid"]))
-          });
+          };
+          importados[normalizarDorsal(dorsal)] = participanteParaFirebase(p);
         });
-        participantes = importados.sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
-        guardarLocal();
+        await db.ref('inscritos_esc').set(importados);
+        await db.ref('ranking_escapes').remove();
+        await db.ref('crono_evento').remove();
+        await db.ref('escape_prueba_actual').remove();
         limpiarFormulario();
-        render();
-        alert("Importados " + participantes.length + " inscritos.");
+        alert("Importados " + Object.keys(importados).length + " inscritos en Gestión.");
         event.target.value = "";
       };
       reader.readAsText(file, "UTF-8");
@@ -398,22 +431,10 @@
     }
 
     window.cargarDesdeGestion = async function(){
-      if(participantes.length && !confirm("Esto reemplazará la lista local de registro por los inscritos guardados en Gestión de datos del evento. ¿Continuar?")) return;
       var snap = await db.ref('inscritos_esc').once('value');
       var data = snap.val() || {};
       participantes = Object.values(data)
-        .map(function(p){
-          return {
-            dorsal: p.dorsal || "",
-            piloto: p.piloto || "",
-            instagram: p.instagram || "",
-            matricula: p.matricula || "",
-            coche: p.coche || "",
-            combustible: p.combustibleTexto || p.combustible || "Gasolina",
-            potencia: p.potencia || "",
-            pagado: estaPagado(p)
-          };
-        })
+        .map(normalizarParticipanteFirebase)
         .filter(function(p){ return p.dorsal && p.piloto; })
         .sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); });
       guardarLocal();
@@ -427,17 +448,7 @@
       var obj = {};
       participantes.forEach(function(p){
         var key = normalizarDorsal(p.dorsal);
-        obj[key] = {
-          dorsal: p.dorsal,
-          piloto: p.piloto,
-          instagram: p.instagram || "",
-          matricula: p.matricula || "",
-          coche: p.coche || "",
-          combustible: normalizarCombustible(p.combustible),
-          combustibleTexto: p.combustible || "",
-          potencia: p.potencia || "",
-          pagado: estaPagado(p)
-        };
+        obj[key] = participanteParaFirebase(p);
       });
       await db.ref('inscritos_esc').set(obj);
       await db.ref('ranking_escapes').remove();
@@ -486,5 +497,4 @@
   </script>
 </body>
 </html>
-
 

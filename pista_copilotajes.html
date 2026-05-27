@@ -133,7 +133,14 @@
             const bajas = data.pilotos_baja || [];
             const activos = config.filter(p => !bajas.includes(p));
             if(activos.length) {
-                pilotosDisponibles = activos.map(p => ({ dorsal: extraerDorsal(p), label: p }));
+                pilotosDisponibles = activos.map(p => {
+                    const dorsal = extraerDorsal(p);
+                    const ficha = obtenerFichaPiloto(dorsal);
+                    const label = dorsal && ficha && (ficha.piloto || ficha.alias || ficha.coche)
+                        ? `[#${dorsal}] ${ficha.alias || ficha.piloto || ''} | ${ficha.coche || ''}`
+                        : p;
+                    return { dorsal, label };
+                });
             }
         });
 

@@ -46,7 +46,7 @@
         td { padding: 12px 5px; border-bottom: 1px solid #222; font-family: sans-serif; font-size: 0.85em;}
         .n-papel-cola { color: #000; background: var(--accent); font-weight: 900; font-family: monospace; font-size: 1.4em; padding: 5px 10px; border-radius: 5px; display: inline-block; min-width: 45px; text-align: center; }
         .btn-acceso { background: var(--blue); color: #fff; border: none; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .badge-recinto { background: #111; color: var(--blue); border: 1px solid var(--blue); padding: 5px; border-radius: 5px; font-size: 0.7em; font-weight: bold; }
+        .badge-recinto { background: #111; color: var(--blue); border: 1px solid var(--blue); padding: 5px 7px; border-radius: 5px; font-size: 0.7em; font-weight: bold; display:inline-flex; align-items:center; justify-content:center; max-width:86px; white-space:normal; line-height:1.05; text-align:center; overflow-wrap:anywhere; }
         
         /* Modal Pilotos */
         #modal-pilotos { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; padding:20px; box-sizing:border-box; }
@@ -119,6 +119,7 @@
     <div class="controls-row">
         <button class="btn-mini" id="btn-cargar-pilotos" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (0)</button>
         <button class="btn-mini" id="btn-estado-pilotos" onclick="document.getElementById('modal-pilotos').style.display='block'" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS (0)</button>
+        <button class="btn-mini" id="btn-preinscripcion" onclick="togglePreinscripcion()" style="color:var(--orange); border-color:var(--orange);">CERRAR PREINSCRIPCIÃ“N</button>
         <button class="btn-mini" id="btn-sorteo" onclick="abrirSorteo()" style="color:var(--accent); border-color:var(--accent);">SORTEO VOTANTES</button>
         <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">EXPORTAR Y REINICIAR</button>
     </div>
@@ -138,6 +139,10 @@
         <div style="max-width: 500px; margin: auto; background: #111; padding: 24px; border-radius: 15px; border: 1px solid var(--accent); text-align:center;">
             <h2 style="color:var(--accent); margin-top:0;">SORTEO DE VOTANTES</h2>
             <div class="sorteo-info" id="sorteo-total">Participantes cargados: 0</div>
+            <select id="sorteo-modo" class="input-huge" style="height:48px; margin:12px 0;">
+                <option value="aleatorio">Aleatorio</option>
+                <option value="mas_votos">MÃ¡s votaciones</option>
+            </select>
             <div class="sorteo-numero" id="sorteo-numero">---</div>
             <div class="sorteo-info" id="sorteo-detalle">Pulsa sortear para elegir un participante.</div>
             <button class="btn-add-massive" style="height:60px; margin-top:20px; font-size:1em;" onclick="sortearParticipante()">SORTEAR</button>
@@ -274,6 +279,19 @@
                 alert("Faltan datos obligatorios: nombre, DNI y fecha de nacimiento.");
                 return;
             }
+            const edad = calcularEdad(fecha);
+            if(edad === null) {
+                alert("Revisa la fecha de nacimiento. Usa DD/MM/AAAA.");
+                return;
+            }
+            if(edad < 16) {
+                alert("No puede participar: la edad mÃ­nima para Taxidrift es 16 aÃ±os.");
+                return;
+            }
+            if(edad < 18 && (!document.getElementById('tutor-nombre').value.trim() || !document.getElementById('tutor-dni').value.trim())) {
+                alert("Los participantes de 16 y 17 aÃ±os necesitan datos completos del tutor.");
+                return;
+            }
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
             const nombreTutor = document.getElementById('c-nombre-tutor').value.trim() || registroRecuperado?.tutor || registroRecuperado?.nombreTutor || "";
             const dniTutor = document.getElementById('c-dni-tutor').value.trim() || registroRecuperado?.tutor_dni || registroRecuperado?.dniTutor || "";
@@ -317,7 +335,20 @@
             configEvento = snap.val() || {};
             const el = document.getElementById('nombre-evento');
             if(el) el.innerText = configEvento.nombre || "NOMBRE DEL EVENTO";
+            const btnPre = document.getElementById('btn-preinscripcion');
+            if(btnPre) {
+                const abierta = configEvento.preinscripcionAbierta !== false;
+                btnPre.innerText = abierta ? "CERRAR PREINSCRIPCIÃ“N" : "ABRIR PREINSCRIPCIÃ“N";
+                btnPre.style.color = abierta ? "var(--orange)" : "var(--green)";
+                btnPre.style.borderColor = abierta ? "var(--orange)" : "var(--green)";
+            }
         });
+
+        window.togglePreinscripcion = async () => {
+            const abierta = configEvento.preinscripcionAbierta !== false;
+            if(!confirm(abierta ? "Â¿Cerrar preinscripciones de Taxidrift?" : "Â¿Abrir preinscripciones de Taxidrift?")) return;
+            await update(ref(db, 'config_evento'), { preinscripcionAbierta: !abierta, updatedAt: Date.now() });
+        };
 
         onValue(ref(db, 'pilotos_evento'), (snap) => {
             pilotosEvento = snap.val() || {};
@@ -405,11 +436,22 @@
             });
         };
 
+        function calcularEdad(f) {
+            const parts = String(f || '').split('/');
+            if(parts.length !== 3) return null;
+            const fecha = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            if(isNaN(fecha.getTime())) return null;
+            const hoy = new Date();
+            let edad = hoy.getFullYear() - fecha.getFullYear();
+            const m = hoy.getMonth() - fecha.getMonth();
+            if(m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())) edad--;
+            return edad;
+        }
+
         window.validarEdad = (f) => {
             if(f.length < 10) return;
-            const parts = f.split('/');
-            const year = parseInt(parts[2]);
-            const edad = new Date().getFullYear() - year;
+            const edad = calcularEdad(f);
+            if(edad === null) return;
             esMenorFlag = edad < 18;
             document.getElementById('box-menor').style.display = esMenorFlag ? 'block' : 'none';
         };
@@ -452,11 +494,14 @@
                 document.getElementById('sorteo-detalle').innerText = 'Todavía no hay participantes con votos registrados.';
                 return;
             }
-            const ganador = participantes[Math.floor(Math.random() * participantes.length)];
+            const modo = document.getElementById('sorteo-modo').value || "aleatorio";
+            const ordenados = participantes.slice().sort((a,b) => Number(b.votos_totales||0) - Number(a.votos_totales||0));
+            const ganador = modo === "mas_votos" ? ordenados[0] : participantes[Math.floor(Math.random() * participantes.length)];
             const votos = ganador.votos_totales || 0;
             const ultimo = ganador.ultimo_voto ? new Date(ganador.ultimo_voto).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }) : '-';
             document.getElementById('sorteo-numero').innerText = ganador.id;
-            document.getElementById('sorteo-detalle').innerText = `Votos registrados: ${votos} · Último voto: ${ultimo}`;
+            document.getElementById('sorteo-detalle').innerText = `${modo === "mas_votos" ? "Ganador por más votaciones" : "Ganador aleatorio"} · Votos registrados: ${votos} · Último voto: ${ultimo}`;
+            await set(ref(db, 'sorteo_votantes_ganador'), { id: ganador.id, modo, votos, ultimoVoto: ganador.ultimo_voto || 0, ts: Date.now() });
         };
 
         function aplicarPilotoPreseleccionado() {
@@ -520,6 +565,8 @@
                     set(ref(db, 'copilotajes/completados'), null);
                         set(ref(db, 'copilotajes/ultimo_numero'), 0);
                         set(ref(db, 'participantes_sorteo'), null);
+                        set(ref(db, 'sorteo_votantes_ganador'), null);
+                        set(ref(db, 'premio_publico_escapes'), null);
                         set(ref(db, 'historial_votos'), null);
                         set(ref(db, 'registro_votos'), null);
                         set(ref(db, 'votacion_activa'), { activa:false, timer:0, dorsal:"" });

@@ -196,22 +196,23 @@
         <span>Terminados <b id="esc-medidos">0</b></span>
     </div>
     <div id="ranking-not-started" class="not-started" style="display:none">La prueba de escapes aún no ha comenzado</div>
+    <div id="inicio-escapes" class="not-started" style="display:none"></div>
     <div id="ranking-container" class="ranking-container">
         <div class="rank-column">
-            <h3>DB GASOLINA</h3>
-            <div id="col-db-gas"></div>
+            <h3>DB COCHES</h3>
+            <div id="col-db-coche"></div>
         </div>
         <div class="rank-column">
-            <h3>DB DIÉSEL</h3>
-            <div id="col-db-diesel"></div>
+            <h3>DB MOTOS</h3>
+            <div id="col-db-moto"></div>
         </div>
         <div class="rank-column">
-            <h3>HZ GASOLINA</h3>
-            <div id="col-hz-gas"></div>
+            <h3>SONORIDAD COCHES</h3>
+            <div id="col-son-coche"></div>
         </div>
         <div class="rank-column">
-            <h3>HZ DIÉSEL</h3>
-            <div id="col-hz-diesel"></div>
+            <h3>SONORIDAD MOTOS</h3>
+            <div id="col-son-moto"></div>
         </div>
     </div>
 
@@ -229,10 +230,13 @@
         let ultimoResultadoTimer = null;
         let modoEscapesActivo = false;
         let premioPublicoEscapes = null;
+        let configEvento = {};
+        let inicioTimer = null;
 
         onValue(ref(db, 'config_evento'), snap => {
-            const cfg = snap.val() || {};
-            document.getElementById('event-title').innerText = cfg.nombre || "";
+            configEvento = snap.val() || {};
+            document.getElementById('event-title').innerText = configEvento.nombre || "";
+            iniciarCuentaInicio();
         });
 
         onValue(ref(db, 'modo_actual'), snap => {
@@ -273,15 +277,15 @@
                 const candidatos = Object.values(p.candidatos || {});
                 box.innerHTML = `
                     <h3>Premio del Público abierto</h3>
-                    <p>Votación final entre los mejores coches de sonoridad.</p>
-                    ${candidatos.map(c => `<p><b>${escHtml(c.categoria === 'diesel' ? 'DIÉSEL' : 'GASOLINA')} · #${escHtml(c.dorsal)} ${escHtml(c.piloto)}</b><br>${escHtml(c.coche)}</p>`).join('')}
+                    <p>Votación final entre los mejores de sonoridad.</p>
+                    ${candidatos.map(c => `<p><b>${escHtml(c.categoria === 'moto' ? 'MOTO' : 'COCHE')} · #${escHtml(c.dorsal)} ${escHtml(c.piloto)}</b><br>${escHtml(c.coche)}</p>`).join('')}
                 `;
                 return;
             }
             const g = p.ganador || {};
             box.innerHTML = `
                 <h3>Premio del Público</h3>
-                <p>Ganador: <b>${escHtml(g.categoria === 'diesel' ? 'DIÉSEL' : 'GASOLINA')} · #${escHtml(g.dorsal)} ${escHtml(g.piloto)}</b></p>
+                <p>Ganador: <b>${escHtml(g.categoria === 'moto' ? 'MOTO' : 'COCHE')} · #${escHtml(g.dorsal)} ${escHtml(g.piloto)}</b></p>
                 <p>${escHtml(g.coche || '')} · ${Number(g.votos || 0)} votos</p>
             `;
         }
@@ -310,8 +314,8 @@
                         <strong class="${dbClass}">P${r.dbPos || '-'}</strong>
                     </div>
                     <div class="esc-result-box">
-                        <span>HZ ${escHtml(r.categoria)}</span>
-                        <b>${Math.round(Number(r.hz || 0))} Hz</b>
+                        <span>SONORIDAD ${escHtml(r.categoria)}</span>
+                        <b>${Number(r.sonoridad || 0).toFixed(1)} pts</b>
                         <strong class="${hzClass}">P${r.hzPos || '-'}</strong>
                     </div>
                 </div>`;
@@ -347,11 +351,11 @@
                 return;
             }
 
-            const miComb = normComb(yo.combustible || yo.combustibleTexto);
-            const miCategoria = miComb === 'diesel' ? 'DIÉSEL' : 'GASOLINA';
-            const miCategoriaData = rankingData.filter(p => normComb(p.combustible || p.combustibleTexto) === miComb);
+            const miTipo = String(yo.tipoVehiculo || '').toLowerCase().includes('moto') ? 'moto' : 'coche';
+            const miCategoria = miTipo === 'moto' ? 'MOTOS' : 'COCHES';
+            const miCategoriaData = rankingData.filter(p => (String(p.tipoVehiculo || '').toLowerCase().includes('moto') ? 'moto' : 'coche') === miTipo);
             const rDB = [...miCategoriaData].sort((a,b) => Number(b.db || 0) - Number(a.db || 0));
-            const rHZ = [...miCategoriaData].sort((a,b) => Number(a.hz || 99999) - Number(b.hz || 99999));
+            const rHZ = [...miCategoriaData].sort((a,b) => Number(b.sonoridad || 0) - Number(a.sonoridad || 0));
             
             const pDB = rDB.findIndex(p => coincideParticipante(p, query)) + 1;
             const pHZ = rHZ.findIndex(p => coincideParticipante(p, query)) + 1;
@@ -363,7 +367,7 @@
             let instruccion = "Debes salir del podio";
             if (esPodioDB && esPodioHZ) instruccion = "ESTÁS EN AMBOS PODIOS. ELIGE";
             else if (esPodioDB) instruccion = "COLÓCATE EN PODIO DB " + miCategoria;
-            else if (esPodioHZ) instruccion = "COLÓCATE EN PODIO HZ " + miCategoria;
+            else if (esPodioHZ) instruccion = "COLÓCATE EN PODIO SONORIDAD " + miCategoria;
 
             screen.innerHTML = `
                 <div class="status-box ${esCualquierPodio ? 'en-podio' : 'fuera-podio'}">
@@ -377,7 +381,7 @@
                         </div>
                         <div class="pos-item">
                             <span class="pos-num">${pHZ}º</span>
-                            <span class="pos-label">HZ ${miCategoria}</span>
+                            <span class="pos-label">SONORIDAD ${miCategoria}</span>
                         </div>
                     </div>
 
@@ -393,8 +397,12 @@
                 renderEstadoModoEscapes();
                 return;
             }
-            const gas = rankingData.filter(p => normComb(p.combustible || p.combustibleTexto) === 'gasolina');
-            const diesel = rankingData.filter(p => normComb(p.combustible || p.combustibleTexto) === 'diesel');
+            const tipoVehiculo = (v) => {
+                const t = String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return (t.includes('moto') || t.includes('bike')) ? 'moto' : 'coche';
+            };
+            const coches = rankingData.filter(p => tipoVehiculo(p.tipoVehiculo) === 'coche');
+            const motos = rankingData.filter(p => tipoVehiculo(p.tipoVehiculo) === 'moto');
             const buildHTML = (lista, campo, unidad) => {
                 const filtrada = lista.filter(p => Number(p[campo]) > 0).slice(0, 5);
                 return filtrada.map((p, i) => `
@@ -408,10 +416,39 @@
                 `).join('') || '<div class="rank-item"><div class="p-info"><b>Sin datos</b></div></div>';
             };
 
-            document.getElementById('col-db-gas').innerHTML = buildHTML([...gas].sort((a,b) => Number(b.db || 0) - Number(a.db || 0)), 'db', 'dB');
-            document.getElementById('col-db-diesel').innerHTML = buildHTML([...diesel].sort((a,b) => Number(b.db || 0) - Number(a.db || 0)), 'db', 'dB');
-            document.getElementById('col-hz-gas').innerHTML = buildHTML([...gas].sort((a,b) => Number(a.hz || 99999) - Number(b.hz || 99999)), 'hz', 'Hz');
-            document.getElementById('col-hz-diesel').innerHTML = buildHTML([...diesel].sort((a,b) => Number(a.hz || 99999) - Number(b.hz || 99999)), 'hz', 'Hz');
+            document.getElementById('col-db-coche').innerHTML = buildHTML([...coches].sort((a,b) => Number(b.db || 0) - Number(a.db || 0)), 'db', 'dB');
+            document.getElementById('col-db-moto').innerHTML = buildHTML([...motos].sort((a,b) => Number(b.db || 0) - Number(a.db || 0)), 'db', 'dB');
+            document.getElementById('col-son-coche').innerHTML = buildHTML([...coches].sort((a,b) => Number(b.sonoridad || 0) - Number(a.sonoridad || 0)), 'sonoridad', 'pts');
+            document.getElementById('col-son-moto').innerHTML = buildHTML([...motos].sort((a,b) => Number(b.sonoridad || 0) - Number(a.sonoridad || 0)), 'sonoridad', 'pts');
+        }
+
+        function iniciarCuentaInicio() {
+            if(inicioTimer) clearInterval(inicioTimer);
+            actualizarCuentaInicio();
+            inicioTimer = setInterval(actualizarCuentaInicio, 1000);
+        }
+
+        function actualizarCuentaInicio() {
+            const box = document.getElementById('inicio-escapes');
+            if(!box) return;
+            if(!configEvento.fecha || !configEvento.horaInicio) {
+                box.style.display = 'none';
+                return;
+            }
+            const inicio = new Date(configEvento.fecha + 'T' + configEvento.horaInicio + ':00');
+            const diff = inicio.getTime() - Date.now();
+            if(diff <= 0) {
+                box.style.display = 'none';
+                return;
+            }
+            const totalSeg = Math.floor(diff / 1000);
+            const h = Math.floor(totalSeg / 3600);
+            const m = Math.floor((totalSeg % 3600) / 60);
+            const s = totalSeg % 60;
+            box.style.display = 'block';
+            box.innerHTML = totalSeg <= 600
+                ? `<b>FALTAN ${m}:${String(s).padStart(2,'0')}</b><br>DirÃ­gete a la entrada de pista`
+                : `La prueba empieza en <b>${h}h ${m}m</b>`;
         }
 
         function renderEstadoModoEscapes() {
@@ -459,6 +496,7 @@
 </script>
 </body>
 </html>
+
 
 
 

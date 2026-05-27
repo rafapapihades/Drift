@@ -127,6 +127,14 @@
     onValue(ref(db, 'config_evento'), (snap) => {
         configEvento = snap.val() || {};
         document.getElementById('event-title').innerText = configEvento.nombre || "";
+        const cerrado = configEvento.preinscripcionAbierta === false;
+        const btnEnviar = document.querySelector('button[onclick="enviarRegistro()"]');
+        if(btnEnviar) {
+            btnEnviar.disabled = cerrado;
+            btnEnviar.innerText = cerrado ? "PREINSCRIPCIÃ“N CERRADA" : "ENVIAR PRE-REGISTRO";
+        }
+        const pago = document.getElementById('pago');
+        if(pago) pago.style.display = configEvento.preinscripcionPago === "ocultar" ? "none" : "block";
         renderPilotos();
     });
 
@@ -168,17 +176,27 @@
         return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
     }
 
+    function calcularEdadFecha(valor) {
+        const partes = String(valor || '').split('/');
+        if(partes.length !== 3) return null;
+        const fechaNac = new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]));
+        if(isNaN(fechaNac.getTime())) return null;
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - fechaNac.getFullYear();
+        const m = hoy.getMonth() - fechaNac.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < fechaNac.getDate())) edad--;
+        return edad;
+    }
+
     // Detectar si es menor de edad por la fecha escrita (DD/MM/AAAA)
     window.checkEdadManual = (el) => {
         const valor = el.value;
         if(valor.length === 10) {
-            const partes = valor.split('/');
-            const fechaNac = new Date(partes[2], partes[1] - 1, partes[0]);
-            const hoy = new Date();
-            let edad = hoy.getFullYear() - fechaNac.getFullYear();
-            const m = hoy.getMonth() - fechaNac.getMonth();
-            if (m < 0 || (m === 0 && hoy.getDate() < fechaNac.getDate())) { edad--; }
-            
+            const edad = calcularEdadFecha(valor);
+            if(edad !== null && edad < 16) {
+                document.getElementById('menor-extra').style.display = 'none';
+                return;
+            }
             document.getElementById('menor-extra').style.display = (edad < 18) ? 'block' : 'none';
         }
     };
@@ -192,6 +210,23 @@
             alert("Por favor, rellena los campos obligatorios (Nombre, DNI y Fecha).");
             return;
         }
+        if(configEvento.preinscripcionAbierta === false) {
+            alert("La preinscripciÃ³n estÃ¡ cerrada para este evento.");
+            return;
+        }
+        const edad = calcularEdadFecha(fecha);
+        if(edad === null) {
+            alert("Revisa la fecha de nacimiento. Usa DD/MM/AAAA.");
+            return;
+        }
+        if(edad < 16) {
+            alert("No puede participar: la edad mÃ­nima para Taxidrift es 16 aÃ±os.");
+            return;
+        }
+        if(edad < 18 && (!document.getElementById('tutor_nombre').value.trim() || !document.getElementById('tutor_dni').value.trim())) {
+            alert("Los participantes de 16 y 17 aÃ±os necesitan datos completos del tutor.");
+            return;
+        }
 
         const data = {
             copiloto: nombre,
@@ -199,7 +234,7 @@
             fecha_nac: fecha,
             insta: document.getElementById('insta').value.trim(),
             email: document.getElementById('email').value.trim(),
-            metodoPago: document.getElementById('pago').value,
+            metodoPago: configEvento.preinscripcionPago === "ocultar" ? "" : document.getElementById('pago').value,
             piloto: document.getElementById('piloto-select').value,
             consentimiento_fotos: document.getElementById('chk-fotos').checked,
             tutor: document.getElementById('tutor_nombre').value.trim(),

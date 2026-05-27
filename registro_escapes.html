@@ -141,6 +141,10 @@
           <option value="Gasolina">Gasolina</option>
           <option value="DiÃ©sel">DiÃ©sel</option>
         </select>
+        <select id="tipo-vehiculo">
+          <option value="coche">Coche</option>
+          <option value="moto">Moto</option>
+        </select>
         <input id="potencia" type="number" min="0" placeholder="Potencia (CV)">
         <label class="check-row"><input id="pagado" type="checkbox"> Pagado</label>
       </div>
@@ -214,6 +218,7 @@
         instagram: p.instagram || "",
         matricula: p.matricula || "",
         coche: p.coche || "",
+        tipoVehiculo: p.tipoVehiculo || "coche",
         combustible: p.combustibleTexto || p.combustible || "Gasolina",
         potencia: p.potencia || "",
         pagado: estaPagado(p)
@@ -227,6 +232,7 @@
         instagram: p.instagram || "",
         matricula: p.matricula || "",
         coche: p.coche || "",
+        tipoVehiculo: p.tipoVehiculo || "coche",
         combustible: normalizarCombustible(p.combustible),
         combustibleTexto: p.combustible || "",
         potencia: p.potencia || "",
@@ -259,6 +265,7 @@
         instagram: valor("instagram"),
         matricula: matricula,
         coche: coche,
+        tipoVehiculo: document.getElementById("tipo-vehiculo").value,
         combustible: document.getElementById("combustible").value,
         potencia: valor("potencia"),
         pagado: document.getElementById("pagado").checked
@@ -272,6 +279,7 @@
       editandoDorsal = null;
       ["nombre","instagram","matricula","coche","potencia"].forEach(function(id){ document.getElementById(id).value = ""; });
       document.getElementById("combustible").value = "Gasolina";
+      document.getElementById("tipo-vehiculo").value = "coche";
       document.getElementById("pagado").checked = false;
       document.querySelector(".btn-main").innerText = "Guardar participante";
       renderDorsal();
@@ -287,6 +295,7 @@
       document.getElementById("matricula").value = p.matricula || "";
       document.getElementById("coche").value = p.coche || "";
       document.getElementById("combustible").value = normalizarCombustible(p.combustible) === "diesel" ? "DiÃ©sel" : "Gasolina";
+      document.getElementById("tipo-vehiculo").value = p.tipoVehiculo || "coche";
       document.getElementById("potencia").value = p.potencia || "";
       document.getElementById("pagado").checked = estaPagado(p);
       document.querySelector(".btn-main").innerText = "Guardar cambios dorsal " + p.dorsal;
@@ -319,12 +328,12 @@
     window.exportarCSV = function(){
       var pagados = participantes.filter(estaPagado);
       if(!pagados.length) return alert("No hay inscritos pagados para exportar.");
-      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV;Pagado\n";
+      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Tipo;Combustible;PotenciaCV;Pagado\n";
       pagados
         .slice()
         .sort(function(a,b){ return Number(a.dorsal) - Number(b.dorsal); })
         .forEach(function(p){
-          csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.combustible, p.potencia, textoPagado(estaPagado(p))].map(csvCell).join(";") + "\n";
+          csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.tipoVehiculo || "coche", p.combustible, p.potencia, textoPagado(estaPagado(p))].map(csvCell).join(";") + "\n";
         });
       var a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type:"text/csv;charset=utf-8;" }));
@@ -354,6 +363,7 @@
             instagram: campoCSV(row, ["Instagram", "IG"]),
             matricula: (campoCSV(row, ["Matricula", "Matr?cula"]) || "").toUpperCase(),
             coche: campoCSV(row, ["Vehiculo", "Veh?culo", "Marca+Modelo", "MarcaModelo", "Coche"]),
+            tipoVehiculo: normalizarTexto(campoCSV(row, ["Tipo", "TipoVehiculo", "TipoVehiculo", "Categoria", "Categoria"])).includes("moto") ? "moto" : "coche",
             combustible: normalizarCombustible(comb) === "diesel" ? "Di?sel" : "Gasolina",
             potencia: campoCSV(row, ["PotenciaCV", "Potencia (CV)", "Potencia"]),
             pagado: boolSi(campoCSV(row, ["Pagado", "Pago", "Paid"]))
@@ -479,7 +489,7 @@
           '<td><b>' + esc(p.piloto) + '</b><br><small>' + esc(p.instagram) + '</small></td>' +
           '<td>' + esc(p.matricula) + '</td>' +
           '<td>' + esc(p.coche) + '</td>' +
-          '<td>' + esc(p.combustible) + '<br><small>' + esc(p.potencia) + ' CV</small></td>' +
+          '<td>' + esc(p.tipoVehiculo || "coche") + '<br>' + esc(p.combustible) + '<br><small>' + esc(p.potencia) + ' CV</small></td>' +
           '<td><label class="paid-pill ' + (estaPagado(p) ? 'paid-ok' : 'paid-no') + '"><input type="checkbox" ' + (estaPagado(p) ? 'checked' : '') + ' onchange="togglePagado(\'' + p.dorsal + '\', this.checked)"> ' + (estaPagado(p) ? 'PAGADO' : 'NO') + '</label></td>' +
           '<td><div class="row-actions"><button class="btn-dark" onclick="editar(\'' + p.dorsal + '\')">Editar</button><button class="btn-danger" onclick="borrar(\'' + p.dorsal + '\')">Borrar</button></div></td>' +
         '</tr>';

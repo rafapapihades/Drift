@@ -191,19 +191,20 @@
                 <div id="premio-publico-esc" class="premio-card"></div>
                 <div id="coche-prueba-esc" class="esc-current-card" style="display:none"></div>
                 <div id="ultimo-resultado-esc" class="esc-result-card" style="display:none"></div>
-                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 0;">DB GASOLINA</h2>
-                <div id="l-db-gas"></div>
-                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">DB DIÉSEL</h2>
-                <div id="l-db-diesel"></div>
-                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">HZ GASOLINA</h2>
-                <div id="l-hz-gas"></div>
-                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">HZ DIÉSEL</h2>
-                <div id="l-hz-diesel"></div>
+                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 0;">DB COCHES</h2>
+                <div id="l-db-coche"></div>
+                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">DB MOTOS</h2>
+                <div id="l-db-moto"></div>
+                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">SONORIDAD COCHES</h2>
+                <div id="l-son-coche"></div>
+                <h2 style="color:#ffcc00; font-size: 1.5em; margin-top: 16px;">SONORIDAD MOTOS</h2>
+                <div id="l-son-moto"></div>
             </div>
 
             <div class="sorteo-info">
                 Nº DE PARTICIPANTE PARA EL SORTEO
                 <span id="id-num">-----</span>
+                <div id="sorteo-ganador-publico" style="display:none; margin-top:10px; color:#ffcc00; font-weight:900;"></div>
             </div>
 
         </div>
@@ -257,6 +258,19 @@
                 document.getElementById('id-num').innerText = USER_ID;
                 miVotos = {};
             }
+        });
+
+        onValue(ref(db, 'sorteo_votantes_ganador'), s => {
+            const el = document.getElementById('sorteo-ganador-publico');
+            const g = s.val();
+            if(!el) return;
+            if(!g || !g.id) {
+                el.style.display = 'none';
+                el.innerText = '';
+                return;
+            }
+            el.style.display = 'block';
+            el.innerText = `GANADOR SORTEO: ${g.id}`;
         });
 
         onValue(ref(db, 'modo_actual'), s => {
@@ -321,8 +335,8 @@
                         <strong class="${dbClass}">P${r.dbPos || '-'}</strong>
                     </div>
                     <div class="esc-result-box">
-                        <span>HZ ${escHtml(r.categoria)}</span>
-                        <b>${Math.round(Number(r.hz || 0))} Hz</b>
+                        <span>SONORIDAD ${escHtml(r.categoria)}</span>
+                        <b>${Number(r.sonoridad || 0).toFixed(1)} pts</b>
                         <strong class="${hzClass}">P${r.hzPos || '-'}</strong>
                     </div>
                 </div>`;
@@ -364,12 +378,12 @@
                 const candidatos = Object.values(p.candidatos || {});
                 box.innerHTML = `
                     <h2>Premio del Público</h2>
-                    <p>${escHtml(p.pregunta || "Elige el coche con mejor sonoridad")}</p>
+                    <p>${escHtml(p.pregunta || "Elige el participante con mejor sonoridad")}</p>
                     <div class="premio-options">
                         ${candidatos.map(c => `
                             <button class="premio-btn ${premioSeleccion === c.categoria ? 'selected' : ''}" onclick="votarPremioPublico('${escHtml(c.categoria)}')">
-                                <b>${escHtml(c.categoria === 'diesel' ? 'DIÉSEL' : 'GASOLINA')} · #${escHtml(c.dorsal)} ${escHtml(c.piloto)}</b>
-                                <small>${escHtml(c.coche)} · ${Math.round(Number(c.hz || 0))} Hz · ${Number(c.db || 0).toFixed(1)} dB</small>
+                                <b>${escHtml(c.categoria === 'moto' ? 'MOTO' : 'COCHE')} · #${escHtml(c.dorsal)} ${escHtml(c.piloto)}</b>
+                                <small>${escHtml(c.coche)} · ${Number(c.sonoridad || 0).toFixed(1)} pts · ${Math.round(Number(c.hz || 0))} Hz · ${Number(c.db || 0).toFixed(1)} dB</small>
                             </button>
                         `).join('')}
                     </div>`;
@@ -380,7 +394,7 @@
                 <h2>Premio del Público</h2>
                 <p>Ganador de la votación final</p>
                 <div class="premio-btn selected">
-                    <b>${escHtml(g.categoria === 'diesel' ? 'DIÉSEL' : 'GASOLINA')} · #${escHtml(g.dorsal)} ${escHtml(g.piloto)}</b>
+                    <b>${escHtml(g.categoria === 'moto' ? 'MOTO' : 'COCHE')} · #${escHtml(g.dorsal)} ${escHtml(g.piloto)}</b>
                     <small>${escHtml(g.coche)} · ${Number(g.votos || 0)} votos</small>
                 </div>`;
         }
@@ -405,7 +419,7 @@
             const msg = document.getElementById('s-mensaje');
             let texto = e?.mensaje || "";
             texto = texto.replace(/^[^A-ZÁÉÍÓÚÑ]*(EN PISTA|PISTA LIBRE)/i, '$1');
-            msg.innerText = texto;
+            msg.innerText = /^EN PISTA/i.test(texto) ? "EN PISTA" : texto;
             msg.style.color = e?.color || "white";
         });
 
@@ -510,19 +524,23 @@
             const data = s.exists() ? Object.values(s.val()) : [];
             medidosEscapes = data.length;
             pintarProgresoEscapes();
-            const normComb = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('diesel') ? 'diesel' : 'gasolina';
+            const tipoVehiculo = (v) => {
+                const t = String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return (t.includes('moto') || t.includes('bike')) ? 'moto' : 'coche';
+            };
             const render = (arr, tId, campo, unidad) => {
                 document.getElementById(tId).innerHTML = arr.slice(0,5).map((p, i) => 
                     `<div class="rank-card"><span><span class="rank-pos">${i+1}º</span><b>#${p.dorsal}</b> ${p.piloto}<br><small>${p.coche}</small></span><b>${p[campo]}${unidad}</b></div>`).join('') || '<div class="rank-card">Sin datos</div>';
             };
-            const gas = data.filter(p => normComb(p.combustible) === 'gasolina');
-            const diesel = data.filter(p => normComb(p.combustible) === 'diesel');
-            render(gas.filter(p => Number(p.db) > 0).sort((a,b)=>Number(b.db)-Number(a.db)), 'l-db-gas', 'db', 'dB');
-            render(diesel.filter(p => Number(p.db) > 0).sort((a,b)=>Number(b.db)-Number(a.db)), 'l-db-diesel', 'db', 'dB');
-            render(gas.filter(p => Number(p.hz) > 0).sort((a,b)=>Number(a.hz)-Number(b.hz)), 'l-hz-gas', 'hz', 'Hz');
-            render(diesel.filter(p => Number(p.hz) > 0).sort((a,b)=>Number(a.hz)-Number(b.hz)), 'l-hz-diesel', 'hz', 'Hz');
+            const coches = data.filter(p => tipoVehiculo(p.tipoVehiculo) === 'coche');
+            const motos = data.filter(p => tipoVehiculo(p.tipoVehiculo) === 'moto');
+            render(coches.filter(p => Number(p.db) > 0).sort((a,b)=>Number(b.db)-Number(a.db)), 'l-db-coche', 'db', 'dB');
+            render(motos.filter(p => Number(p.db) > 0).sort((a,b)=>Number(b.db)-Number(a.db)), 'l-db-moto', 'db', 'dB');
+            render(coches.filter(p => Number(p.sonoridad) > 0).sort((a,b)=>Number(b.sonoridad)-Number(a.sonoridad)), 'l-son-coche', 'sonoridad', 'pts');
+            render(motos.filter(p => Number(p.sonoridad) > 0).sort((a,b)=>Number(b.sonoridad)-Number(a.sonoridad)), 'l-son-moto', 'sonoridad', 'pts');
         });
     </script>
 </body>
 </html>
+
 

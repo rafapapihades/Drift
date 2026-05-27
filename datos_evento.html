@@ -172,6 +172,24 @@
             <option value="asignar">Asignar en pista</option>
           </select>
         </div>
+        <div>
+          <label>Estado preinscripciÃ³n</label>
+          <select id="cfg-pre-abierta">
+            <option value="SI">Abierta</option>
+            <option value="NO">Cerrada</option>
+          </select>
+        </div>
+        <div>
+          <label>Pago en preinscripciÃ³n</label>
+          <select id="cfg-pre-pago">
+            <option value="mostrar">Mostrar forma de pago</option>
+            <option value="ocultar">Ocultar forma de pago</option>
+          </select>
+        </div>
+        <div>
+          <label>Hora inicio prueba</label>
+          <input id="cfg-hora-inicio" type="time">
+        </div>
       </div>
       <div class="btn-row">
         <button class="btn-save" onclick="guardarConfig()">Guardar datos del evento</button>
@@ -226,6 +244,7 @@
         <div><label>Instagram</label><input id="e-instagram"></div>
         <div><label>Matrícula</label><input id="e-matricula"></div>
         <div class="wide"><label>Vehículo</label><input id="e-vehiculo"></div>
+        <div><label>Tipo</label><select id="e-tipo"><option value="coche">Coche</option><option value="moto">Moto</option></select></div>
         <div><label>Combustible</label><select id="e-combustible"><option>Gasolina</option><option>Diésel</option></select></div>
         <div><label>Potencia CV</label><input id="e-potencia" inputmode="numeric"></div>
         <div><label>Pagado</label><select id="e-pagado"><option value="No">No</option><option value="SI">Sí</option></select></div>
@@ -394,7 +413,7 @@
     }
 
     function guardarConfig(){
-      configEvento = { nombre:val('cfg-nombre'), fecha:val('cfg-fecha'), lugar:val('cfg-lugar'), preinscripcionPilotos:val('cfg-pre-pilotos') || "elegir", updatedAt:Date.now() };
+      configEvento = { nombre:val('cfg-nombre'), fecha:val('cfg-fecha'), lugar:val('cfg-lugar'), preinscripcionPilotos:val('cfg-pre-pilotos') || "elegir", preinscripcionAbierta:val('cfg-pre-abierta') !== "NO", preinscripcionPago:val('cfg-pre-pago') || "mostrar", horaInicio:val('cfg-hora-inicio'), updatedAt:Date.now() };
       db.ref('config_evento').set(configEvento).then(function(){ toast("Datos del evento guardados"); });
     }
 
@@ -404,6 +423,9 @@
       setVal('cfg-fecha', configEvento.fecha || "");
       setVal('cfg-lugar', configEvento.lugar || "");
       setVal('cfg-pre-pilotos', configEvento.preinscripcionPilotos || "elegir");
+      setVal('cfg-pre-abierta', configEvento.preinscripcionAbierta === false ? "NO" : "SI");
+      setVal('cfg-pre-pago', configEvento.preinscripcionPago || "mostrar");
+      setVal('cfg-hora-inicio', configEvento.horaInicio || "");
     });
 
     db.ref('pilotos_evento').on('value', function(s){ pilotos = s.val() || {}; renderPilotos(); renderResumen(); });
@@ -490,9 +512,16 @@
       var arr = Object.values(pilotos).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); });
       document.getElementById('tabla-pilotos').innerHTML = tabla(['Dorsal','Piloto','Vehículo','Instagram','Show','Taxidrift','Acciones'], arr.map(function(p){
         var key = normalizarDorsal(p.dorsal);
-        return [p.dorsal, p.piloto, p.vehiculo || p.coche || "", p.instagram || "", p.activoShow === false ? "No" : "Sí", p.activoTaxidrift === false ? "No" : "Sí", acciones("editarPiloto('" + key + "')", "borrarPiloto('" + key + "')")];
+        return [p.dorsal, p.piloto, p.vehiculo || p.coche || "", p.instagram || "", '<input type="checkbox" onchange="togglePilotoActivo(\'' + key + '\',\'show\',this.checked)" ' + (p.activoShow === false ? "" : "checked") + '>', '<input type="checkbox" onchange="togglePilotoActivo(\'' + key + '\',\'taxi\',this.checked)" ' + (p.activoTaxidrift === false ? "" : "checked") + '>', acciones("editarPiloto('" + key + "')", "borrarPiloto('" + key + "')")];
       }));
-    }
+    };
+    window.togglePilotoActivo = async function(key, campo, checked){
+      if(!pilotos[key]) return;
+      if(campo === 'show') pilotos[key].activoShow = !!checked;
+      if(campo === 'taxi') pilotos[key].activoTaxidrift = !!checked;
+      await db.ref('pilotos_evento/' + key).set(pilotos[key]);
+      await publicarPilotosCompat(pilotos);
+    };
     window.importarPilotos = function(event){
       var file = event.target.files && event.target.files[0]; if(!file) return;
       var fr = new FileReader();
@@ -546,7 +575,7 @@
     function escapeDesdeForm(){
       var dorsal = val('e-dorsal') || siguienteNumero(escapes, 'dorsal');
       if(!dorsal || !val('e-nombre')) { alert("Falta dorsal o nombre."); return null; }
-      return { dorsal:dorsal, piloto:val('e-nombre'), instagram:val('e-instagram'), matricula:val('e-matricula').toUpperCase(), coche:val('e-vehiculo'), combustible:normComb(val('e-combustible')), combustibleTexto:normComb(val('e-combustible')), potencia:val('e-potencia'), pagado:boolSi(val('e-pagado')) };
+      return { dorsal:dorsal, piloto:val('e-nombre'), instagram:val('e-instagram'), matricula:val('e-matricula').toUpperCase(), coche:val('e-vehiculo'), tipoVehiculo:val('e-tipo') || "coche", combustible:normComb(val('e-combustible')), combustibleTexto:normComb(val('e-combustible')), potencia:val('e-potencia'), pagado:boolSi(val('e-pagado')) };
     }
     window.guardarEscape = async function(){
       var p = escapeDesdeForm(); if(!p) return;
@@ -560,6 +589,7 @@
       editEscapeKey = "";
       ['e-dorsal','e-nombre','e-instagram','e-matricula','e-vehiculo','e-potencia'].forEach(function(id){ setVal(id,""); });
       document.getElementById('e-combustible').value = "Gasolina";
+      document.getElementById('e-tipo').value = "coche";
       document.getElementById('e-pagado').value = "No";
     };
     window.editarEscape = function(key){
@@ -570,6 +600,7 @@
       setVal('e-instagram', p.instagram);
       setVal('e-matricula', p.matricula);
       setVal('e-vehiculo', p.coche);
+      document.getElementById('e-tipo').value = p.tipoVehiculo || "coche";
       document.getElementById('e-combustible').value = normComb(p.combustibleTexto || p.combustible);
       setVal('e-potencia', p.potencia);
       document.getElementById('e-pagado').value = p.pagado ? "SI" : "No";
@@ -583,9 +614,9 @@
     };
     function renderEscapes(){
       var arr = Object.values(escapes).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); });
-      document.getElementById('tabla-escapes').innerHTML = tabla(['Dorsal','Nombre','Matrícula','Vehículo','Combustible','CV','Pagado','Acciones'], arr.map(function(p){
+      document.getElementById('tabla-escapes').innerHTML = tabla(['Dorsal','Nombre','Matrícula','Vehículo','Tipo','Combustible','CV','Pagado','Acciones'], arr.map(function(p){
         var key = normalizarDorsal(p.dorsal);
-        return [p.dorsal,p.piloto,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia,p.pagado ? "SI" : "No",acciones("editarEscape('" + key + "')", "borrarEscape('" + key + "')")];
+        return [p.dorsal,p.piloto,p.matricula,p.coche,p.tipoVehiculo || "coche",p.combustibleTexto || p.combustible,p.potencia,p.pagado ? "SI" : "No",acciones("editarEscape('" + key + "')", "borrarEscape('" + key + "')")];
       }));
     }
     window.importarEscapes = function(event){
@@ -597,7 +628,7 @@
         rows.forEach(function(r, idx){
           var dorsal = campo(r, ["Dorsal"]) || String(idx + 1);
           var comb = campo(r, ["Combustible"]);
-          var p = { dorsal:dorsal, piloto:campo(r, ["Nombre","Nombre+Apellidos","Piloto"]) || "", instagram:campo(r, ["Instagram"]) || "", matricula:(campo(r, ["Matricula","Matrícula"]) || "").toUpperCase(), coche:campo(r, ["Vehiculo","Vehículo","Marca+Modelo","MarcaModelo","Coche"]) || "", combustible:normComb(comb), combustibleTexto:normComb(comb), potencia:campo(r, ["PotenciaCV","Potencia (CV)","Potencia"]) || "", pagado:boolSi(campo(r, ["Pagado","Pago","Paid"])) };
+          var p = { dorsal:dorsal, piloto:campo(r, ["Nombre","Nombre+Apellidos","Piloto"]) || "", instagram:campo(r, ["Instagram"]) || "", matricula:(campo(r, ["Matricula","Matrícula"]) || "").toUpperCase(), coche:campo(r, ["Vehiculo","Vehículo","Marca+Modelo","MarcaModelo","Coche"]) || "", tipoVehiculo:normalizar(campo(r, ["Tipo","TipoVehiculo","TipoVehículo","Categoria","Categoría"])).includes("moto") ? "moto" : "coche", combustible:normComb(comb), combustibleTexto:normComb(comb), potencia:campo(r, ["PotenciaCV","Potencia (CV)","Potencia"]) || "", pagado:boolSi(campo(r, ["Pagado","Pago","Paid"])) };
           if(p.piloto) obj[normalizarDorsal(dorsal)] = p;
         });
         escapes = obj;
@@ -610,9 +641,9 @@
       fr.readAsText(file, "UTF-8");
     };
     window.exportarEscapesInscritos = function(){
-      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV;Pagado\n";
+      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Tipo;Combustible;PotenciaCV;Pagado\n";
       Object.values(escapes).sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); }).forEach(function(p){
-        csv += csvLine([p.dorsal,p.piloto,p.instagram,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia,p.pagado ? "SI" : "No"]);
+        csv += csvLine([p.dorsal,p.piloto,p.instagram,p.matricula,p.coche,p.tipoVehiculo || "coche",p.combustibleTexto || p.combustible,p.potencia,p.pagado ? "SI" : "No"]);
       });
       exportCsv("PARTICIPANTES_ESCAPES.csv", csv, async function(){
         if(confirm("¿Borrar inscritos y resultados de escapes?")){
@@ -733,6 +764,8 @@
       await db.ref('historial_votos').remove();
       await db.ref('registro_votos').remove();
       await db.ref('participantes_sorteo').remove();
+      await db.ref('sorteo_votantes_ganador').remove();
+      await db.ref('premio_publico_escapes').remove();
       await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
       await db.ref('sorteo_reset_ts').set(Date.now());
       toast("Votos y sorteo restablecidos");
@@ -740,9 +773,9 @@
 
     function escapesResultadosCSV(){
       var lista = Object.values(rankingEscapes || {});
-      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV;PicoDB;MediaHzBajos;Fecha\n";
+      var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Tipo;Combustible;PotenciaCV;PicoDB;MediaHzBajos;SonoridadJuez;Fecha\n";
       lista.sort(function(a,b){ return Number(a.dorsal)-Number(b.dorsal); }).forEach(function(p){
-        csv += csvLine([p.dorsal,p.piloto,p.instagram,p.matricula,p.coche,p.combustibleTexto || p.combustible,p.potencia,p.db || "",p.hz || "",p.ts ? new Date(p.ts).toLocaleString('es-ES') : ""]);
+        csv += csvLine([p.dorsal,p.piloto,p.instagram,p.matricula,p.coche,p.tipoVehiculo || "coche",p.combustibleTexto || p.combustible,p.potencia,p.db || "",p.hz || "",p.sonoridad || "",p.ts ? new Date(p.ts).toLocaleString('es-ES') : ""]);
       });
       return csv;
     }
@@ -750,12 +783,12 @@
       var lista = Object.values(rankingEscapes || {});
       var csv = "Categoria;Rank;Dorsal;Nombre;Vehiculo;Combustible;Valor\n";
       [
-        ["DB_MAX_GASOLINA","gasolina","db","desc"],
-        ["DB_MAX_DIESEL","diesel","db","desc"],
-        ["MEDIA_HZ_GASOLINA","gasolina","hz","asc"],
-        ["MEDIA_HZ_DIESEL","diesel","hz","asc"]
+        ["DB_COCHES","coche","db","desc"],
+        ["DB_MOTOS","moto","db","desc"],
+        ["SONORIDAD_COCHES","coche","sonoridad","desc"],
+        ["SONORIDAD_MOTOS","moto","sonoridad","desc"]
       ].forEach(function(cfg){
-        var arr = lista.filter(function(p){ return normalizar(p.combustibleTexto || p.combustible).includes(cfg[1]) && Number(p[cfg[2]]) > 0; });
+        var arr = lista.filter(function(p){ return (normalizar(p.tipoVehiculo).includes("moto") ? "moto" : "coche") === cfg[1] && Number(p[cfg[2]]) > 0; });
         arr.sort(cfg[3] === "desc" ? function(a,b){ return Number(b[cfg[2]])-Number(a[cfg[2]]); } : function(a,b){ return Number(a[cfg[2]])-Number(b[cfg[2]]); });
         arr.forEach(function(p,i){ csv += csvLine([cfg[0],i+1,p.dorsal,p.piloto,p.coche,p.combustibleTexto || p.combustible,p[cfg[2]]]); });
       });
@@ -779,6 +812,8 @@
       await db.ref('historial_votos').remove();
       await db.ref('registro_votos').remove();
       await db.ref('participantes_sorteo').remove();
+      await db.ref('sorteo_votantes_ganador').remove();
+      await db.ref('premio_publico_escapes').remove();
       await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
       await db.ref('sorteo_reset_ts').set(Date.now());
       toast("Evento restablecido");
@@ -787,7 +822,7 @@
     function tabla(headers, rows){
       if(!rows.length) return '<table><thead><tr>' + headers.map(function(h){ return '<th>' + html(h) + '</th>'; }).join('') + '</tr></thead><tbody><tr><td colspan="' + headers.length + '">Sin datos</td></tr></tbody></table>';
       return '<table><thead><tr>' + headers.map(function(h){ return '<th>' + html(h) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function(r){
-        return '<tr>' + r.map(function(c, idx){ return '<td>' + (idx === r.length - 1 && String(c).includes('<button') ? c : html(c)) + '</td>'; }).join('') + '</tr>';
+        return '<tr>' + r.map(function(c, idx){ return '<td>' + (String(c).includes('<button') || String(c).includes('<input') ? c : html(c)) + '</td>'; }).join('') + '</tr>';
       }).join('') + '</tbody></table>';
     }
     function acciones(edit, del){
@@ -839,4 +874,5 @@
   </script>
 </body>
 </html>
+
 

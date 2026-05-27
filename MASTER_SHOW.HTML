@@ -213,6 +213,7 @@
         <div class="esc-live-box"><span>Media Hz bajos</span><b id="res-hz" style="color:#ff8800">0</b></div>
       </div>
       <div id="db-peaks-info" class="hint">Picos DB: esperando medicion.</div>
+      <input type="number" id="sonoridad-juez" min="0" max="100" placeholder="SONORIDAD JUEZ 0-100" style="width:100%;height:50px;margin:10px 0;background:#000;color:#ffcc00;border:1px solid #ffcc00;border-radius:8px;text-align:center;font-weight:900;">
       <button id="btn-med-db" class="btn" style="background:red" onclick="toggleMedicionDB()">MANTENER DB</button>
       <button id="btn-med-hz" class="btn" style="background:orange; color:#000" onclick="toggleMedicionHZ()">MANTENER TONO</button>
       <button class="btn" style="background:green" onclick="publicarEscape()">ACTUALIZAR RANKING</button>
@@ -222,10 +223,10 @@
 
     <div class="card">
       <div class="rank-grid">
-        <div class="mini-rank-box" id="rank-db-gas"><b>DB MAX GASOLINA</b></div>
-        <div class="mini-rank-box" id="rank-db-diesel"><b>DB MAX DIESEL</b></div>
-        <div class="mini-rank-box" id="rank-hz-gas"><b>MEDIA HZ GASOLINA</b></div>
-        <div class="mini-rank-box" id="rank-hz-diesel"><b>MEDIA HZ DIESEL</b></div>
+        <div class="mini-rank-box" id="rank-db-coche"><b>DB COCHES</b></div>
+        <div class="mini-rank-box" id="rank-db-moto"><b>DB MOTOS</b></div>
+        <div class="mini-rank-box" id="rank-son-coche"><b>SONORIDAD COCHES</b></div>
+        <div class="mini-rank-box" id="rank-son-moto"><b>SONORIDAD MOTOS</b></div>
       </div>
       <button class="btn" style="background:#ffcc00;color:#000" onclick="finalizarPruebaEscapes()">FINALIZAR PRUEBA Y ABRIR PREMIO DEL PÚBLICO</button>
       <button class="btn" style="background:#6b1b8f" onclick="cerrarPremioPublicoEscapes()">CERRAR PREMIO DEL PÚBLICO</button>
@@ -319,6 +320,11 @@
         return /^\d+$/.test(s) ? String(parseInt(s, 10)) : normalizarTexto(s);
       }
 
+      function tipoVehiculo(v){
+        var t = normalizarTexto(v);
+        return (t.includes("moto") || t.includes("motorcycle") || t.includes("bike")) ? "moto" : "coche";
+      }
+
       function pagadoCSV(v){
         var raw = String(v == null ? "" : v).trim();
         if(!raw) return false;
@@ -408,6 +414,7 @@
               instagram: campoCSV(row, ["Instagram", "IG"]),
               matricula: campoCSV(row, ["Matricula", "Matrícula"]).toUpperCase(),
               coche: campoCSV(row, ["Vehiculo", "Vehículo", "Marca+Modelo", "MarcaModelo", "Coche"]),
+              tipoVehiculo: tipoVehiculo(campoCSV(row, ["Tipo", "TipoVehiculo", "TipoVehiculo", "Categoria", "Categoria"])),
               combustible: normComb(comb),
               combustibleTexto: comb || normComb(comb),
               potencia: campoCSV(row, ["PotenciaCV", "Potencia (CV)", "Potencia"])
@@ -829,6 +836,8 @@
         document.getElementById('hz-live').innerText = "0";
         document.getElementById('res-db').innerText = "0.0";
         document.getElementById('res-hz').innerText = "0";
+        var juez = document.getElementById('sonoridad-juez');
+        if(juez) juez.value = "";
         document.getElementById('db-peaks-info').innerText = "Picos DB: esperando medicion.";
         document.getElementById('preview-esc').innerText = Object.keys(inscritosE).length ? "Busca un dorsal para la siguiente prueba." : "Carga un CSV y busca un dorsal.";
         renderFichaEscape(null);
@@ -841,19 +850,23 @@
         if(!info) return alert("Selecciona un inscrito de escapes.");
         var dbVal = Number(escDb || parseFloat(document.getElementById('res-db').innerText) || 0);
         var hzVal = Number(escHz || parseFloat(document.getElementById('res-hz').innerText) || 0);
+        var juezVal = Number(document.getElementById('sonoridad-juez').value || 0);
         if(dbVal <= 0) return alert("Falta mantener el pico DB.");
         if(hzVal <= 0) return alert("Falta mantener la media de Hz bajos.");
+        if(juezVal < 0 || juezVal > 100) return alert("La sonoridad del juez debe estar entre 0 y 100.");
         var payload = {
           dorsal: info.dorsal || key,
           piloto: info.piloto || "",
           instagram: info.instagram || "",
           matricula: info.matricula || "",
           coche: info.coche || "",
+          tipoVehiculo: tipoVehiculo(info.tipoVehiculo || info.tipo || ""),
           combustible: normComb(info.combustible || info.combustibleTexto),
           combustibleTexto: info.combustibleTexto || info.combustible || "",
           potencia: info.potencia || "",
           db: Number(dbVal.toFixed(1)),
           hz: Number(hzVal.toFixed(1)),
+          sonoridad: Number(juezVal.toFixed(1)),
           ts: Date.now()
         };
         await db.ref('ranking_escapes/' + key).set(payload);
@@ -868,22 +881,24 @@
       };
 
       function calcularResultadoPodio(payload, lista){
-        var comb = normComb(payload.combustible || payload.combustibleTexto);
-        var etiquetaComb = comb === "diesel" ? "DIÉSEL" : "GASOLINA";
-        var mismaCat = lista.filter(function(p){ return normComb(p.combustible || p.combustibleTexto) === comb; });
+        var tipo = tipoVehiculo(payload.tipoVehiculo);
+        var etiquetaComb = tipo === "moto" ? "MOTOS" : "COCHES";
+        var mismaCat = lista.filter(function(p){ return tipoVehiculo(p.tipoVehiculo) === tipo; });
         var dbRank = mismaCat.filter(function(p){ return Number(p.db) > 0; }).sort(function(a,b){ return Number(b.db||0) - Number(a.db||0); });
-        var hzRank = mismaCat.filter(function(p){ return Number(p.hz) > 0; }).sort(function(a,b){ return Number(a.hz||99999) - Number(b.hz||99999); });
+        var hzRank = mismaCat.filter(function(p){ return Number(p.sonoridad) >= 0; }).sort(function(a,b){ return Number(b.sonoridad||0) - Number(a.sonoridad||0); });
         var pDB = dbRank.findIndex(function(p){ return normalizarDorsal(p.dorsal) === normalizarDorsal(payload.dorsal); }) + 1;
         var pHZ = hzRank.findIndex(function(p){ return normalizarDorsal(p.dorsal) === normalizarDorsal(payload.dorsal); }) + 1;
-        etiquetaComb = comb === "diesel" ? "DIESEL" : "GASOLINA";
+        etiquetaComb = tipo === "moto" ? "MOTOS" : "COCHES";
         return {
           dorsal: payload.dorsal,
           piloto: payload.piloto,
           coche: payload.coche,
-          combustible: comb,
+          combustible: payload.combustible,
+          tipoVehiculo: tipo,
           categoria: etiquetaComb,
           db: payload.db,
           hz: payload.hz,
+          sonoridad: payload.sonoridad,
           dbPos: pDB || 0,
           hzPos: pHZ || 0,
           dbPodio: pDB > 0 && pDB <= 3,
@@ -892,10 +907,10 @@
         };
         var podios = [];
         if(pDB > 0 && pDB <= 3) podios.push("PODIO DB " + etiquetaComb + ": P" + pDB);
-        if(pHZ > 0 && pHZ <= 3) podios.push("PODIO HZ " + etiquetaComb + ": P" + pHZ);
+        if(pHZ > 0 && pHZ <= 3) podios.push("PODIO SONORIDAD " + etiquetaComb + ": P" + pHZ);
         var msg = "Resultado actualizado\\n#" + payload.dorsal + " " + payload.piloto + "\\n" + payload.db + " dB · " + Math.round(payload.hz) + " Hz";
         msg += "\\nDB " + etiquetaComb + ": P" + (pDB || "-");
-        msg += "\\nHZ " + etiquetaComb + ": P" + (pHZ || "-");
+        msg += "\\nSONORIDAD " + etiquetaComb + ": P" + (pHZ || "-");
         msg += "\\n\\n" + (podios.length ? podios.join("\\n") : "No entra en podio de su categoría.");
         return msg;
       }
@@ -915,25 +930,26 @@
               '<strong class="' + dbClass + '">P' + (r.dbPos || '-') + '</strong>' +
             '</div>' +
             '<div class="esc-result-box">' +
-              '<span>HZ ' + escHtml(r.categoria) + '</span>' +
-              '<b>' + Math.round(Number(r.hz || 0)) + ' Hz</b>' +
+              '<span>SONORIDAD ' + escHtml(r.categoria) + '</span>' +
+              '<b>' + Number(r.sonoridad || 0).toFixed(1) + ' pts</b>' +
               '<strong class="' + hzClass + '">P' + (r.hzPos || '-') + '</strong>' +
             '</div>' +
-          '</div>';
+          '</div>' +
+          '<div class="msg-hint">Hz medidos: ' + Math.round(Number(r.hz || 0)) + ' Hz</div>';
       }
 
       window.exportarEscapes = async function(){
         var snap = await getOnce('ranking_escapes');
         if(!snap.exists()) return alert("No hay resultados de escapes.");
         var lista = Object.values(snap.val() || {});
-        var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Combustible;PotenciaCV;PicoDB;MediaHzBajos;Fecha\n";
+        var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Tipo;Combustible;PotenciaCV;PicoDB;MediaHzBajos;SonoridadJuez;Fecha\n";
         lista.sort(function(a,b){ return Number(normalizarDorsal(a.dorsal)) - Number(normalizarDorsal(b.dorsal)); }).forEach(function(p){
-          csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.combustibleTexto || p.combustible, p.potencia, p.db || "", p.hz || "", p.ts ? new Date(p.ts).toLocaleString('es-ES') : ""].map(csvCell).join(";") + "\n";
+          csv += [p.dorsal, p.piloto, p.instagram, p.matricula, p.coche, p.tipoVehiculo || "coche", p.combustibleTexto || p.combustible, p.potencia, p.db || "", p.hz || "", p.sonoridad || "", p.ts ? new Date(p.ts).toLocaleString('es-ES') : ""].map(csvCell).join(";") + "\n";
         });
-        var rankings = rankingEscapesCSV(lista, 'gasolina', 'db', 'DB_MAX_GASOLINA') +
-                       rankingEscapesCSV(lista, 'diesel', 'db', 'DB_MAX_DIESEL') +
-                       rankingEscapesCSV(lista, 'gasolina', 'hz', 'MEDIA_HZ_GASOLINA') +
-                       rankingEscapesCSV(lista, 'diesel', 'hz', 'MEDIA_HZ_DIESEL');
+        var rankings = rankingEscapesCSV(lista, 'coche', 'db', 'DB_COCHES') +
+                       rankingEscapesCSV(lista, 'moto', 'db', 'DB_MOTOS') +
+                       rankingEscapesCSV(lista, 'coche', 'sonoridad', 'SONORIDAD_COCHES') +
+                       rankingEscapesCSV(lista, 'moto', 'sonoridad', 'SONORIDAD_MOTOS');
         rankings = "Categoria;Rank;Dorsal;Nombre;Vehiculo;Combustible;Valor\n" + rankings;
         descargarCsv("ESCAPES_RESULTADOS.csv", csv);
         setTimeout(function(){ descargarCsv("ESCAPES_RANKINGS.csv", rankings); }, 250);
@@ -941,21 +957,19 @@
 
       function csvCell(v){ return '"' + String(v || "").replace(/"/g, '""') + '"'; }
 
-      function rankingEscapesCSV(lista, comb, campo, categoria){
-        var arr = lista.filter(function(p){ return normComb(p.combustible || p.combustibleTexto) === comb && Number(p[campo]) > 0; });
-        arr.sort(campo === 'db' ? function(a,b){ return Number(b.db||0)-Number(a.db||0); } : function(a,b){ return Number(a.hz||99999)-Number(b.hz||99999); });
+      function rankingEscapesCSV(lista, tipo, campo, categoria){
+        var arr = lista.filter(function(p){ return tipoVehiculo(p.tipoVehiculo) === tipo && Number(p[campo]) > 0; });
+        arr.sort(function(a,b){ return Number(b[campo]||0)-Number(a[campo]||0); });
         var out = "";
         arr.forEach(function(p,i){ out += [categoria, i+1, p.dorsal, p.piloto, p.coche, p.combustibleTexto || p.combustible, p[campo]].map(csvCell).join(";") + "\n"; });
         return out;
       }
 
-      function ordenarRankingEscapes(lista, comb, campo){
+      function ordenarRankingEscapes(lista, tipo, campo){
         var arr = (lista || []).filter(function(p){
-          return normComb(p.combustible || p.combustibleTexto) === comb && Number(p[campo]) > 0;
+          return tipoVehiculo(p.tipoVehiculo) === tipo && Number(p[campo]) > 0;
         });
-        arr.sort(campo === 'db'
-          ? function(a,b){ return Number(b.db||0)-Number(a.db||0); }
-          : function(a,b){ return Number(a.hz||99999)-Number(b.hz||99999); });
+        arr.sort(function(a,b){ return Number(b[campo]||0)-Number(a[campo]||0); });
         return arr;
       }
 
@@ -976,6 +990,7 @@
           potencia: p.potencia || "",
           db: p.db || 0,
           hz: p.hz || 0,
+          sonoridad: p.sonoridad || 0,
           votos: 0
         };
       }
@@ -986,19 +1001,19 @@
         var lista = Object.values(snap.val() || {});
         if(!lista.length) return alert("No hay resultados de escapes para finalizar.");
 
-        var mejorGasHz = ordenarRankingEscapes(lista, 'gasolina', 'hz')[0];
-        var mejorDieselHz = ordenarRankingEscapes(lista, 'diesel', 'hz')[0];
-        if(!mejorGasHz || !mejorDieselHz) {
-          return alert("Para abrir el Premio del Público hacen falta resultados de sonoridad en gasolina y diésel.");
+        var mejorCocheSon = ordenarRankingEscapes(lista, 'coche', 'sonoridad')[0];
+        var mejorMotoSon = ordenarRankingEscapes(lista, 'moto', 'sonoridad')[0];
+        if(!mejorCocheSon && !mejorMotoSon) {
+          return alert("Para abrir el Premio del Público hacen falta resultados de sonoridad.");
         }
 
         var rondaId = crearRondaIdEscapes();
         var nombreRonda = configEvento.nombre || "Ronda Drift Show";
         var rankings = {
-          dbGasolina: ordenarRankingEscapes(lista, 'gasolina', 'db'),
-          dbDiesel: ordenarRankingEscapes(lista, 'diesel', 'db'),
-          hzGasolina: ordenarRankingEscapes(lista, 'gasolina', 'hz'),
-          hzDiesel: ordenarRankingEscapes(lista, 'diesel', 'hz')
+          dbCoches: ordenarRankingEscapes(lista, 'coche', 'db'),
+          dbMotos: ordenarRankingEscapes(lista, 'moto', 'db'),
+          sonoridadCoches: ordenarRankingEscapes(lista, 'coche', 'sonoridad'),
+          sonoridadMotos: ordenarRankingEscapes(lista, 'moto', 'sonoridad')
         };
         var ronda = {
           id: rondaId,
@@ -1012,10 +1027,9 @@
           createdAt: Date.now()
         };
 
-        var candidatos = {
-          gasolina: candidatoPremioPublico(mejorGasHz, "gasolina"),
-          diesel: candidatoPremioPublico(mejorDieselHz, "diesel")
-        };
+        var candidatos = {};
+        if(mejorCocheSon) candidatos.coche = candidatoPremioPublico(mejorCocheSon, "coche");
+        if(mejorMotoSon) candidatos.moto = candidatoPremioPublico(mejorMotoSon, "moto");
 
         await db.ref().update({
           ['campeonato_escapes/rondas/' + rondaId]: ronda,
@@ -1023,13 +1037,13 @@
             activa: true,
             rondaId: rondaId,
             nombreRonda: nombreRonda,
-            pregunta: "Premio del Público: ¿qué coche ha tenido mejor sonoridad?",
+            pregunta: "Premio del Público: ¿qué participante ha tenido mejor sonoridad?",
             candidatos: candidatos,
             abiertoAt: Date.now()
           },
           'modo_actual': 'tab-esc'
         });
-        alert("Prueba finalizada. Premio del Público abierto entre gasolina y diésel.");
+        alert("Prueba finalizada. Premio del Público abierto.");
       };
 
       window.cerrarPremioPublicoEscapes = async function(){
@@ -1471,18 +1485,18 @@ window.exportarVotos = async function () {
 
       function renderRankingsEscapes(lista){
         rankingEscapesActual = lista || [];
-        renderRankingCaja('rank-db-gas', 'DB MAX GASOLINA', lista, 'gasolina', 'db');
-        renderRankingCaja('rank-db-diesel', 'DB MAX DIESEL', lista, 'diesel', 'db');
-        renderRankingCaja('rank-hz-gas', 'MEDIA HZ GASOLINA', lista, 'gasolina', 'hz');
-        renderRankingCaja('rank-hz-diesel', 'MEDIA HZ DIESEL', lista, 'diesel', 'hz');
+        renderRankingCaja('rank-db-coche', 'DB COCHES', lista, 'coche', 'db');
+        renderRankingCaja('rank-db-moto', 'DB MOTOS', lista, 'moto', 'db');
+        renderRankingCaja('rank-son-coche', 'SONORIDAD COCHES', lista, 'coche', 'sonoridad');
+        renderRankingCaja('rank-son-moto', 'SONORIDAD MOTOS', lista, 'moto', 'sonoridad');
         var el = document.getElementById('esc-medidos');
         if(el) el.innerText = lista.length;
       }
 
-      function renderRankingCaja(id, titulo, lista, comb, campo){
-        var arr = lista.filter(function(p){ return normComb(p.combustible) === comb && Number(p[campo]) > 0; });
-        arr.sort(campo === 'db' ? function(a,b){ return Number(b.db||0)-Number(a.db||0); } : function(a,b){ return Number(a.hz||99999)-Number(b.hz||99999); });
-        var unidad = campo === 'db' ? 'dB' : 'Hz';
+      function renderRankingCaja(id, titulo, lista, tipo, campo){
+        var arr = lista.filter(function(p){ return tipoVehiculo(p.tipoVehiculo) === tipo && Number(p[campo]) > 0; });
+        arr.sort(function(a,b){ return Number(b[campo]||0)-Number(a[campo]||0); });
+        var unidad = campo === 'db' ? 'dB' : 'pts';
         var html = '<b>' + titulo + '</b>';
         html += arr.slice(0, 5).map(function(p, i){
           return '<div class="rank-line"><span>' + (i+1) + '. #' + escHtml(p.dorsal) + ' ' + escHtml(p.piloto || '') + '<br><small>' + escHtml(p.coche || '') + '</small></span><b>' + p[campo] + unidad + '</b></div>';
@@ -1537,5 +1551,6 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+
 
 

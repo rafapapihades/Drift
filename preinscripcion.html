@@ -131,7 +131,7 @@
         const btnEnviar = document.querySelector('button[onclick="enviarRegistro()"]');
         if(btnEnviar) {
             btnEnviar.disabled = cerrado;
-            btnEnviar.innerText = cerrado ? "PREINSCRIPCIÃ“N CERRADA" : "ENVIAR PRE-REGISTRO";
+            btnEnviar.innerText = cerrado ? "PREINSCRIPCIÓN CERRADA" : "ENVIAR PRE-REGISTRO";
         }
         const pago = document.getElementById('pago');
         if(pago) pago.style.display = configEvento.preinscripcionPago === "ocultar" ? "none" : "block";
@@ -211,7 +211,7 @@
             return;
         }
         if(configEvento.preinscripcionAbierta === false) {
-            alert("La preinscripciÃ³n estÃ¡ cerrada para este evento.");
+            alert("La preinscripción está cerrada para este evento.");
             return;
         }
         const edad = calcularEdadFecha(fecha);
@@ -220,11 +220,11 @@
             return;
         }
         if(edad < 16) {
-            alert("No puede participar: la edad mÃ­nima para Taxidrift es 16 aÃ±os.");
+            alert("No puede participar: la edad mínima para Taxidrift es 16 años.");
             return;
         }
         if(edad < 18 && (!document.getElementById('tutor_nombre').value.trim() || !document.getElementById('tutor_dni').value.trim())) {
-            alert("Los participantes de 16 y 17 aÃ±os necesitan datos completos del tutor.");
+            alert("Los participantes de 16 y 17 años necesitan datos completos del tutor.");
             return;
         }
 

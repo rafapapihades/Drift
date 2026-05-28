@@ -124,22 +124,22 @@
 <body>
   <main class="container">
     <img src="logo_peq.png" alt="Drift Show" class="logo">
-    <h1>Registro CompeticiÃ³n Escapes</h1>
+    <h1>Registro Competición Escapes</h1>
 
     <section class="panel">
       <span class="section-title">Nuevo participante</span>
       <div class="dorsal-box">
-        <span>PrÃ³ximo dorsal</span>
+        <span>Próximo dorsal</span>
         <b id="next-dorsal">1</b>
       </div>
       <div class="grid">
         <input id="nombre" type="text" placeholder="Nombre y Apellidos">
         <input id="instagram" type="text" placeholder="Instagram">
-        <input id="matricula" type="text" placeholder="MatrÃ­cula">
+        <input id="matricula" type="text" placeholder="Matrícula">
         <input id="coche" type="text" placeholder="Marca + Modelo">
         <select id="combustible">
           <option value="Gasolina">Gasolina</option>
-          <option value="DiÃ©sel">DiÃ©sel</option>
+          <option value="Diésel">Diésel</option>
         </select>
         <select id="tipo-vehiculo">
           <option value="coche">Coche</option>
@@ -152,7 +152,7 @@
         <button class="btn-main" onclick="guardarParticipante()">Guardar participante</button>
         <button class="btn-dark" onclick="limpiarFormulario()">Limpiar</button>
       </div>
-      <p class="hint">El dorsal se asigna solo con el siguiente nÃºmero libre. Si borras el Ãºltimo participante, ese dorsal vuelve a quedar disponible.</p>
+      <p class="hint">El dorsal se asigna solo con el siguiente número libre. Si borras el último participante, ese dorsal vuelve a quedar disponible.</p>
     </section>
 
     <section class="panel">
@@ -161,7 +161,7 @@
         <div><b id="total">0</b>Inscritos</div>
         <div><b id="pagados">0</b>Pagados</div>
         <div><b id="gasolina">0</b>Gasolina</div>
-        <div><b id="diesel">0</b>DiÃ©sel</div>
+        <div><b id="diesel">0</b>Diésel</div>
       </div>
       <div class="actions" style="margin-bottom:12px">
         <button class="btn-ok" onclick="exportarCSV()">Exportar CSV MASTER_SHOW</button>
@@ -256,7 +256,7 @@
       var nombre = valor("nombre");
       var matricula = valor("matricula").toUpperCase();
       var coche = valor("coche");
-      if(!nombre || !matricula || !coche) return alert("Faltan nombre, matrÃ­cula o coche.");
+      if(!nombre || !matricula || !coche) return alert("Faltan nombre, matrícula o coche.");
 
       var dorsal = editandoDorsal || siguienteDorsal();
       var p = {
@@ -294,7 +294,7 @@
       document.getElementById("instagram").value = p.instagram || "";
       document.getElementById("matricula").value = p.matricula || "";
       document.getElementById("coche").value = p.coche || "";
-      document.getElementById("combustible").value = normalizarCombustible(p.combustible) === "diesel" ? "DiÃ©sel" : "Gasolina";
+      document.getElementById("combustible").value = normalizarCombustible(p.combustible) === "diesel" ? "Diésel" : "Gasolina";
       document.getElementById("tipo-vehiculo").value = p.tipoVehiculo || "coche";
       document.getElementById("potencia").value = p.potencia || "";
       document.getElementById("pagado").checked = estaPagado(p);
@@ -303,7 +303,7 @@
     };
 
     window.borrar = async function(dorsal){
-      if(!confirm("Â¿Borrar el dorsal " + dorsal + "?")) return;
+      if(!confirm("¿Borrar el dorsal " + dorsal + "?")) return;
       await db.ref('inscritos_esc/' + normalizarDorsal(dorsal)).remove();
       limpiarFormulario();
     };
@@ -480,7 +480,7 @@
       document.getElementById("diesel").innerText = participantes.filter(function(p){ return normalizarCombustible(p.combustible) === "diesel"; }).length;
 
       if(!participantes.length) {
-        document.getElementById("tabla").innerHTML = '<div class="empty">TodavÃ­a no hay inscritos.</div>';
+        document.getElementById("tabla").innerHTML = '<div class="empty">Todavía no hay inscritos.</div>';
         return;
       }
       var rows = participantes.map(function(p){
@@ -494,7 +494,7 @@
           '<td><div class="row-actions"><button class="btn-dark" onclick="editar(\'' + p.dorsal + '\')">Editar</button><button class="btn-danger" onclick="borrar(\'' + p.dorsal + '\')">Borrar</button></div></td>' +
         '</tr>';
       }).join("");
-      document.getElementById("tabla").innerHTML = '<table><thead><tr><th>Dorsal</th><th>Participante</th><th>MatrÃ­cula</th><th>Coche</th><th>Motor</th><th>Pagado</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+      document.getElementById("tabla").innerHTML = '<table><thead><tr><th>Dorsal</th><th>Participante</th><th>Matrícula</th><th>Coche</th><th>Motor</th><th>Pagado</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
     }
 
     function esc(v){

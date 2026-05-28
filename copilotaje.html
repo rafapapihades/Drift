@@ -288,13 +288,13 @@
                 alert("No puede participar: la edad mínima para Taxidrift es 16 años.");
                 return;
             }
-            if(edad < 18 && (!document.getElementById('tutor-nombre').value.trim() || !document.getElementById('tutor-dni').value.trim())) {
-                alert("Los participantes de 16 y 17 años necesitan datos completos del tutor.");
-                return;
-            }
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
             const nombreTutor = document.getElementById('c-nombre-tutor').value.trim() || registroRecuperado?.tutor || registroRecuperado?.nombreTutor || "";
             const dniTutor = document.getElementById('c-dni-tutor').value.trim() || registroRecuperado?.tutor_dni || registroRecuperado?.dniTutor || "";
+            if(edad < 18 && (!nombreTutor || !dniTutor)) {
+                alert("Los participantes de 16 y 17 años necesitan datos completos del tutor.");
+                return;
+            }
             const esMenorFinal = esMenorFlag || !!nombreTutor || !!dniTutor;
             
             const payload = {

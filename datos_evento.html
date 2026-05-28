@@ -777,6 +777,7 @@
       await db.ref('registro_votos').remove();
       await db.ref('participantes_sorteo').remove();
       await db.ref('sorteo_votantes_ganador').remove();
+      await db.ref('sorteo_votantes_presencia').remove();
       await db.ref('premio_publico_escapes').remove();
       await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
       await db.ref('sorteo_reset_ts').set(Date.now());
@@ -852,6 +853,7 @@
       await db.ref('registro_votos').remove();
       await db.ref('participantes_sorteo').remove();
       await db.ref('sorteo_votantes_ganador').remove();
+      await db.ref('sorteo_votantes_presencia').remove();
       await db.ref('premio_publico_escapes').remove();
       await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"" });
       await db.ref('sorteo_reset_ts').set(Date.now());

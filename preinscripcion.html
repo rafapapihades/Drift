@@ -38,6 +38,8 @@
             box-shadow: 0 5px 0 #ccaa00;
         }
         .btn-enviar:active { transform: translateY(4px); box-shadow: none; }
+        .btn-enviar:disabled { background:#333; color:#888; box-shadow:none; cursor:not-allowed; transform:none; }
+        .edad-aviso { display:none; color:#ff3333; background:#230000; border:1px solid #771111; border-radius:8px; padding:10px; font-weight:bold; font-size:.85em; margin:10px 0; }
 
         #menor-extra { display: none; background: #221a00; border: 1px dashed var(--accent); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         
@@ -93,7 +95,7 @@
         <input type="checkbox" id="chk-fotos" checked>
         <span>Acepto el uso de mi imagen para redes sociales y que me envíen las fotos del evento.</span>
     </label>
-    
+    <div id="edad-aviso" class="edad-aviso">Para participar en Taxidrift debes tener al menos 16 años.</div>
     <button class="btn-enviar" onclick="enviarRegistro()">Inscribirme</button>
     <p class="info-pago">Al inscribirte, se te asignará un turno. Deberás acudir a la carpa de control para pagar y firmar la hoja oficial.</p>
 </div>
@@ -127,12 +129,7 @@
     onValue(ref(db, 'config_evento'), (snap) => {
         configEvento = snap.val() || {};
         document.getElementById('event-title').innerText = configEvento.nombre || "";
-        const cerrado = configEvento.preinscripcionAbierta === false;
-        const btnEnviar = document.querySelector('button[onclick="enviarRegistro()"]');
-        if(btnEnviar) {
-            btnEnviar.disabled = cerrado;
-            btnEnviar.innerText = cerrado ? "PREINSCRIPCIÓN CERRADA" : "ENVIAR PRE-REGISTRO";
-        }
+        actualizarEstadoFormulario();
         const pago = document.getElementById('pago');
         if(pago) pago.style.display = configEvento.preinscripcionPago === "ocultar" ? "none" : "block";
         renderPilotos();
@@ -188,6 +185,19 @@
         return edad;
     }
 
+    function actualizarEstadoFormulario() {
+        const btnEnviar = document.querySelector('button[onclick="enviarRegistro()"]');
+        const aviso = document.getElementById('edad-aviso');
+        const edad = calcularEdadFecha(document.getElementById('fecha_nac').value.trim());
+        const cerrado = configEvento.preinscripcionAbierta === false;
+        const menorDe16 = edad !== null && edad < 16;
+        if(aviso) aviso.style.display = menorDe16 ? 'block' : 'none';
+        if(btnEnviar) {
+            btnEnviar.disabled = cerrado || menorDe16;
+            btnEnviar.innerText = cerrado ? 'PREINSCRIPCIÓN CERRADA' : (menorDe16 ? 'EDAD MÍNIMA 16 AÑOS' : 'INSCRIBIRME');
+        }
+    }
+
     // Detectar si es menor de edad por la fecha escrita (DD/MM/AAAA)
     window.checkEdadManual = (el) => {
         const valor = el.value;
@@ -195,10 +205,12 @@
             const edad = calcularEdadFecha(valor);
             if(edad !== null && edad < 16) {
                 document.getElementById('menor-extra').style.display = 'none';
+                actualizarEstadoFormulario();
                 return;
             }
             document.getElementById('menor-extra').style.display = (edad < 18) ? 'block' : 'none';
         }
+        actualizarEstadoFormulario();
     };
 
     window.enviarRegistro = async () => {
@@ -220,7 +232,7 @@
             return;
         }
         if(edad < 16) {
-            alert("No puede participar: la edad mínima para Taxidrift es 16 años.");
+            actualizarEstadoFormulario();
             return;
         }
         if(edad < 18 && (!document.getElementById('tutor_nombre').value.trim() || !document.getElementById('tutor_dni').value.trim())) {

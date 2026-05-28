@@ -38,8 +38,13 @@
         .btn-salida { background: var(--orange); color: white; border: none; padding: 15px 5px; border-radius: 8px; font-weight: 900; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #a04e0e; }
         .btn-devolver { background: #333; color: #aaa; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; width: 100%; }
         .btn-reasignar { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 4px; font-size: 0.6em; cursor: pointer; margin-top: 8px; }
+        .btn-incidencia { background: #8b0000; color: #fff; border: 1px solid #ff3333; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; width: 100%; font-weight: 900; }
+        .btn-incidencia-main { width: 100%; background: #180000; color: #ff3333; border: 2px solid #ff3333; border-radius: 12px; padding: 15px; font-weight: 900; text-transform: uppercase; margin-bottom: 15px; cursor: pointer; }
+        .incidencia-count { color: #ff6666; font-size: 0.8em; margin: -8px 0 12px; font-family: sans-serif; font-weight: bold; text-align: center; }
         
         .selector-rapido { background: #000; color: var(--accent); border: 1px solid var(--accent); padding: 5px; border-radius: 5px; width: 100%; margin-top: 5px; font-size: 0.9em; }
+        .incidencia-field { width: 100%; background: #000; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-top: 10px; font-family: sans-serif; font-size: 1em; }
+        textarea.incidencia-field { min-height: 95px; resize: vertical; }
 
         #buscador { width: 100%; padding: 15px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; font-weight: bold; font-size: 1.1em; }
 
@@ -64,9 +69,33 @@
         </div>
     </div>
 
+    <div id="modal-incidencia" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:1001; align-items:center; justify-content:center; padding:18px;">
+        <div class="modal-content" style="max-width:520px; text-align:left;">
+            <h2 style="color:#ff3333; margin:0 0 12px; text-align:center;">REGISTRAR INCIDENCIA</h2>
+            <label style="font-size:0.75em; color:#aaa;">Piloto</label>
+            <select id="incidencia-piloto" class="incidencia-field"></select>
+            <label style="font-size:0.75em; color:#aaa; display:block; margin-top:10px;">Tipo de incidencia</label>
+            <select id="incidencia-tipo" class="incidencia-field">
+                <option>Copiloto no registrado / subido sin autorización</option>
+                <option>Aviso verbal</option>
+                <option>Ignora indicaciones de pista</option>
+                <option>Conducción peligrosa</option>
+                <option>Otro</option>
+            </select>
+            <label style="font-size:0.75em; color:#aaa; display:block; margin-top:10px;">Observaciones</label>
+            <textarea id="incidencia-obs" class="incidencia-field" placeholder="Ej: Sube a un amigo sin pasar por registro."></textarea>
+            <div class="modal-btns">
+                <button class="btn-modal" style="background:#444;" onclick="cerrarIncidencia()">CANCELAR</button>
+                <button class="btn-modal" style="background:#8b0000;" onclick="guardarIncidencia()">REGISTRAR</button>
+            </div>
+        </div>
+    </div>
+
     <div class="header"><img src="logotaxi.jpg" alt="Logo" class="header-logo"><div id="event-title" class="event-title"></div></div>
     
     <div id="status-bar" class="pista-status-bar" style="background: #222; color: #fff;">ESTADO: CONECTANDO...</div>
+    <button class="btn-incidencia-main" onclick="abrirIncidencia()">REGISTRAR INCIDENCIA PILOTO</button>
+    <div id="incidencias-count" class="incidencia-count"></div>
 
     <input type="search" id="buscador" placeholder="🔍 BUSCAR TURNO O NOMBRE..." oninput="filtrar()">
 
@@ -92,6 +121,7 @@
         let confirmAction = null;
         let pilotosDisponibles = [];
         let fichasPilotos = {};
+        let incidenciaItemActual = null;
 
         db.ref('config_evento').on('value', s => {
             const cfg = s.val() || {};
@@ -144,6 +174,11 @@
             }
         });
 
+        db.ref('copilotajes/incidencias').on('value', s => {
+            const total = Object.keys(s.val() || {}).length;
+            document.getElementById('incidencias-count').innerText = total ? `Incidencias registradas: ${total}` : "";
+        });
+
         function generarFilaHTML(id, item, esRecinto, esPista) {
             const dMatch = item.piloto.match(/\[#(\d+)\]/) || item.piloto.match(/^(\d+)/);
             const num = dMatch ? dMatch[1] : "??";
@@ -160,6 +195,7 @@
             } else {
                 botones = `<button class="btn-recinto" onclick="marcarEnRecinto('${id}')">RECOGER</button>`;
             }
+            botones += `<button class="btn-incidencia" onclick="abrirIncidencia('${id}')">INCIDENCIA</button>`;
 
             return `
                 <tr id="row-${id}">
@@ -208,6 +244,65 @@
             if(pistaSnap.exists() && !(pistaSnap.val() || {}).finalizado) {
                 await actualizarEstadoPistaActiva();
             }
+        };
+
+        window.abrirIncidencia = async (id) => {
+            incidenciaItemActual = null;
+            const sel = document.getElementById('incidencia-piloto');
+            const opciones = pilotosDisponibles.map(p => `<option value="${escapeAttr(p.label)}">${escapeHtml(p.label)}</option>`).join('');
+            sel.innerHTML = `<option value="">Selecciona piloto...</option>${opciones}`;
+
+            if(id) {
+                const esperaSnap = await db.ref(`copilotajes/espera/${id}`).once('value');
+                const pistaSnap = await db.ref(`copilotajes/completados/${id}`).once('value');
+                const item = esperaSnap.val() || pistaSnap.val();
+                if(item) {
+                    incidenciaItemActual = { id, item };
+                    const piloto = item.piloto || "";
+                    if(!Array.from(sel.options).some(o => o.value === piloto)) {
+                        const opt = document.createElement('option');
+                        opt.value = piloto;
+                        opt.textContent = piloto;
+                        sel.appendChild(opt);
+                    }
+                    sel.value = piloto;
+                }
+            }
+
+            document.getElementById('incidencia-tipo').value = "Copiloto no registrado / subido sin autorización";
+            document.getElementById('incidencia-obs').value = "";
+            document.getElementById('modal-incidencia').style.display = 'flex';
+        };
+
+        window.cerrarIncidencia = () => {
+            document.getElementById('modal-incidencia').style.display = 'none';
+            incidenciaItemActual = null;
+        };
+
+        window.guardarIncidencia = async () => {
+            const pilotoTexto = document.getElementById('incidencia-piloto').value;
+            const tipo = document.getElementById('incidencia-tipo').value;
+            const observaciones = document.getElementById('incidencia-obs').value.trim();
+            if(!pilotoTexto) return alert("Selecciona un piloto.");
+
+            const dorsal = extraerDorsal(pilotoTexto);
+            const ficha = obtenerFichaPiloto(dorsal);
+            const item = incidenciaItemActual?.item || {};
+            await db.ref('copilotajes/incidencias').push({
+                ts: Date.now(),
+                fecha: new Date().toLocaleDateString('es-ES'),
+                hora: new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' }),
+                dorsal: dorsal || "",
+                piloto: ficha.alias || ficha.piloto || limpiarNombrePiloto(pilotoTexto),
+                pilotoTexto: pilotoTexto,
+                copiloto: item.copiloto || "",
+                turno: item.nPapel || "",
+                tipo: tipo,
+                observaciones: observaciones,
+                origen: "pista_copilotajes"
+            });
+            cerrarIncidencia();
+            showConfirm("INCIDENCIA REGISTRADA", () => {});
         };
 
         window.marcarEnRecinto = (id) => db.ref(`copilotajes/espera/${id}`).update({
@@ -390,6 +485,14 @@
             const ficha = obtenerFichaPiloto(dorsal);
             if(ficha.alias || ficha.piloto) return ficha.alias || ficha.piloto;
             return limpiarNombrePiloto(pilotoTexto).replace(/^\d+\s*[,.-]?\s*/, '').split(',')[0].trim();
+        }
+
+        function escapeHtml(v) {
+            return String(v || "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+        }
+
+        function escapeAttr(v) {
+            return escapeHtml(v).replace(/"/g, '&quot;');
         }
 
         function crearItemVotoTaxi(dorsal, item, previo) {

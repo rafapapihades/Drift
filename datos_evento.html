@@ -202,6 +202,7 @@
       <button class="tab-btn" onclick="abrirTab('escapes', this)">Escapes</button>
       <button class="tab-btn" onclick="abrirTab('copilotajes', this)">Copilotajes</button>
       <button class="tab-btn" onclick="abrirTab('votos', this)">Votos</button>
+      <button class="tab-btn" onclick="abrirTab('incidencias', this)">Incidencias</button>
       <button class="tab-btn" onclick="abrirTab('resumen', this)">Resumen</button>
     </nav>
 
@@ -298,6 +299,12 @@
       <div id="tabla-votos" class="table-wrap"></div>
     </section>
 
+    <section id="tab-incidencias" class="tab panel">
+      <h1>Incidencias</h1>
+      <p class="hint">Registro de avisos creados desde pista. Sirve para dejar constancia de normas incumplidas durante el evento.</p>
+      <div id="tabla-incidencias" class="table-wrap"></div>
+    </section>
+
     <section id="tab-resumen" class="tab panel">
       <h1>Resumen</h1>
       <div class="stats">
@@ -305,7 +312,9 @@
         <div class="stat"><span>Escapes inscritos</span><b id="st-escapes">0</b></div>
         <div class="stat"><span>Copilotajes</span><b id="st-copilotajes">0</b></div>
         <div class="stat"><span>Escapes medidos</span><b id="st-medidos">0</b></div>
+        <div class="stat"><span>Incidencias</span><b id="st-incidencias">0</b></div>
       </div>
+      <div id="resumen-incidencias" class="table-wrap" style="margin-top:14px;"></div>
       <div class="btn-row">
         <button class="btn-green" onclick="exportarExcelCompleto()">Exportar evento completo</button>
         <button class="btn-red" onclick="resetTodoEvento()">Restablecer todo el evento</button>
@@ -325,6 +334,7 @@
     var copilotajes = {};
     var rankingEscapes = {};
     var historialVotos = {};
+    var incidencias = {};
     var editPilotoKey = "";
     var editEscapeKey = "";
     var editCopKey = "";
@@ -431,6 +441,7 @@
     db.ref('pilotos_evento').on('value', function(s){ pilotos = s.val() || {}; renderPilotos(); renderResumen(); });
     db.ref('inscritos_esc').on('value', function(s){ escapes = s.val() || {}; renderEscapes(); renderResumen(); });
     db.ref('copilotajes').on('value', function(s){ copilotajes = s.val() || {}; renderCopilotajes(); renderResumen(); });
+    db.ref('copilotajes/incidencias').on('value', function(s){ incidencias = s.val() || {}; renderIncidencias(); renderResumen(); });
     db.ref('ranking_escapes').on('value', function(s){ rankingEscapes = s.val() || {}; renderResumen(); });
     db.ref('historial_votos').on('value', function(s){ historialVotos = s.val() || {}; renderVotos(); });
 
@@ -730,10 +741,11 @@
       return csv;
     }
     window.exportarCopilotajes = function(){
-      exportCsv("COPILOTAJES_RESULTADOS.csv", copilotajesCSV(), async function(){
+      exportCsv("COPILOTAJES_RESULTADOS.csv", copilotajesCSV() + "\n\nINCIDENCIAS\n" + incidenciasCSV(), async function(){
         if(confirm("¿Borrar espera, completados y contador de copilotajes?")){
           await db.ref('copilotajes/espera').remove();
           await db.ref('copilotajes/completados').remove();
+          await db.ref('copilotajes/incidencias').remove();
           await db.ref('copilotajes/ultimo_numero').set(0);
         }
       }, "Exportación de copilotajes generada. ¿Quieres restablecer copilotajes?");
@@ -771,6 +783,31 @@
       toast("Votos y sorteo restablecidos");
     };
 
+    function incidenciasRows(){
+      return Object.entries(incidencias || {}).map(function(pair){
+        return { key:pair[0], data:pair[1] || {} };
+      }).sort(function(a,b){ return Number(b.data.ts || 0) - Number(a.data.ts || 0); });
+    }
+    function incidenciasCSV(){
+      var csv = "Fecha;Hora;Dorsal;Piloto;Copiloto;Turno;Tipo;Observaciones;Origen\n";
+      incidenciasRows().slice().reverse().forEach(function(r){
+        var i = r.data;
+        csv += csvLine([i.fecha || "",i.hora || "",i.dorsal || "",i.piloto || i.pilotoTexto || "",i.copiloto || "",i.turno || "",i.tipo || "",i.observaciones || "",i.origen || ""]);
+      });
+      return csv;
+    }
+    function renderIncidencias(){
+      var rows = incidenciasRows().map(function(r){
+        var i = r.data;
+        return [i.fecha || "", i.hora || "", i.dorsal || "", i.piloto || i.pilotoTexto || "", i.copiloto || "", i.turno || "", i.tipo || "", i.observaciones || ""];
+      });
+      var htmlTabla = tabla(['Fecha','Hora','Dorsal','Piloto','Copiloto','Turno','Incidencia','Observaciones'], rows);
+      var tablaInc = document.getElementById('tabla-incidencias');
+      if(tablaInc) tablaInc.innerHTML = htmlTabla;
+      var resumenInc = document.getElementById('resumen-incidencias');
+      if(resumenInc) resumenInc.innerHTML = '<h2 style="color:var(--accent);">Incidencias del evento</h2>' + htmlTabla;
+    }
+
     function escapesResultadosCSV(){
       var lista = Object.values(rankingEscapes || {});
       var csv = "Dorsal;Nombre;Instagram;Matricula;Vehiculo;Tipo;Combustible;PotenciaCV;PicoDB;MediaHzBajos;SonoridadJuez;Fecha\n";
@@ -800,11 +837,13 @@
       document.getElementById('st-escapes').innerText = Object.keys(escapes || {}).length;
       document.getElementById('st-copilotajes').innerText = copRows().length;
       document.getElementById('st-medidos').innerText = Object.keys(rankingEscapes || {}).length;
+      document.getElementById('st-incidencias').innerText = Object.keys(incidencias || {}).length;
     }
     window.resetTodoEvento = async function(){
       if(!confirm("Esto borrará resultados y datos operativos del evento. ¿Seguro?")) return;
       await db.ref('copilotajes/espera').remove();
       await db.ref('copilotajes/completados').remove();
+      await db.ref('copilotajes/incidencias').remove();
       await db.ref('copilotajes/ultimo_numero').set(0);
       await db.ref('ranking_escapes').remove();
       await db.ref('crono_evento').remove();
@@ -847,12 +886,14 @@
         ["Escapes inscritos", Object.keys(escapes || {}).length],
         ["Copilotajes", copRows().length],
         ["Escapes medidos", Object.keys(rankingEscapes || {}).length],
-        ["Votos ranking", rankingVotos().length]
+        ["Votos ranking", rankingVotos().length],
+        ["Incidencias", Object.keys(incidencias || {}).length]
       ];
       var workbook = '<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' +
         xmlWorksheet("Resumen", resumen) +
         xmlWorksheet("Pilotos", csvToRows(pilotosCSV())) +
         xmlWorksheet("Copilotajes", csvToRows(copilotajesCSV())) +
+        xmlWorksheet("Incidencias", csvToRows(incidenciasCSV())) +
         xmlWorksheet("Votos Show", csvToRows(votosCSV())) +
         xmlWorksheet("Escapes Resultados", csvToRows(escapesResultadosCSV())) +
         xmlWorksheet("Escapes Rankings", csvToRows(escapesRankingsCSV())) +
@@ -874,6 +915,7 @@
   </script>
 </body>
 </html>
+
 
 
 

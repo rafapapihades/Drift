@@ -119,7 +119,7 @@
     <div class="controls-row">
         <button class="btn-mini" id="btn-cargar-pilotos" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (0)</button>
         <button class="btn-mini" id="btn-estado-pilotos" onclick="document.getElementById('modal-pilotos').style.display='block'" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS (0)</button>
-        <button class="btn-mini" id="btn-preinscripcion" onclick="togglePreinscripcion()" style="color:var(--orange); border-color:var(--orange);">CERRAR PREINSCRIPCIÃ“N</button>
+        <button class="btn-mini" id="btn-preinscripcion" onclick="togglePreinscripcion()" style="color:var(--orange); border-color:var(--orange);">CERRAR PREINSCRIPCIÓN</button>
         <button class="btn-mini" id="btn-sorteo" onclick="abrirSorteo()" style="color:var(--accent); border-color:var(--accent);">SORTEO VOTANTES</button>
         <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">EXPORTAR Y REINICIAR</button>
     </div>
@@ -141,7 +141,7 @@
             <div class="sorteo-info" id="sorteo-total">Participantes cargados: 0</div>
             <select id="sorteo-modo" class="input-huge" style="height:48px; margin:12px 0;">
                 <option value="aleatorio">Aleatorio</option>
-                <option value="mas_votos">MÃ¡s votaciones</option>
+                <option value="mas_votos">Más votaciones</option>
             </select>
             <div class="sorteo-numero" id="sorteo-numero">---</div>
             <div class="sorteo-info" id="sorteo-detalle">Pulsa sortear para elegir un participante.</div>
@@ -285,11 +285,11 @@
                 return;
             }
             if(edad < 16) {
-                alert("No puede participar: la edad mÃ­nima para Taxidrift es 16 aÃ±os.");
+                alert("No puede participar: la edad mínima para Taxidrift es 16 años.");
                 return;
             }
             if(edad < 18 && (!document.getElementById('tutor-nombre').value.trim() || !document.getElementById('tutor-dni').value.trim())) {
-                alert("Los participantes de 16 y 17 aÃ±os necesitan datos completos del tutor.");
+                alert("Los participantes de 16 y 17 años necesitan datos completos del tutor.");
                 return;
             }
             const num = registroRecuperado ? registroRecuperado.nPapel : proximoNumeroLibre;
@@ -338,7 +338,7 @@
             const btnPre = document.getElementById('btn-preinscripcion');
             if(btnPre) {
                 const abierta = configEvento.preinscripcionAbierta !== false;
-                btnPre.innerText = abierta ? "CERRAR PREINSCRIPCIÃ“N" : "ABRIR PREINSCRIPCIÃ“N";
+                btnPre.innerText = abierta ? "CERRAR PREINSCRIPCIÓN" : "ABRIR PREINSCRIPCIÓN";
                 btnPre.style.color = abierta ? "var(--orange)" : "var(--green)";
                 btnPre.style.borderColor = abierta ? "var(--orange)" : "var(--green)";
             }
@@ -346,7 +346,7 @@
 
         window.togglePreinscripcion = async () => {
             const abierta = configEvento.preinscripcionAbierta !== false;
-            if(!confirm(abierta ? "Â¿Cerrar preinscripciones de Taxidrift?" : "Â¿Abrir preinscripciones de Taxidrift?")) return;
+            if(!confirm(abierta ? "¿Cerrar preinscripciones de Taxidrift?" : "¿Abrir preinscripciones de Taxidrift?")) return;
             await update(ref(db, 'config_evento'), { preinscripcionAbierta: !abierta, updatedAt: Date.now() });
         };
 

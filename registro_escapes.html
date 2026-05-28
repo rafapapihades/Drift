@@ -315,8 +315,8 @@
     };
 
     window.reiniciarTodo = async function(){
-      if(!confirm("Vas a borrar todos los inscritos de escapes del evento. ?Continuar?")) return;
-      if(!confirm("Segunda confirmaci?n: se borrará también de Gestión de datos del evento. ?Seguro?")) return;
+      if(!confirm("Vas a borrar todos los inscritos de escapes del evento. ¿Continuar?")) return;
+      if(!confirm("Segunda confirmación: se borrará también de Gestión de datos del evento. ¿Seguro?")) return;
       var txt = prompt("Escribe BORRAR para confirmar el reinicio de la lista.");
       if(String(txt || "").trim().toUpperCase() !== "BORRAR") return;
       await db.ref('inscritos_esc').remove();
@@ -340,7 +340,7 @@
       a.download = slugEvento() + "_PARTICIPANTES_ESCAPES.csv";
       a.click();
       setTimeout(function(){
-        if(confirm("Exportaci?n generada. ?Quieres reiniciar la lista de escapes del evento?")) reiniciarTodo();
+        if(confirm("Exportación generada. ¿Quieres reiniciar la lista de escapes del evento?")) reiniciarTodo();
       }, 700);
     };
 
@@ -350,7 +350,7 @@
       var reader = new FileReader();
       reader.onload = async function(e){
         var rows = parseCSVText(e.target.result);
-        if(!rows.length) return alert("CSV vac?o.");
+        if(!rows.length) return alert("CSV vacío.");
         var importados = {};
         rows.forEach(function(row, idx){
           var dorsal = campoCSV(row, ["Dorsal"]) || String(idx + 1);

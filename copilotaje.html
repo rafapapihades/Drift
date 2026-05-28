@@ -54,6 +54,7 @@
         .piloto-row { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: #222; margin-bottom: 8px; border-radius: 8px; border: 1px solid #333; }
         .sorteo-numero { color: var(--accent); font-family: monospace; font-size: 4.5em; line-height: 1; margin: 18px 0; text-shadow: 0 0 25px rgba(255,204,0,0.35); }
         .sorteo-info { color:#aaa; font-family:sans-serif; font-size:0.9em; line-height:1.5; }
+        .sorteo-confirmados { color:#00ff99; font-family:monospace; font-size:1.6em; font-weight:900; margin:10px 0; }
         
         .controls-row { display: flex; width: 100%; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap; margin-bottom: 30px; }
         .btn-mini { background: #222; color: #ccc; border: 1px solid #444; padding: 12px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; cursor: pointer; font-family: sans-serif; font-weight: bold; flex: 1; min-width: 120px; }
@@ -139,14 +140,15 @@
         <div style="max-width: 500px; margin: auto; background: #111; padding: 24px; border-radius: 15px; border: 1px solid var(--accent); text-align:center;">
             <h2 style="color:var(--accent); margin-top:0;">SORTEO DE VOTANTES</h2>
             <div class="sorteo-info" id="sorteo-total">Participantes cargados: 0</div>
+            <div class="sorteo-confirmados" id="sorteo-confirmados">Confirmados: 0</div>
             <select id="sorteo-modo" class="input-huge" style="height:48px; margin:12px 0;">
-                <option value="aleatorio">Aleatorio</option>
-                <option value="mas_votos">Más votaciones</option>
+                <option value="aleatorio">Aleatorio entre confirmados</option>
+                <option value="mas_votos">Más votaciones entre confirmados</option>
             </select>
             <div class="sorteo-numero" id="sorteo-numero">---</div>
-            <div class="sorteo-info" id="sorteo-detalle">Pulsa sortear para elegir un participante.</div>
+            <div class="sorteo-info" id="sorteo-detalle">Al abrir este panel, el público puede confirmar presencia desde su móvil.</div>
             <button class="btn-add-massive" style="height:60px; margin-top:20px; font-size:1em;" onclick="sortearParticipante()">SORTEAR</button>
-            <button class="btn-mini" style="width:100%; margin-top:15px;" onclick="document.getElementById('modal-sorteo').style.display='none'">CERRAR PANEL</button>
+            <button class="btn-mini" style="width:100%; margin-top:15px;" onclick="cerrarSorteo()">CERRAR SORTEO</button>
         </div>
     </div>
 
@@ -166,6 +168,8 @@
         let configEvento = {};
         let pilotosEvento = {};
         let copilotajesData = {};
+        let participantesSorteo = [];
+        let confirmadosSorteo = {};
 
         const getTime = () => new Date().toLocaleTimeString('es-ES');
         const normalizarTexto = (v) => String(v || "").replace(/^\uFEFF/, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -469,14 +473,22 @@
         window.abrirSorteo = async () => {
             document.getElementById('modal-sorteo').style.display = 'block';
             document.getElementById('sorteo-numero').innerText = '---';
-            document.getElementById('sorteo-detalle').innerText = 'Pulsa sortear para elegir un participante.';
+            document.getElementById('sorteo-detalle').innerText = 'Pide al público que confirme su número desde la pantalla de votación.';
+            await set(ref(db, 'sorteo_votantes_presencia'), {
+                activo: true,
+                abiertoDesde: Date.now(),
+                confirmados: {},
+                ganador: null
+            });
             await actualizarTotalSorteo();
         };
 
         async function actualizarTotalSorteo() {
-            const participantes = await cargarParticipantesSorteo();
-            document.getElementById('sorteo-total').innerText = `Participantes cargados: ${participantes.length}`;
-            return participantes;
+            participantesSorteo = await cargarParticipantesSorteo();
+            const confirmados = participantesSorteo.filter(p => confirmadosSorteo[p.id]);
+            document.getElementById('sorteo-total').innerText = `Votantes del evento: ${participantesSorteo.length}`;
+            document.getElementById('sorteo-confirmados').innerText = `Confirmados: ${confirmados.length}`;
+            return confirmados;
         }
 
         async function cargarParticipantesSorteo() {
@@ -487,11 +499,18 @@
                 .map(([id, p]) => ({ id, ...p }));
         }
 
+        onValue(ref(db, 'sorteo_votantes_presencia/confirmados'), async (snap) => {
+            confirmadosSorteo = snap.val() || {};
+            if(document.getElementById('modal-sorteo').style.display === 'block') {
+                await actualizarTotalSorteo();
+            }
+        });
+
         window.sortearParticipante = async () => {
             const participantes = await actualizarTotalSorteo();
             if(!participantes.length) {
                 document.getElementById('sorteo-numero').innerText = '---';
-                document.getElementById('sorteo-detalle').innerText = 'Todavía no hay participantes con votos registrados.';
+                document.getElementById('sorteo-detalle').innerText = 'Todavía no hay votantes confirmados para este sorteo.';
                 return;
             }
             const modo = document.getElementById('sorteo-modo').value || "aleatorio";
@@ -500,8 +519,15 @@
             const votos = ganador.votos_totales || 0;
             const ultimo = ganador.ultimo_voto ? new Date(ganador.ultimo_voto).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }) : '-';
             document.getElementById('sorteo-numero').innerText = ganador.id;
-            document.getElementById('sorteo-detalle').innerText = `${modo === "mas_votos" ? "Ganador por más votaciones" : "Ganador aleatorio"} · Votos registrados: ${votos} · Último voto: ${ultimo}`;
-            await set(ref(db, 'sorteo_votantes_ganador'), { id: ganador.id, modo, votos, ultimoVoto: ganador.ultimo_voto || 0, ts: Date.now() });
+            document.getElementById('sorteo-detalle').innerText = `${modo === "mas_votos" ? "Ganador por más votaciones" : "Ganador aleatorio"} · Votos registrados: ${votos} · Último voto: ${ultimo} · Confirmados: ${participantes.length}`;
+            const payload = { id: ganador.id, modo, votos, ultimoVoto: ganador.ultimo_voto || 0, confirmados: participantes.length, ts: Date.now() };
+            await set(ref(db, 'sorteo_votantes_ganador'), payload);
+            await update(ref(db, 'sorteo_votantes_presencia'), { activo: false, ganador: payload, cerradoEn: Date.now() });
+        };
+
+        window.cerrarSorteo = async () => {
+            document.getElementById('modal-sorteo').style.display = 'none';
+            await update(ref(db, 'sorteo_votantes_presencia'), { activo: false, cerradoEn: Date.now() });
         };
 
         function aplicarPilotoPreseleccionado() {
@@ -569,13 +595,14 @@
             link.click();
 
             setTimeout(() => {
-                if(confirm("Exportaci?n generada. ?Quieres restablecer copilotajes, votos y sorteo para empezar de cero?")) {
+                if(confirm("Exportación generada. ¿Quieres restablecer copilotajes, votos y sorteo para empezar de cero?")) {
                     set(ref(db, 'copilotajes/espera'), null);
                     set(ref(db, 'copilotajes/completados'), null);
                         set(ref(db, 'copilotajes/incidencias'), null);
                         set(ref(db, 'copilotajes/ultimo_numero'), 0);
                         set(ref(db, 'participantes_sorteo'), null);
                         set(ref(db, 'sorteo_votantes_ganador'), null);
+                        set(ref(db, 'sorteo_votantes_presencia'), null);
                         set(ref(db, 'premio_publico_escapes'), null);
                         set(ref(db, 'historial_votos'), null);
                         set(ref(db, 'registro_votos'), null);
@@ -658,5 +685,3 @@
     </script>
 </body>
 </html>
-
-

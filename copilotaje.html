@@ -553,6 +553,15 @@
             procesarLista(d.espera, "ESPERA");
             procesarLista(d.completados, "COMPLETADO");
 
+            const incidencias = Object.values(d.incidencias || {}).sort((a,b) => Number(a.ts || 0) - Number(b.ts || 0));
+            if(incidencias.length) {
+                csv += "\n\nINCIDENCIAS DEL EVENTO\n";
+                csv += "Fecha;Hora;Dorsal;Piloto;Copiloto;Turno;Tipo;Observaciones;Origen\n";
+                incidencias.forEach(i => {
+                    csv += csvLine([i.fecha || '', i.hora || '', i.dorsal || '', i.piloto || i.pilotoTexto || '', i.copiloto || '', i.turno || '', i.tipo || '', i.observaciones || '', i.origen || '']);
+                });
+            }
+
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -563,6 +572,7 @@
                 if(confirm("Exportaci?n generada. ?Quieres restablecer copilotajes, votos y sorteo para empezar de cero?")) {
                     set(ref(db, 'copilotajes/espera'), null);
                     set(ref(db, 'copilotajes/completados'), null);
+                        set(ref(db, 'copilotajes/incidencias'), null);
                         set(ref(db, 'copilotajes/ultimo_numero'), 0);
                         set(ref(db, 'participantes_sorteo'), null);
                         set(ref(db, 'sorteo_votantes_ganador'), null);

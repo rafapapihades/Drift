@@ -44,6 +44,15 @@
         .show-select { width: 100%; background: #000; color: #fff; border: 1px solid #444; border-radius: 10px; padding: 12px; font-size: 1em; font-weight: bold; }
         .btn-show { background: #6b1b8f; color: #fff; border: none; border-radius: 10px; padding: 12px 16px; font-weight: 900; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #3b0f50; }
         .badge-show { background:#6b1b8f; color:#fff; border-radius:6px; padding:4px 8px; font-size:.72em; font-weight:900; margin-left:6px; }
+        .piloto-preview { display:flex; align-items:center; gap:10px; margin-top:10px; padding:8px; border:1px solid #333; border-radius:10px; background:#050505; text-align:left; font-family:Arial, sans-serif; }
+        .piloto-preview img { width:74px; height:42px; object-fit:cover; border-radius:6px; border:1px solid #444; background:#000; flex:0 0 auto; }
+        .piloto-preview b { display:block; color:var(--accent); font-size:.9em; line-height:1.15; }
+        .piloto-preview span { display:block; color:#aaa; font-size:.75em; margin-top:2px; }
+        .piloto-preview.empty { color:#777; font-weight:900; justify-content:center; }
+        .selector-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+        .btn-mini-save, .btn-mini-cancel { border:0; border-radius:8px; padding:10px 8px; font-weight:900; cursor:pointer; }
+        .btn-mini-save { background:var(--green); color:#fff; }
+        .btn-mini-cancel { background:#333; color:#fff; }
         
         .selector-rapido { background: #000; color: var(--accent); border: 1px solid var(--accent); padding: 5px; border-radius: 5px; width: 100%; margin-top: 5px; font-size: 0.9em; }
         .incidencia-field { width: 100%; background: #000; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-top: 10px; font-family: sans-serif; font-size: 1em; }
@@ -102,9 +111,10 @@
     <div class="card" style="border-color:#6b1b8f;">
         <div class="section-title" style="color:#d987ff;">SHOW SIN COPILOTO</div>
         <div class="show-grid">
-            <select id="show-piloto" class="show-select"></select>
+            <select id="show-piloto" class="show-select" onchange="previsualizarShowPiloto()"></select>
             <button class="btn-show" onclick="sacarShowPista()">SACAR SHOW</button>
         </div>
+        <div id="show-piloto-preview" class="piloto-preview empty">Selecciona piloto</div>
     </div>
 
     <input type="search" id="buscador" placeholder="🔍 BUSCAR TURNO O NOMBRE..." oninput="filtrar()">
@@ -207,7 +217,16 @@
                     return `<option value="${escapeAttr(label)}">${escapeHtml(label)}</option>`;
                 }).join('');
             sel.innerHTML = opts || '<option value="">Sin pilotos show activos</option>';
+            previsualizarShowPiloto();
         }
+
+        window.previsualizarShowPiloto = () => {
+            const sel = document.getElementById('show-piloto');
+            const cont = document.getElementById('show-piloto-preview');
+            if(!sel || !cont) return;
+            cont.innerHTML = htmlPreviewPiloto(sel.value);
+            cont.classList.toggle('empty', !sel.value);
+        };
 
         function generarFilaHTML(id, item, esRecinto, esPista) {
             const dMatch = item.piloto.match(/\[#(\d+)\]/) || item.piloto.match(/^(\d+)/);
@@ -271,17 +290,29 @@
 
         window.activarSelector = (id, actual) => {
             const cont = document.getElementById(`cont-p-${id}`);
-            let opts = pilotosDisponibles.map(p => `<option value="${p.label}" ${p.label === actual ? 'selected' : ''}>${p.label}</option>`).join('');
+            let opts = pilotosDisponibles.map(p => `<option value="${escapeAttr(p.label)}" ${p.label === actual ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('');
             cont.innerHTML = `
-                <select class="selector-rapido" onchange="guardarPiloto('${id}', this.value)">
+                <select id="sel-piloto-${id}" class="selector-rapido" onchange="previsualizarPilotoAsignado('${id}', this.value)">
                     <option value="" disabled>Selecciona Piloto...</option>
                     ${opts}
-                    <option value="CANCEL">❌ CANCELAR</option>
-                </select>`;
+                </select>
+                <div id="preview-piloto-${id}" class="piloto-preview"></div>
+                <div class="selector-actions">
+                    <button class="btn-mini-save" onclick="guardarPiloto('${id}', document.getElementById('sel-piloto-${id}').value)">GUARDAR</button>
+                    <button class="btn-mini-cancel" onclick="renderizarTodo()">CANCELAR</button>
+                </div>`;
+            previsualizarPilotoAsignado(id, document.getElementById(`sel-piloto-${id}`).value);
+        };
+
+        window.previsualizarPilotoAsignado = (id, valor) => {
+            const cont = document.getElementById(`preview-piloto-${id}`);
+            if(!cont) return;
+            cont.innerHTML = htmlPreviewPiloto(valor);
+            cont.classList.toggle('empty', !valor);
         };
 
         window.guardarPiloto = async (id, nuevo) => {
-            if(nuevo === "CANCEL") { renderizarTodo(); return; }
+            if(!nuevo) return alert("Selecciona piloto.");
             const esperaSnap = await db.ref(`copilotajes/espera/${id}`).once('value');
             const pistaSnap = await db.ref(`copilotajes/completados/${id}`).once('value');
             const updates = {};
@@ -680,6 +711,22 @@
             const ficha = obtenerFichaPiloto(dorsal);
             if(ficha.alias || ficha.piloto) return ficha.alias || ficha.piloto;
             return limpiarNombrePiloto(pilotoTexto).replace(/^\d+\s*[,.-]?\s*/, '').split(',')[0].trim();
+        }
+
+        function htmlPreviewPiloto(pilotoTexto) {
+            if(!pilotoTexto) return 'Selecciona piloto';
+            const dorsal = extraerDorsal(pilotoTexto);
+            const ficha = obtenerFichaPiloto(dorsal);
+            const nombre = ficha.alias || ficha.piloto || limpiarNombrePiloto(pilotoTexto);
+            const coche = ficha.coche || ficha.vehiculo || String(pilotoTexto || '').split('|')[1] || "";
+            const motor = ficha.motor || "";
+            const potencia = ficha.potencia ? `${ficha.potencia} CV` : "";
+            const detalle = [coche, motor, potencia].filter(Boolean).join(' · ');
+            const foto = ficha.foto || "";
+            const img = foto
+                ? `<img src="${escapeAttr(foto)}" alt="">`
+                : `<img alt="" style="object-fit:contain" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'%3E%3Crect width='160' height='90' fill='%23000'/%3E%3Ctext x='80' y='50' text-anchor='middle' font-size='18' fill='%23ffcc00' font-family='Arial'%3E%23${encodeURIComponent(dorsal || '?')}%3C/text%3E%3C/svg%3E">`;
+            return `${img}<div><b>#${escapeHtml(dorsal || '?')} ${escapeHtml(nombre)}</b><span>${escapeHtml(detalle || 'Sin datos de coche')}</span></div>`;
         }
 
         function escapeHtml(v) {

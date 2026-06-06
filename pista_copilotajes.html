@@ -322,7 +322,16 @@
                 horaEntradaTexto,
                 finalizado: false
             };
-            await db.ref(`salidas_pista/${salidaId}`).set(salida);
+            const vSnap = await db.ref('votacion_activa/items').once('value');
+            const itemsActuales = vSnap.val() || {};
+            const itemVoto = crearItemVotoTaxi(dorsal, salida, itemsActuales[dorsal] || {});
+            const updates = {};
+            updates[`salidas_pista/${salidaId}`] = salida;
+            updates[`votacion_activa/items/${dorsal}`] = itemVoto;
+            updates['votacion_activa/activa'] = true;
+            updates['votacion_activa/timer'] = 0;
+            updates['votacion_activa/dorsal'] = Object.keys({ ...itemsActuales, [dorsal]: itemVoto }).join(' ');
+            await db.ref().update(updates);
             await actualizarEstadoPistaActiva();
         };
 
@@ -591,7 +600,23 @@
             const activos = activosTaxi.concat(activosShow);
             if(!activos.length) {
                 await db.ref('estado_pista').set({ mensaje: 'PISTA LIBRE', color: 'green', id: 'btn-libre' });
-                // Mantener votaciones individuales que estén cerrando aunque no queden coches activos.
+                const vSnap = await db.ref('votacion_activa/items').once('value');
+                const itemsActuales = vSnap.val() || {};
+                const cerrando = {};
+                Object.entries(itemsActuales).forEach(([dorsal, previo]) => {
+                    if(previo && previo.cerrando) cerrando[dorsal] = previo;
+                });
+                if(Object.keys(cerrando).length) {
+                    await db.ref('votacion_activa').set({
+                        dorsal: Object.keys(cerrando).join(' '),
+                        activa: true,
+                        timer: 0,
+                        items: cerrando
+                    });
+                } else {
+                    await db.ref('votacion_activa').set({ activa:false, timer:0, dorsal:"", items:null });
+                }
+                return 0;
             }
             const nombres = activos.map(i => i.tipo === "show" ? (i.piloto || limpiarNombrePiloto(i.pilotoTexto)) : limpiarNombrePiloto(i.piloto)).filter(Boolean);
             const vSnap = await db.ref('votacion_activa/items').once('value');
@@ -606,14 +631,14 @@
             Object.entries(itemsActuales).forEach(([dorsal, previo]) => {
                 if(previo && previo.cerrando) items[dorsal] = previo;
             });
-            if(activos.length) await db.ref('estado_pista').set({
+            await db.ref('estado_pista').set({
                 mensaje: 'EN PISTA: ' + nombres.join(' + '),
                 color: '#007bff',
                 id: 'btn-coche'
             });
             await db.ref('votacion_activa').set({
                 dorsal: Object.keys(items).join(' '),
-                activa: true,
+                activa: Object.keys(items).length > 0,
                 timer: 0,
                 items: items
             });

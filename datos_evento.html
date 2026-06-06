@@ -201,6 +201,7 @@
       <button class="tab-btn active" onclick="abrirTab('pilotos', this)">Pilotos</button>
       <button class="tab-btn" onclick="abrirTab('escapes', this)">Escapes</button>
       <button class="tab-btn" onclick="abrirTab('copilotajes', this)">Copilotajes</button>
+      <button class="tab-btn" onclick="abrirTab('salidas', this)">Salidas pista</button>
       <button class="tab-btn" onclick="abrirTab('votos', this)">Votos</button>
       <button class="tab-btn" onclick="abrirTab('incidencias', this)">Incidencias</button>
       <button class="tab-btn" onclick="abrirTab('resumen', this)">Resumen</button>
@@ -299,6 +300,14 @@
       <div id="tabla-votos" class="table-wrap"></div>
     </section>
 
+    <section id="tab-salidas" class="tab panel">
+      <h1>Salidas a pista</h1>
+      <p class="hint">Histórico unificado: Taxidrift con copiloto y salidas Show de pilotos solos.</p>
+      <div id="tabla-salidas" class="table-wrap"></div>
+      <h2 style="color:var(--accent);">Resumen por piloto</h2>
+      <div id="tabla-salidas-piloto" class="table-wrap"></div>
+    </section>
+
     <section id="tab-incidencias" class="tab panel">
       <h1>Incidencias</h1>
       <p class="hint">Registro de avisos creados desde pista. Sirve para dejar constancia de normas incumplidas durante el evento.</p>
@@ -311,6 +320,7 @@
         <div class="stat"><span>Pilotos</span><b id="st-pilotos">0</b></div>
         <div class="stat"><span>Escapes inscritos</span><b id="st-escapes">0</b></div>
         <div class="stat"><span>Copilotajes</span><b id="st-copilotajes">0</b></div>
+        <div class="stat"><span>Salidas pista</span><b id="st-salidas">0</b></div>
         <div class="stat"><span>Escapes medidos</span><b id="st-medidos">0</b></div>
         <div class="stat"><span>Incidencias</span><b id="st-incidencias">0</b></div>
       </div>
@@ -332,6 +342,7 @@
     var pilotos = {};
     var escapes = {};
     var copilotajes = {};
+    var salidasPista = {};
     var rankingEscapes = {};
     var historialVotos = {};
     var incidencias = {};
@@ -441,6 +452,7 @@
     db.ref('pilotos_evento').on('value', function(s){ pilotos = s.val() || {}; renderPilotos(); renderResumen(); });
     db.ref('inscritos_esc').on('value', function(s){ escapes = s.val() || {}; renderEscapes(); renderResumen(); });
     db.ref('copilotajes').on('value', function(s){ copilotajes = s.val() || {}; renderCopilotajes(); renderResumen(); });
+    db.ref('salidas_pista').on('value', function(s){ salidasPista = s.val() || {}; renderSalidas(); renderResumen(); });
     db.ref('copilotajes/incidencias').on('value', function(s){ incidencias = s.val() || {}; renderIncidencias(); renderResumen(); });
     db.ref('ranking_escapes').on('value', function(s){ rankingEscapes = s.val() || {}; renderResumen(); });
     db.ref('historial_votos').on('value', function(s){ historialVotos = s.val() || {}; renderVotos(); });
@@ -746,10 +758,58 @@
           await db.ref('copilotajes/espera').remove();
           await db.ref('copilotajes/completados').remove();
           await db.ref('copilotajes/incidencias').remove();
+          await db.ref('salidas_pista').remove();
           await db.ref('copilotajes/ultimo_numero').set(0);
         }
       }, "Exportación de copilotajes generada. ¿Quieres restablecer copilotajes?");
     };
+
+    function salidasRows(){
+      return Object.entries(salidasPista || {}).map(function(pair){
+        return { key:pair[0], data:pair[1] || {} };
+      }).sort(function(a,b){ return Number(a.data.tsEntrada || 0) - Number(b.data.tsEntrada || 0); });
+    }
+    function salidasCSV(){
+      var csv = "Tipo;Dorsal;Piloto;Copiloto;Turno;Vehiculo;HoraEntrada;HoraSalida;Duracion;VotosAplausos;VotosUp;VotosDown;VotosScore;Estado\n";
+      salidasRows().forEach(function(r){
+        var i = r.data, v = i.votos || {};
+        csv += csvLine([i.tipo || "",i.dorsal || "",i.piloto || i.pilotoTexto || "",i.copiloto || "",i.turno || "",i.coche || "",i.horaEntradaPista || i.horaEntradaTexto || "",i.horaSalida || i.horaSalidaTexto || "",i.duracion || i.duracionTotal || "",v.ap || 0,v.up || 0,v.dw || 0,v.score || 0,i.finalizado ? "Finalizada" : "En pista"]);
+      });
+      return csv;
+    }
+    function resumenSalidasPorPiloto(){
+      var agg = {};
+      salidasRows().forEach(function(r){
+        var i = r.data;
+        var dorsal = String(i.dorsal || "");
+        var key = dorsal || (i.piloto || i.pilotoTexto || "");
+        if(!key) return;
+        if(!agg[key]) agg[key] = { dorsal:dorsal, piloto:i.piloto || i.pilotoTexto || "", total:0, taxidrift:0, show:0, segundos:0, ap:0, up:0, dw:0, score:0 };
+        var a = agg[key], v = i.votos || {};
+        a.total++;
+        if(i.tipo === "show") a.show++; else a.taxidrift++;
+        if(i.tsEntrada && i.tsSalida) a.segundos += Math.max(0, Math.floor((Number(i.tsSalida) - Number(i.tsEntrada)) / 1000));
+        a.ap += Number(v.ap || 0); a.up += Number(v.up || 0); a.dw += Number(v.dw || 0); a.score += Number(v.score || 0);
+      });
+      return Object.values(agg).sort(function(a,b){ return Number(a.dorsal || 9999) - Number(b.dorsal || 9999); });
+    }
+    function fmtSegundos(total){
+      var m = Math.floor(Number(total || 0) / 60), s = Number(total || 0) % 60;
+      return m + ":" + String(s).padStart(2, "0");
+    }
+    function renderSalidas(){
+      var rows = salidasRows().map(function(r){
+        var i = r.data, v = i.votos || {};
+        return [i.tipo || "",i.dorsal || "",i.piloto || i.pilotoTexto || "",i.copiloto || "",i.turno || "",i.coche || "",i.horaEntradaPista || i.horaEntradaTexto || "",i.horaSalida || i.horaSalidaTexto || "",i.duracion || i.duracionTotal || "",v.ap || 0,v.up || 0,v.dw || 0,v.score || 0,i.finalizado ? "Finalizada" : "En pista"];
+      });
+      var tablaSalidas = document.getElementById('tabla-salidas');
+      if(tablaSalidas) tablaSalidas.innerHTML = tabla(['Tipo','Dorsal','Piloto','Copiloto','Turno','Vehículo','Entrada','Salida','Duración','👏','👍','👎','Score','Estado'], rows);
+      var resumen = resumenSalidasPorPiloto().map(function(p){
+        return [p.dorsal,p.piloto,p.total,p.taxidrift,p.show,fmtSegundos(p.segundos),p.ap,p.up,p.dw,p.score];
+      });
+      var tablaResumen = document.getElementById('tabla-salidas-piloto');
+      if(tablaResumen) tablaResumen.innerHTML = tabla(['Dorsal','Piloto','Total','Taxidrift','Show','Tiempo','👏','👍','👎','Score'], resumen);
+    }
 
     function rankingVotos(){
       var agg = {};
@@ -837,6 +897,7 @@
       document.getElementById('st-pilotos').innerText = Object.keys(pilotos || {}).length;
       document.getElementById('st-escapes').innerText = Object.keys(escapes || {}).length;
       document.getElementById('st-copilotajes').innerText = copRows().length;
+      document.getElementById('st-salidas').innerText = Object.keys(salidasPista || {}).length;
       document.getElementById('st-medidos').innerText = Object.keys(rankingEscapes || {}).length;
       document.getElementById('st-incidencias').innerText = Object.keys(incidencias || {}).length;
     }
@@ -846,6 +907,7 @@
       await db.ref('copilotajes/completados').remove();
       await db.ref('copilotajes/incidencias').remove();
       await db.ref('copilotajes/ultimo_numero').set(0);
+      await db.ref('salidas_pista').remove();
       await db.ref('ranking_escapes').remove();
       await db.ref('crono_evento').remove();
       await db.ref('escape_prueba_actual').remove();
@@ -887,6 +949,7 @@
         ["Pilotos", Object.keys(pilotos || {}).length],
         ["Escapes inscritos", Object.keys(escapes || {}).length],
         ["Copilotajes", copRows().length],
+        ["Salidas pista", Object.keys(salidasPista || {}).length],
         ["Escapes medidos", Object.keys(rankingEscapes || {}).length],
         ["Votos ranking", rankingVotos().length],
         ["Incidencias", Object.keys(incidencias || {}).length]
@@ -895,6 +958,7 @@
         xmlWorksheet("Resumen", resumen) +
         xmlWorksheet("Pilotos", csvToRows(pilotosCSV())) +
         xmlWorksheet("Copilotajes", csvToRows(copilotajesCSV())) +
+        xmlWorksheet("Salidas Pista", csvToRows(salidasCSV())) +
         xmlWorksheet("Incidencias", csvToRows(incidenciasCSV())) +
         xmlWorksheet("Votos Show", csvToRows(votosCSV())) +
         xmlWorksheet("Escapes Resultados", csvToRows(escapesResultadosCSV())) +
@@ -917,6 +981,7 @@
   </script>
 </body>
 </html>
+
 
 
 

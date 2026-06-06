@@ -680,6 +680,7 @@
 
     function copRows(){
       var rows = [];
+      Object.entries(copilotajes.pre_inscritos || {}).forEach(function(pair){ rows.push({ key:pair[0], estado:"pre_inscritos", data:pair[1] || {} }); });
       Object.entries(copilotajes.espera || {}).forEach(function(pair){ rows.push({ key:pair[0], estado:"espera", data:pair[1] || {} }); });
       Object.entries(copilotajes.completados || {}).forEach(function(pair){ rows.push({ key:pair[0], estado:"completados", data:pair[1] || {} }); });
       return rows.sort(function(a,b){ return Number(a.data.nPapel || 0) - Number(b.data.nPapel || 0); });
@@ -741,7 +742,10 @@
       var rows = copRows();
       document.getElementById('tabla-copilotajes').innerHTML = tabla(['Turno','Copiloto','Piloto','Pago','Estado','Recinto','Salida','Duración','Acciones'], rows.map(function(r){
         var i = r.data;
-        return [i.nPapel,i.copiloto,i.piloto,i.metodoPago,r.estado,i.horaEntradaRecinto || "",i.horaSalida || i.horaSalidaTexto || "",i.duracion || i.duracionTotal || "",acciones("editarCopilotaje('" + r.key + "','" + r.estado + "')", "borrarCopilotaje('" + r.key + "','" + r.estado + "')")];
+        var accionesFila = r.estado === "pre_inscritos"
+          ? '<div class="actions"><button class="btn-red" onclick="borrarCopilotaje(\'' + r.key + '\',\'' + r.estado + '\')">Borrar</button></div>'
+          : acciones("editarCopilotaje('" + r.key + "','" + r.estado + "')", "borrarCopilotaje('" + r.key + "','" + r.estado + "')");
+        return [i.nPapel,i.copiloto,i.piloto,i.metodoPago,r.estado,i.horaEntradaRecinto || "",i.horaSalida || i.horaSalidaTexto || "",i.duracion || i.duracionTotal || "",accionesFila];
       }));
     }
     function copilotajesCSV(){
@@ -757,6 +761,7 @@
         if(confirm("¿Borrar espera, completados y contador de copilotajes?")){
           await db.ref('copilotajes/espera').remove();
           await db.ref('copilotajes/completados').remove();
+          await db.ref('copilotajes/pre_inscritos').remove();
           await db.ref('copilotajes/incidencias').remove();
           await db.ref('salidas_pista').remove();
           await db.ref('copilotajes/ultimo_numero').set(0);
@@ -905,6 +910,7 @@
       if(!confirm("Esto borrará resultados y datos operativos del evento. ¿Seguro?")) return;
       await db.ref('copilotajes/espera').remove();
       await db.ref('copilotajes/completados').remove();
+      await db.ref('copilotajes/pre_inscritos').remove();
       await db.ref('copilotajes/incidencias').remove();
       await db.ref('copilotajes/ultimo_numero').set(0);
       await db.ref('salidas_pista').remove();
@@ -981,6 +987,7 @@
   </script>
 </body>
 </html>
+
 
 
 

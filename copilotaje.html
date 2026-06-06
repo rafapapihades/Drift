@@ -78,7 +78,7 @@
         <div class="extra-fields">
             <div class="input-group">
                 <div><span class="label-mini">DNI / NIE</span><input type="text" id="c-dni" class="input-manual"></div>
-                <div><span class="label-mini">Fecha Nacimiento</span><input type="text" id="c-nac" class="input-manual" placeholder="DD/MM/AAAA" oninput="validarEdad(this.value)"></div>
+                <div><span class="label-mini">Fecha Nacimiento</span><input type="text" id="c-nac" class="input-manual" placeholder="DD/MM/AAAA" oninput="validarEdad(this)"></div>
             </div>
             <div style="margin-bottom: 10px;"><span class="label-mini">Instagram / TikTok</span><input type="text" id="c-redes" class="input-manual"></div>
             
@@ -251,13 +251,13 @@
                 
                 document.getElementById('c-nombre').value = pre.copiloto;
                 document.getElementById('c-dni').value = pre.dni || "";
-                document.getElementById('c-nac').value = pre.fecha_nac || "";
+                document.getElementById('c-nac').value = normalizarFechaNacimiento(pre.fecha_nac || "");
                 document.getElementById('c-redes').value = pre.insta || "";
                 pilotoPreseleccionado = pre.piloto || "";
                 aplicarPilotoPreseleccionado();
                 seleccionarPago(pre.metodoPago || "EFECTIVO");
                 
-                validarEdad(pre.fecha_nac || "");
+                validarEdad(document.getElementById('c-nac'));
                 if(pre.tutor_dni) document.getElementById('c-dni-tutor').value = pre.tutor_dni;
                 if(pre.tutor) document.getElementById('c-nombre-tutor').value = pre.tutor;
                 if(pre.tutor || pre.tutor_dni || pre.nombreTutor || pre.dniTutor) {
@@ -276,14 +276,16 @@
         window.registrar = async () => {
             const nombre = document.getElementById('c-nombre').value.trim();
             const dni = document.getElementById('c-dni').value.trim();
-            const fecha = document.getElementById('c-nac').value.trim();
+            const inputFecha = document.getElementById('c-nac');
+            const fecha = normalizarFechaNacimiento(inputFecha.value.trim());
+            inputFecha.value = fecha;
             if(!nombre || !dni || !fecha) {
                 alert("Faltan datos obligatorios: nombre, DNI y fecha de nacimiento.");
                 return;
             }
             const edad = calcularEdad(fecha);
             if(edad === null) {
-                alert("Revisa la fecha de nacimiento. Usa DD/MM/AAAA.");
+                alert("Revisa la fecha de nacimiento. Usa DD/MM/AAAA. Ejemplo: 12/05/2008.");
                 return;
             }
             if(edad < 16) {
@@ -437,11 +439,34 @@
             });
         };
 
+        function normalizarFechaNacimiento(valor) {
+            const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8);
+            if(digitos.length <= 2) return digitos;
+            if(digitos.length <= 4) return `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+            return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+        }
+
+        function obtenerFechaNacimiento(valor) {
+            const normalizada = normalizarFechaNacimiento(valor);
+            if(normalizada.length !== 10) return null;
+            const parts = normalizada.split('/');
+            const dia = Number(parts[0]);
+            const mes = Number(parts[1]);
+            const ano = Number(parts[2]);
+            const fecha = new Date(ano, mes - 1, dia);
+            if(
+                isNaN(fecha.getTime()) ||
+                fecha.getFullYear() !== ano ||
+                fecha.getMonth() !== mes - 1 ||
+                fecha.getDate() !== dia
+            ) return null;
+            return { fecha, normalizada };
+        }
+
         function calcularEdad(f) {
-            const parts = String(f || '').split('/');
-            if(parts.length !== 3) return null;
-            const fecha = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-            if(isNaN(fecha.getTime())) return null;
+            const preparada = obtenerFechaNacimiento(f);
+            if(!preparada) return null;
+            const fecha = preparada.fecha;
             const hoy = new Date();
             let edad = hoy.getFullYear() - fecha.getFullYear();
             const m = hoy.getMonth() - fecha.getMonth();
@@ -449,10 +474,22 @@
             return edad;
         }
 
-        window.validarEdad = (f) => {
-            if(f.length < 10) return;
-            const edad = calcularEdad(f);
-            if(edad === null) return;
+        window.validarEdad = (entrada) => {
+            const el = entrada && entrada.value !== undefined ? entrada : null;
+            const valor = el ? entrada.value : entrada;
+            const normalizada = normalizarFechaNacimiento(valor);
+            if(el) entrada.value = normalizada;
+            if(normalizada.length < 10) {
+                esMenorFlag = false;
+                document.getElementById('box-menor').style.display = 'none';
+                return;
+            }
+            const edad = calcularEdad(normalizada);
+            if(edad === null) {
+                esMenorFlag = false;
+                document.getElementById('box-menor').style.display = 'none';
+                return;
+            }
             esMenorFlag = edad < 18;
             document.getElementById('box-menor').style.display = esMenorFlag ? 'block' : 'none';
         };
@@ -652,4 +689,5 @@
     </script>
 </body>
 </html>
+
 

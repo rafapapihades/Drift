@@ -299,40 +299,47 @@
         };
 
         window.sacarShowPista = async () => {
-            const pilotoTexto = document.getElementById('show-piloto').value;
-            if(!pilotoTexto) return alert("No hay piloto seleccionado.");
-            const dorsal = extraerDorsal(pilotoTexto);
-            const ficha = obtenerFichaPiloto(dorsal);
-            if(!dorsal) return alert("No se pudo identificar el dorsal del piloto.");
-            const salidaId = crearSalidaId(dorsal);
-            const ahora = Date.now();
-            const horaEntradaTexto = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
-            const salida = {
-                tipo: "show",
-                salidaId,
-                dorsal,
-                piloto: ficha.alias || ficha.piloto || limpiarNombrePiloto(pilotoTexto),
-                pilotoTexto,
-                coche: ficha.coche || ficha.vehiculo || "",
-                motor: ficha.motor || "",
-                potencia: ficha.potencia || "",
-                foto: ficha.foto || "",
-                tsEntrada: ahora,
-                horaEntradaPista: horaEntradaTexto,
-                horaEntradaTexto,
-                finalizado: false
-            };
-            const vSnap = await db.ref('votacion_activa/items').once('value');
-            const itemsActuales = vSnap.val() || {};
-            const itemVoto = crearItemVotoTaxi(dorsal, salida, itemsActuales[dorsal] || {});
-            const updates = {};
-            updates[`salidas_pista/${salidaId}`] = salida;
-            updates[`votacion_activa/items/${dorsal}`] = itemVoto;
-            updates['votacion_activa/activa'] = true;
-            updates['votacion_activa/timer'] = 0;
-            updates['votacion_activa/dorsal'] = Object.keys({ ...itemsActuales, [dorsal]: itemVoto }).join(' ');
-            await db.ref().update(updates);
-            await actualizarEstadoPistaActiva();
+            try {
+                const pilotoTexto = document.getElementById('show-piloto').value;
+                if(!pilotoTexto) return alert("No hay piloto seleccionado.");
+                const dorsal = extraerDorsal(pilotoTexto);
+                const ficha = obtenerFichaPiloto(dorsal);
+                if(!dorsal) return alert("No se pudo identificar el dorsal del piloto.");
+                const salidaId = crearSalidaId(dorsal);
+                const ahora = Date.now();
+                const horaEntradaTexto = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+                const salida = {
+                    tipo: "show",
+                    salidaId,
+                    dorsal,
+                    piloto: ficha.alias || ficha.piloto || limpiarNombrePiloto(pilotoTexto),
+                    pilotoTexto,
+                    coche: ficha.coche || ficha.vehiculo || "",
+                    motor: ficha.motor || "",
+                    potencia: ficha.potencia || "",
+                    foto: ficha.foto || "",
+                    tsEntrada: ahora,
+                    horaEntradaPista: horaEntradaTexto,
+                    horaEntradaTexto,
+                    finalizado: false
+                };
+                const vSnap = await db.ref('votacion_activa/items').once('value');
+                const itemsActuales = vSnap.val() || {};
+                const itemVoto = crearItemVotoTaxi(dorsal, salida, itemsActuales[dorsal] || {});
+                const itemsNuevos = Object.assign({}, itemsActuales);
+                itemsNuevos[dorsal] = itemVoto;
+                const updates = {};
+                updates[`salidas_pista/${salidaId}`] = salida;
+                updates[`votacion_activa/items/${dorsal}`] = itemVoto;
+                updates['votacion_activa/activa'] = true;
+                updates['votacion_activa/timer'] = 0;
+                updates['votacion_activa/dorsal'] = Object.keys(itemsNuevos).join(' ');
+                await db.ref().update(updates);
+                await actualizarEstadoPistaActiva();
+            } catch(err) {
+                console.error(err);
+                alert("No se pudo sacar el piloto a show: " + (err && err.message ? err.message : err));
+            }
         };
 
         window.finalizarShowPista = (id) => {
@@ -698,7 +705,7 @@
                 potencia: item.potencia || ficha.potencia || "",
                 foto: item.foto || ficha.foto || "",
                 salidaId: item.salidaId || previo.salidaId || crearSalidaId(dorsal),
-                nPapel: item.nPapel,
+                nPapel: item.nPapel || "",
                 copiloto: item.copiloto || "",
                 piloto: item.piloto || "",
                 tipo: item.tipo || "taxidrift",

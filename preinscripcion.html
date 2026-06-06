@@ -173,11 +173,34 @@
         return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
     }
 
+    function normalizarFechaNacimiento(valor) {
+        const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8);
+        if(digitos.length <= 2) return digitos;
+        if(digitos.length <= 4) return `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+        return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+    }
+
+    function obtenerFechaNacimiento(valor) {
+        const normalizada = normalizarFechaNacimiento(valor);
+        if(normalizada.length !== 10) return null;
+        const partes = normalizada.split('/');
+        const dia = Number(partes[0]);
+        const mes = Number(partes[1]);
+        const ano = Number(partes[2]);
+        const fecha = new Date(ano, mes - 1, dia);
+        if(
+            isNaN(fecha.getTime()) ||
+            fecha.getFullYear() !== ano ||
+            fecha.getMonth() !== mes - 1 ||
+            fecha.getDate() !== dia
+        ) return null;
+        return { fecha, normalizada };
+    }
+
     function calcularEdadFecha(valor) {
-        const partes = String(valor || '').split('/');
-        if(partes.length !== 3) return null;
-        const fechaNac = new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]));
-        if(isNaN(fechaNac.getTime())) return null;
+        const preparada = obtenerFechaNacimiento(valor);
+        if(!preparada) return null;
+        const fechaNac = preparada.fecha;
         const hoy = new Date();
         let edad = hoy.getFullYear() - fechaNac.getFullYear();
         const m = hoy.getMonth() - fechaNac.getMonth();
@@ -200,15 +223,17 @@
 
     // Detectar si es menor de edad por la fecha escrita (DD/MM/AAAA)
     window.checkEdadManual = (el) => {
-        const valor = el.value;
-        if(valor.length === 10) {
-            const edad = calcularEdadFecha(valor);
+        el.value = normalizarFechaNacimiento(el.value);
+        if(el.value.length === 10) {
+            const edad = calcularEdadFecha(el.value);
             if(edad !== null && edad < 16) {
                 document.getElementById('menor-extra').style.display = 'none';
                 actualizarEstadoFormulario();
                 return;
             }
-            document.getElementById('menor-extra').style.display = (edad < 18) ? 'block' : 'none';
+            document.getElementById('menor-extra').style.display = (edad !== null && edad < 18) ? 'block' : 'none';
+        } else {
+            document.getElementById('menor-extra').style.display = 'none';
         }
         actualizarEstadoFormulario();
     };
@@ -216,7 +241,9 @@
     window.enviarRegistro = async () => {
         const nombre = document.getElementById('nombre').value.trim();
         const dni = document.getElementById('dni').value.trim();
-        const fecha = document.getElementById('fecha_nac').value.trim();
+        const inputFecha = document.getElementById('fecha_nac');
+        const fecha = normalizarFechaNacimiento(inputFecha.value.trim());
+        inputFecha.value = fecha;
 
         if(!nombre || !dni || !fecha) {
             alert("Por favor, rellena los campos obligatorios (Nombre, DNI y Fecha).");
@@ -228,7 +255,7 @@
         }
         const edad = calcularEdadFecha(fecha);
         if(edad === null) {
-            alert("Revisa la fecha de nacimiento. Usa DD/MM/AAAA.");
+            alert("Revisa la fecha de nacimiento. Usa DD/MM/AAAA. Ejemplo: 12/05/2008.");
             return;
         }
         if(edad < 16) {
@@ -283,5 +310,4 @@
 
 </body>
 </html>
-
 

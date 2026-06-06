@@ -190,6 +190,17 @@
         .sorteo-presencia.ganador { border-color:#00ff99; background:#041b10; box-shadow:0 0 24px rgba(0,255,153,.25); }
         .brand-logo { width:min(260px,80vw); height:auto; margin-bottom:8px; }
         .event-title { color:#ffcc00; font-weight:900; text-transform:uppercase; margin-bottom:14px; }
+        .public-help {
+            margin: 8px 0 16px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255,204,0,.45);
+            border-radius: 10px;
+            background: rgba(255,204,0,.1);
+            color: #ddd;
+            font-size: .88em;
+            line-height: 1.35;
+        }
+        .public-help b { color:#ffcc00; text-transform:uppercase; }
     </style>
 </head>
 <body>
@@ -197,15 +208,15 @@
         <div class="glass-panel">
             <img class="brand-logo" src="logo2.jpg" alt="Drift Show">
             <div id="event-title" class="event-title"></div>
+            <div class="public-help">
+                <b>Votación en directo:</b> solo se puede votar a los pilotos que están en pista en ese momento. Si tu piloto no aparece, espera a que salga a pista.
+            </div>
             
             <div id="ui-show" style="display:none; width: 100%;">
                 <h1 id="s-mensaje" style="font-size: 2.8em; margin: 0; text-shadow: 2px 2px 4px #000;"></h1>
                 <h2 id="s-info" style="color:#007bff; margin: 15px 0; min-height: 1.2em; font-size: 1.8em;"></h2>
                 
                 <div id="voto-box" style="display:none;">
-                    <div id="vote-help" class="vote-help">
-                        <b>Votación en directo:</b> solo aparecen los pilotos que están en pista ahora. Cuando salga tu piloto, podrás votarle durante su salida.
-                    </div>
                     <div id="votos-lista"></div>
                     <div id="timer-box"></div>
                 </div>
@@ -629,6 +640,7 @@
     </script>
 </body>
 </html>
+
 
 
 

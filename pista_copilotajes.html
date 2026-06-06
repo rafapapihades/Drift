@@ -41,6 +41,10 @@
         .btn-incidencia { background: #8b0000; color: #fff; border: 1px solid #ff3333; padding: 8px; border-radius: 6px; font-size: 0.65em; cursor: pointer; margin-top: 8px; width: 100%; font-weight: 900; }
         .btn-incidencia-main { width: 100%; background: #180000; color: #ff3333; border: 2px solid #ff3333; border-radius: 12px; padding: 15px; font-weight: 900; text-transform: uppercase; margin-bottom: 15px; cursor: pointer; }
         .incidencia-count { color: #ff6666; font-size: 0.8em; margin: -8px 0 12px; font-family: sans-serif; font-weight: bold; text-align: center; }
+        .show-grid { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: stretch; }
+        .show-select { width: 100%; background: #000; color: #fff; border: 1px solid #444; border-radius: 10px; padding: 12px; font-size: 1em; font-weight: bold; }
+        .btn-show { background: #6b1b8f; color: #fff; border: none; border-radius: 10px; padding: 12px 16px; font-weight: 900; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #3b0f50; }
+        .badge-show { background:#6b1b8f; color:#fff; border-radius:6px; padding:4px 8px; font-size:.72em; font-weight:900; margin-left:6px; }
         
         .selector-rapido { background: #000; color: var(--accent); border: 1px solid var(--accent); padding: 5px; border-radius: 5px; width: 100%; margin-top: 5px; font-size: 0.9em; }
         .incidencia-field { width: 100%; background: #000; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-top: 10px; font-family: sans-serif; font-size: 1em; }
@@ -97,6 +101,14 @@
     <button class="btn-incidencia-main" onclick="abrirIncidencia()">REGISTRAR INCIDENCIA PILOTO</button>
     <div id="incidencias-count" class="incidencia-count"></div>
 
+    <div class="card" style="border-color:#6b1b8f;">
+        <div class="section-title" style="color:#d987ff;">SHOW SIN COPILOTO</div>
+        <div class="show-grid">
+            <select id="show-piloto" class="show-select"></select>
+            <button class="btn-show" onclick="sacarShowPista()">SACAR SHOW</button>
+        </div>
+    </div>
+
     <input type="search" id="buscador" placeholder="🔍 BUSCAR TURNO O NOMBRE..." oninput="filtrar()">
 
     <div class="card">
@@ -122,6 +134,7 @@
         let pilotosDisponibles = [];
         let fichasPilotos = {};
         let incidenciaItemActual = null;
+        let salidasPista = {};
 
         db.ref('config_evento').on('value', s => {
             const cfg = s.val() || {};
@@ -155,6 +168,7 @@
             pilotosDisponibles = Object.entries(data).map(([dorsal, p]) => {
                 return { dorsal, label: `[#${dorsal}] ${p.piloto} | ${p.coche}` };
             });
+            renderSelectorShow();
         });
 
         db.ref('copilotajes').on('value', s => {
@@ -178,6 +192,24 @@
             const total = Object.keys(s.val() || {}).length;
             document.getElementById('incidencias-count').innerText = total ? `Incidencias registradas: ${total}` : "";
         });
+
+        db.ref('salidas_pista').on('value', s => {
+            salidasPista = s.val() || {};
+            renderizarTodo();
+        });
+
+        function renderSelectorShow() {
+            const sel = document.getElementById('show-piloto');
+            if(!sel) return;
+            const opts = Object.entries(fichasPilotos || {})
+                .filter(([d, p]) => p && p.activoShow !== false)
+                .sort((a,b) => Number(a[0]) - Number(b[0]))
+                .map(([dorsal, p]) => {
+                    const label = `[#${dorsal}] ${p.alias || p.piloto || ''} | ${p.coche || p.vehiculo || ''}`;
+                    return `<option value="${escapeAttr(label)}">${escapeHtml(label)}</option>`;
+                }).join('');
+            sel.innerHTML = opts || '<option value="">Sin pilotos show activos</option>';
+        }
 
         function generarFilaHTML(id, item, esRecinto, esPista) {
             const dMatch = item.piloto.match(/\[#(\d+)\]/) || item.piloto.match(/^(\d+)/);
@@ -219,6 +251,26 @@
             `;
         }
 
+        function generarFilaShowHTML(id, item) {
+            const dorsal = item.dorsal || extraerDorsal(item.pilotoTexto) || "?";
+            const piloto = item.piloto || limpiarNombrePiloto(item.pilotoTexto);
+            const coche = item.coche || "";
+            return `
+                <tr id="row-show-${id}">
+                    <td>
+                        <span class="n-doc" style="background:#6b1b8f;color:#fff">${String(dorsal).padStart(3, '0')}</span>
+                        <b style="font-size:1.1em">${escapeHtml(piloto)}</b><span class="badge-show">SHOW</span><br>
+                        <small style="color:#aaa;margin-left:5px">${escapeHtml(coche)}</small>
+                        <span class="time-info" data-ts="${item.tsEntrada}">⏱ <span class="cronometro">...</span></span>
+                    </td>
+                    <td style="width:115px">
+                        <button class="btn-salida" onclick="finalizarShowPista('${id}')">FINALIZAR</button>
+                        <button class="btn-incidencia" onclick="abrirIncidenciaShow('${id}')">INCIDENCIA</button>
+                    </td>
+                </tr>
+            `;
+        }
+
         window.activarSelector = (id, actual) => {
             const cont = document.getElementById(`cont-p-${id}`);
             let opts = pilotosDisponibles.map(p => `<option value="${p.label}" ${p.label === actual ? 'selected' : ''}>${p.label}</option>`).join('');
@@ -246,10 +298,80 @@
             }
         };
 
+        window.sacarShowPista = async () => {
+            const pilotoTexto = document.getElementById('show-piloto').value;
+            if(!pilotoTexto) return alert("No hay piloto seleccionado.");
+            const dorsal = extraerDorsal(pilotoTexto);
+            const ficha = obtenerFichaPiloto(dorsal);
+            if(!dorsal) return alert("No se pudo identificar el dorsal del piloto.");
+            const salidaId = crearSalidaId(dorsal);
+            const ahora = Date.now();
+            const horaEntradaTexto = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+            const salida = {
+                tipo: "show",
+                salidaId,
+                dorsal,
+                piloto: ficha.alias || ficha.piloto || limpiarNombrePiloto(pilotoTexto),
+                pilotoTexto,
+                coche: ficha.coche || ficha.vehiculo || "",
+                motor: ficha.motor || "",
+                potencia: ficha.potencia || "",
+                foto: ficha.foto || "",
+                tsEntrada: ahora,
+                horaEntradaPista: horaEntradaTexto,
+                horaEntradaTexto,
+                finalizado: false
+            };
+            await db.ref(`salidas_pista/${salidaId}`).set(salida);
+            await actualizarEstadoPistaActiva();
+        };
+
+        window.finalizarShowPista = (id) => {
+            showConfirm("¿CONFIRMAR FIN DE SALIDA SHOW?", async () => {
+                const snap = await db.ref(`salidas_pista/${id}`).once('value');
+                const item = snap.val();
+                if(!item) return;
+                const ahora = Date.now();
+                const horaSalidaTexto = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+                const duracionStr = calcularDuracion(item.tsEntrada, ahora);
+                const dorsalSalida = item.dorsal || extraerDorsal(item.pilotoTexto);
+                await iniciarCierreVotoIndividual(dorsalSalida);
+                await db.ref(`salidas_pista/${id}`).update({
+                    finalizado: true,
+                    tsSalida: ahora,
+                    horaSalida: horaSalidaTexto,
+                    horaSalidaTexto,
+                    duracion: duracionStr,
+                    duracionTotal: duracionStr
+                });
+                await actualizarEstadoPistaActiva();
+            });
+        };
+
+        window.abrirIncidenciaShow = async (id) => {
+            const item = salidasPista[id];
+            await abrirIncidencia();
+            if(item) {
+                incidenciaItemActual = { id, item };
+                const sel = document.getElementById('incidencia-piloto');
+                const piloto = item.pilotoTexto || `[#${item.dorsal}] ${item.piloto} | ${item.coche || ""}`;
+                if(!Array.from(sel.options).some(o => o.value === piloto)) {
+                    const opt = document.createElement('option');
+                    opt.value = piloto;
+                    opt.textContent = piloto;
+                    sel.appendChild(opt);
+                }
+                sel.value = piloto;
+            }
+        };
+
         window.abrirIncidencia = async (id) => {
             incidenciaItemActual = null;
             const sel = document.getElementById('incidencia-piloto');
-            const opciones = pilotosDisponibles.map(p => `<option value="${escapeAttr(p.label)}">${escapeHtml(p.label)}</option>`).join('');
+            const basePilotos = Object.keys(fichasPilotos || {}).length
+                ? Object.entries(fichasPilotos).map(([dorsal, p]) => ({ dorsal, label: `[#${dorsal}] ${p.alias || p.piloto || ''} | ${p.coche || p.vehiculo || ''}` }))
+                : pilotosDisponibles;
+            const opciones = basePilotos.map(p => `<option value="${escapeAttr(p.label)}">${escapeHtml(p.label)}</option>`).join('');
             sel.innerHTML = `<option value="">Selecciona piloto...</option>${opciones}`;
 
             if(id) {
@@ -335,6 +457,7 @@
             updates['votacion_activa'] = { dorsal: dorsal, activa: true, timer: 0, items: items };
             
             const newK = db.ref('copilotajes/completados').push().key;
+            const ficha = obtenerFichaPiloto(dorsal);
             // Guardamos los campos de tiempo adicionales para el CSV
             updates[`copilotajes/completados/${newK}`] = { 
                 ...d, 
@@ -343,6 +466,23 @@
                 horaEntradaPista: horaEntradaTexto,
                 horaEntradaTexto: horaEntradaTexto, 
                 finalizado: false 
+            };
+            updates[`salidas_pista/${salidaId}`] = {
+                tipo: "taxidrift",
+                salidaId,
+                dorsal,
+                piloto: nombrePilotoDesdeFicha(dorsal, d.piloto),
+                pilotoTexto: d.piloto || "",
+                copiloto: d.copiloto || "",
+                turno: d.nPapel || "",
+                coche: ficha.coche || ficha.vehiculo || "",
+                motor: ficha.motor || "",
+                potencia: ficha.potencia || "",
+                foto: ficha.foto || "",
+                tsEntrada: ahora,
+                horaEntradaPista: horaEntradaTexto,
+                horaEntradaTexto,
+                finalizado: false
             };
             updates[`copilotajes/espera/${id}`] = null;
 
@@ -358,14 +498,7 @@
                 // Obtener datos para calcular duración total
                 const snap = await db.ref(`copilotajes/completados/${id}`).once('value');
                 const item = snap.val();
-                let duracionStr = "0:00";
-                
-                if(item && item.tsEntrada) {
-                    const diff = ahora - item.tsEntrada;
-                    const m = Math.floor(diff / 60000);
-                    const s = Math.floor((diff % 60000) / 1000);
-                    duracionStr = m + ":" + s.toString().padStart(2, '0');
-                }
+                let duracionStr = calcularDuracion(item?.tsEntrada, ahora);
 
                 const dorsalSalida = extraerDorsal(item?.piloto) || String(item?.nPapel || "");
                 await iniciarCierreVotoIndividual(dorsalSalida);
@@ -379,6 +512,16 @@
                     duracion: duracionStr,
                     duracionTotal: duracionStr
                 });
+                if(item?.salidaId) {
+                    await db.ref(`salidas_pista/${item.salidaId}`).update({
+                        finalizado: true,
+                        tsSalida: ahora,
+                        horaSalida: horaSalidaTexto,
+                        horaSalidaTexto: horaSalidaTexto,
+                        duracion: duracionStr,
+                        duracionTotal: duracionStr
+                    });
+                }
                 await actualizarEstadoPistaActiva();
             });
         };
@@ -408,10 +551,20 @@
                         nPapel: data.nPapel || "",
                         copiloto: data.copiloto || "",
                         piloto: data.piloto || "",
+                        tipo: data.tipo || "taxidrift",
+                        salidaId: data.salidaId || "",
                         ap: data.ap||0,
                         up: data.up||0,
                         dw: data.dw||0,
                         ts: Date.now()
+                    });
+                }
+                if(data.salidaId) {
+                    await db.ref(`salidas_pista/${data.salidaId}/votos`).set({
+                        ap: data.ap || 0,
+                        up: data.up || 0,
+                        dw: data.dw || 0,
+                        score: ((data.ap || 0) * 2) + (data.up || 0) - (data.dw || 0)
                     });
                 }
                 await db.ref(`votacion_activa/items/${dorsalSalida}`).remove();
@@ -431,17 +584,21 @@
 
         async function actualizarEstadoPistaActiva() {
             const snap = await db.ref('copilotajes/completados').once('value');
-            const activos = Object.values(snap.val() || {}).filter(i => !i.finalizado);
+            const activosTaxi = Object.values(snap.val() || {}).filter(i => !i.finalizado);
+            const salidasSnap = await db.ref('salidas_pista').once('value');
+            const salidas = salidasSnap.val() || {};
+            const activosShow = Object.values(salidas).filter(i => i && !i.finalizado && i.tipo === "show");
+            const activos = activosTaxi.concat(activosShow);
             if(!activos.length) {
                 await db.ref('estado_pista').set({ mensaje: 'PISTA LIBRE', color: 'green', id: 'btn-libre' });
                 // Mantener votaciones individuales que estén cerrando aunque no queden coches activos.
             }
-            const nombres = activos.map(i => limpiarNombrePiloto(i.piloto)).filter(Boolean);
+            const nombres = activos.map(i => i.tipo === "show" ? (i.piloto || limpiarNombrePiloto(i.pilotoTexto)) : limpiarNombrePiloto(i.piloto)).filter(Boolean);
             const vSnap = await db.ref('votacion_activa/items').once('value');
             const itemsActuales = vSnap.val() || {};
             const items = {};
             activos.forEach(item => {
-                const dorsal = extraerDorsal(item.piloto) || String(item.nPapel || "");
+                const dorsal = item.dorsal || extraerDorsal(item.piloto) || String(item.nPapel || "");
                 if(!dorsal) return;
                 const previo = itemsActuales[dorsal] || {};
                 items[dorsal] = crearItemVotoTaxi(dorsal, item, previo);
@@ -461,6 +618,14 @@
                 items: items
             });
             return activos.length;
+        }
+
+        function calcularDuracion(tsEntrada, tsSalida) {
+            if(!tsEntrada) return "0:00";
+            const diff = Math.max(0, Number(tsSalida || Date.now()) - Number(tsEntrada));
+            const m = Math.floor(diff / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            return m + ":" + s.toString().padStart(2, '0');
         }
 
         function limpiarNombrePiloto(piloto) {
@@ -497,16 +662,21 @@
 
         function crearItemVotoTaxi(dorsal, item, previo) {
             const ficha = obtenerFichaPiloto(dorsal);
+            const esShow = item.tipo === "show";
+            const nombreBase = esShow
+                ? (item.piloto || nombrePilotoDesdeFicha(dorsal, item.pilotoTexto))
+                : `${nombrePilotoDesdeFicha(dorsal, item.piloto)} & ${item.copiloto || ""}`;
             return {
-                nombre: `${nombrePilotoDesdeFicha(dorsal, item.piloto)} & ${item.copiloto || ""}`,
-                coche: ficha.coche || "TAXI DRIFT",
-                motor: ficha.motor || "",
-                potencia: ficha.potencia || "",
-                foto: ficha.foto || "",
+                nombre: nombreBase,
+                coche: item.coche || ficha.coche || (esShow ? "SHOW" : "TAXI DRIFT"),
+                motor: item.motor || ficha.motor || "",
+                potencia: item.potencia || ficha.potencia || "",
+                foto: item.foto || ficha.foto || "",
                 salidaId: item.salidaId || previo.salidaId || crearSalidaId(dorsal),
                 nPapel: item.nPapel,
                 copiloto: item.copiloto || "",
                 piloto: item.piloto || "",
+                tipo: item.tipo || "taxidrift",
                 ap: previo.ap || 0,
                 up: previo.up || 0,
                 dw: previo.dw || 0,
@@ -538,6 +708,9 @@
                         tPista.innerHTML += generarFilaHTML(id, item, false, true);
                     });
                 }
+                Object.entries(salidasPista || {}).filter(x => x[1] && !x[1].finalizado && x[1].tipo === "show").forEach(([id, item]) => {
+                    tPista.innerHTML += generarFilaShowHTML(id, item);
+                });
                 filtrar();
             });
         }

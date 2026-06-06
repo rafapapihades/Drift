@@ -118,13 +118,11 @@
     </div>
 
     <div class="controls-row">
-        <button class="btn-mini" id="btn-cargar-pilotos" onclick="document.getElementById('csv-pilotos').click()">CARGAR PILOTOS (0)</button>
         <button class="btn-mini" id="btn-estado-pilotos" onclick="document.getElementById('modal-pilotos').style.display='block'" style="color:var(--accent); border-color:var(--accent);">ESTADO PILOTOS (0)</button>
         <button class="btn-mini" id="btn-preinscripcion" onclick="togglePreinscripcion()" style="color:var(--orange); border-color:var(--orange);">CERRAR PREINSCRIPCIÓN</button>
         <button class="btn-mini" id="btn-sorteo" onclick="abrirSorteo()" style="color:var(--accent); border-color:var(--accent);">SORTEO VOTANTES</button>
         <button class="btn-mini" id="btn-reset" style="color:var(--red); border-color:#522;">EXPORTAR Y REINICIAR</button>
     </div>
-    <input type="file" id="csv-pilotos" hidden accept=".csv">
 
     <!-- Modal Pilotos -->
     <div id="modal-pilotos">
@@ -385,7 +383,6 @@
                     <input type="checkbox" ${!bajas.includes(p)?'checked':''} onchange="window.togglePiloto('${encodeURIComponent(p)}', this.checked)" style="transform:scale(1.8)">
                 </div>
             `).join('');
-            document.getElementById('btn-cargar-pilotos').innerText = `CARGAR PILOTOS (${config.length})`;
             document.getElementById('btn-estado-pilotos').innerText = `ESTADO PILOTOS (${activos.length})`;
 
             // Tabla de Espera
@@ -580,6 +577,7 @@
 
             procesarLista(d.espera, "ESPERA");
             procesarLista(d.completados, "COMPLETADO");
+            procesarLista(d.pre_inscritos, "PRE-INSCRITO");
 
             const salidasRows = Object.values(salidas).sort((a,b) => Number(a.tsEntrada || 0) - Number(b.tsEntrada || 0));
             if(salidasRows.length) {
@@ -610,6 +608,7 @@
                 if(confirm("Exportación generada. ¿Quieres restablecer copilotajes, votos y sorteo para empezar de cero?")) {
                         set(ref(db, 'copilotajes/espera'), null);
                         set(ref(db, 'copilotajes/completados'), null);
+                        set(ref(db, 'copilotajes/pre_inscritos'), null);
                         set(ref(db, 'copilotajes/incidencias'), null);
                         set(ref(db, 'salidas_pista'), null);
                         set(ref(db, 'copilotajes/ultimo_numero'), 0);
@@ -650,51 +649,7 @@
             return out;
         }
 
-        // CARGA DE PILOTOS DESDE CSV
-        document.getElementById('csv-pilotos').onchange = (e) => {
-            const file = e.target.files[0];
-            const fr = new FileReader();
-            fr.onload = async () => {
-                const rows = parseCSVText(fr.result);
-                const pilotosObj = {};
-                const inscritosDrift = {};
-                const list = [];
-                rows.forEach((row, idx) => {
-                    const dorsal = campoCSV(row, ["Dorsal"]) || String(idx + 1);
-                    const piloto = campoCSV(row, ["Piloto", "Nombre", "Nombre+Apellidos"]);
-                    const vehiculo = campoCSV(row, ["Vehiculo", "Vehículo", "Coche", "Coche Modelo", "coche_modelo", "Marca+Modelo"]);
-                    if(!piloto) return;
-                    const key = normalizarDorsal(dorsal);
-                    const p = {
-                        dorsal,
-                        piloto,
-                        alias: campoCSV(row, ["Alias"]),
-                        edad: campoCSV(row, ["Edad"]),
-                        residencia: campoCSV(row, ["Residencia"]),
-                        vehiculo,
-                        coche: vehiculo,
-                        motor: campoCSV(row, ["Motor"]),
-                        potencia: campoCSV(row, ["PotenciaCV", "Potencia", "Potencia (CV)"]),
-                        instagram: campoCSV(row, ["Instagram", "IG"]),
-                        modificaciones: campoCSV(row, ["Modificaciones", "Mods"]),
-                        curiosidades: campoCSV(row, ["Curiosidades"]),
-                        palmares: campoCSV(row, ["Palmares", "Palmarés"]),
-                        activoShow: !String(campoCSV(row, ["ActivoShow"]) || "SI").toLowerCase().startsWith("n"),
-                        activoTaxidrift: !String(campoCSV(row, ["ActivoTaxidrift"]) || "SI").toLowerCase().startsWith("n")
-                    };
-                    pilotosObj[key] = p;
-                    if(p.activoShow !== false) inscritosDrift[key] = { dorsal, piloto, coche: vehiculo, instagram: p.instagram };
-                    if(p.activoTaxidrift !== false) list.push(pilotoLabel(p));
-                });
-                if(!list.length) return alert("No se encontraron pilotos en el CSV.");
-                await set(ref(db, 'pilotos_evento'), pilotosObj);
-                await set(ref(db, 'inscritos_drift'), inscritosDrift);
-                await set(ref(db, 'copilotajes/config_pilotos'), list);
-                e.target.value = "";
-                alert("Lista de pilotos actualizada: " + list.length + " pilotos para Taxidrift.");
-            };
-            fr.readAsText(file, "UTF-8");
-        };
     </script>
 </body>
 </html>
+

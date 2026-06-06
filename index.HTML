@@ -62,6 +62,17 @@
         }
         .vote-car-img { width:100%; aspect-ratio:16/9; object-fit:contain; background:#000; border-radius:10px; margin:8px 0; border:1px solid rgba(255,255,255,.15); display:block; }
         .vote-card .v-btn { font-size: 3.3em; margin: 4px 8px; }
+        .vote-help {
+            margin: 10px 0 12px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255,204,0,.45);
+            border-radius: 10px;
+            background: rgba(255,204,0,.1);
+            color: #ddd;
+            font-size: .88em;
+            line-height: 1.35;
+        }
+        .vote-help b { color:#ffcc00; text-transform:uppercase; }
         
         .rank-card { 
             background: rgba(255, 255, 255, 0.05); 
@@ -192,6 +203,9 @@
                 <h2 id="s-info" style="color:#007bff; margin: 15px 0; min-height: 1.2em; font-size: 1.8em;"></h2>
                 
                 <div id="voto-box" style="display:none;">
+                    <div id="vote-help" class="vote-help">
+                        <b>Votación en directo:</b> solo aparecen los pilotos que están en pista ahora. Cuando salga tu piloto, podrás votarle durante su salida.
+                    </div>
                     <div id="votos-lista"></div>
                     <div id="timer-box"></div>
                 </div>
@@ -615,6 +629,7 @@
     </script>
 </body>
 </html>
+
 
 
 

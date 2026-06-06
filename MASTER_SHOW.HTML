@@ -230,6 +230,7 @@
       </div>
       <button class="btn" style="background:#ffcc00;color:#000" onclick="finalizarPruebaEscapes()">FINALIZAR PRUEBA Y ABRIR PREMIO DEL PÚBLICO</button>
       <button class="btn" style="background:#6b1b8f" onclick="cerrarPremioPublicoEscapes()">CERRAR PREMIO DEL PÚBLICO</button>
+      <button class="btn" style="background:#0d6efd" onclick="cerrarEventoEscapes()">ARCHIVAR EVENTO ESCAPES</button>
       <button class="btn btn-reset" onclick="exportarEscapes()">DESCARGAR RESULTADOS ESCAPES</button>
     </div>
 
@@ -1073,6 +1074,94 @@
         alert("Premio del Público cerrado. Ganador: #" + (ganador.dorsal || "") + " " + (ganador.piloto || ""));
       };
 
+      function construirRondaEscapes(rondaId, resultadosObj, inscritosObj, premioObj) {
+        var lista = Object.values(resultadosObj || {});
+        var rankings = {
+          dbCoches: ordenarRankingEscapes(lista, 'coche', 'db'),
+          dbMotos: ordenarRankingEscapes(lista, 'moto', 'db'),
+          sonoridadCoches: ordenarRankingEscapes(lista, 'coche', 'sonoridad'),
+          sonoridadMotos: ordenarRankingEscapes(lista, 'moto', 'sonoridad')
+        };
+        var premio = premioObj || {};
+        var estadoPremio = premio.ganador ? "cerrado" : (premio.activa ? "abierto" : "sin_premio");
+        return {
+          id: rondaId,
+          nombre: configEvento.nombre || "Ronda Drift Show",
+          fecha: configEvento.fecha || new Date().toISOString().slice(0,10),
+          lugar: configEvento.lugar || "",
+          inscritos: inscritosObj || {},
+          resultados: resultadosObj || {},
+          rankings: rankings,
+          premioPublico: {
+            estado: estadoPremio,
+            candidatos: premio.candidatos || {},
+            ganador: premio.ganador || null,
+            abiertoAt: premio.abiertoAt || null,
+            cerradoAt: premio.cerradoAt || null
+          },
+          puntosAsignados: false,
+          archivedAt: Date.now(),
+          createdAt: premio.createdAt || premio.abiertoAt || Date.now()
+        };
+      }
+
+      async function prepararSiguienteEventoEscapes(modo) {
+        var updates = {
+          ranking_escapes: null,
+          crono_evento: null,
+          escape_prueba_actual: null,
+          ultimo_resultado_escapes: null,
+          premio_publico_escapes: null,
+          escapes_evento_archivado: null,
+          'config_evento/escapesRondaActualId': null
+        };
+        if(modo === "limpiar_inscritos") updates.inscritos_esc = null;
+        await db.ref().update(updates);
+        resetPruebaEscape();
+        buscarEscape("");
+      }
+
+      window.cerrarEventoEscapes = async function(){
+        var rankingSnap = await getOnce('ranking_escapes');
+        if(!rankingSnap.exists() || !Object.keys(rankingSnap.val() || {}).length) {
+          return alert("No hay resultados de escapes para archivar.");
+        }
+        var premioSnap = await getOnce('premio_publico_escapes');
+        var premio = premioSnap.val() || {};
+        if(premio.activa) {
+          return alert("El Premio del Público sigue abierto. Ciérralo antes de archivar el evento.");
+        }
+        var inscritosSnap = await getOnce('inscritos_esc');
+        var resultados = rankingSnap.val() || {};
+        var inscritos = inscritosSnap.val() || {};
+        var rondaId = premio.rondaId || configEvento.escapesRondaActualId || crearRondaIdEscapes();
+        var ronda = construirRondaEscapes(rondaId, resultados, inscritos, premio);
+        await db.ref().update({
+          ['campeonato_escapes/rondas/' + rondaId]: ronda,
+          'config_evento/escapesRondaActualId': rondaId,
+          'escapes_evento_archivado': { rondaId:rondaId, nombre:ronda.nombre, archivedAt:Date.now() }
+        });
+
+        var opcion = prompt(
+          "Evento de escapes archivado para el campeonato.\\n\\n" +
+          "Escribe 1 para preparar el siguiente evento manteniendo inscritos.\\n" +
+          "Escribe 2 para preparar el siguiente evento borrando inscritos y resultados.\\n" +
+          "Deja vacío para no restablecer nada."
+        );
+        opcion = String(opcion || "").trim();
+        if(opcion === "1") {
+          await prepararSiguienteEventoEscapes("mantener_inscritos");
+          alert("Evento archivado. Resultados restablecidos e inscritos mantenidos.");
+        } else if(opcion === "2") {
+          if(confirm("Esto borrará la lista actual de inscritos de escapes, pero el evento archivado seguirá guardado. ¿Continuar?")) {
+            await prepararSiguienteEventoEscapes("limpiar_inscritos");
+            alert("Evento archivado. Inscritos y resultados actuales restablecidos.");
+          }
+        } else {
+          alert("Evento archivado. No se han restablecido datos actuales.");
+        }
+      };
+
       function descargarCsv(filename, content){
         var link = document.createElement("a");
         link.href = URL.createObjectURL(new Blob(["\ufeff" + content], { type:"text/csv;charset=utf-8;" }));
@@ -1551,6 +1640,7 @@ window.exportarVotos = async function () {
   </script>
 </body>
 </html>
+
 
 
 

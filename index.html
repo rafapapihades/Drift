@@ -107,17 +107,67 @@
             <h2 class="text-5xl font-black italic uppercase mb-16 text-center tracking-tighter italic">Próximos <span class="text-red-600">Shows</span></h2>
             
             <div class="space-y-6">
-                <div class="bg-zinc-900 border-l-8 border-yellow-500 p-8 flex flex-col md:flex-row justify-between items-start rounded-r-xl">
-                    <div class="text-left">
-                        <span class="text-yellow-500 font-black uppercase tracking-widest">12 y 13 de Septiembre</span>
-                        <h3 class="text-4xl font-black uppercase italic">Level 12 - 3er Aniversario Drift Show</h3>
-                        <p class="text-zinc-400 font-bold italic uppercase mt-2">Moncada, Valencia - Recinto Multiusos Pedrereta</p>
-                        <p class="text-zinc-300 mt-4 max-w-3xl italic">Dos jornadas de motor con Drift Show, TaxiDrift, motos, karts, exposicion de vehiculos deportivos y ambiente de aniversario. Una cita abierta para vivir el show desde dentro.</p>
-                        <div class="flex flex-wrap gap-2 mt-4">
-                            <span class="bg-red-500/20 text-red-500 text-[10px] px-2 py-1 font-black uppercase italic border border-red-500/50">Drift Show</span>
-                            <span class="bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 font-black uppercase italic border border-yellow-500/50">TaxiDrift</span>
-                            <span class="bg-white/10 text-white text-[10px] px-2 py-1 font-black uppercase italic border border-white/20">Expo vehiculos</span>
-                            <span class="bg-red-500/20 text-red-500 text-[10px] px-2 py-1 font-black uppercase italic border border-red-500/50">Escapes</span>
+                <div class="bg-zinc-900 border-l-8 border-yellow-500 p-6 md:p-8 rounded-r-xl">
+                    <div class="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-start">
+                        <div class="text-left">
+                            <span class="text-yellow-500 font-black uppercase tracking-widest">12 y 13 de Septiembre</span>
+                            <h3 class="text-4xl md:text-5xl font-black uppercase italic leading-none mt-2">Level 12 - 3er Aniversario Drift Show</h3>
+                            <p class="text-zinc-400 font-bold italic uppercase mt-3">Moncada, Valencia</p>
+                            <p class="text-zinc-300 mt-4 max-w-3xl italic">
+                                Fin de semana completo de motor con Drift Show, Taxi Drift, batallas drift, stunt, karts, expo, zona VIP, sesión DJ y el Campeonato de Escapes. Dos días para vivir el aniversario de Level 12 con humo, sonido y espectáculo desde primera hora.
+                            </p>
+                            <div class="flex flex-wrap gap-2 mt-5">
+                                <span class="bg-red-500/20 text-red-500 text-[10px] px-2 py-1 font-black uppercase italic border border-red-500/50">Drift Show</span>
+                                <span class="bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-1 font-black uppercase italic border border-yellow-500/50">Taxi Drift</span>
+                                <span class="bg-white/10 text-white text-[10px] px-2 py-1 font-black uppercase italic border border-white/20">Expo</span>
+                                <span class="bg-red-500/20 text-red-500 text-[10px] px-2 py-1 font-black uppercase italic border border-red-500/50">Escapes</span>
+                                <span class="bg-white/10 text-white text-[10px] px-2 py-1 font-black uppercase italic border border-white/20">Stunt</span>
+                                <span class="bg-white/10 text-white text-[10px] px-2 py-1 font-black uppercase italic border border-white/20">Karts</span>
+                            </div>
+                        </div>
+                        <div class="grid sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                            <button type="button" onclick="openLightbox('moncada-sabado-12.png')" class="img-zoom w-full">
+                                <img src="moncada-sabado-12.png" alt="Horario sábado 12 de septiembre Level 12 Moncada">
+                            </button>
+                            <button type="button" onclick="openLightbox('moncada-domingo-13.png')" class="img-zoom w-full">
+                                <img src="moncada-domingo-13.png" alt="Horario domingo 13 de septiembre Level 12 Moncada">
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-4 mt-8">
+                        <div class="bg-black/55 border border-white/10 p-5 rounded-lg">
+                            <h4 class="text-2xl font-black uppercase italic text-white">Sábado 12</h4>
+                            <ul class="mt-3 space-y-2 text-sm text-zinc-300 font-bold italic">
+                                <li><span class="text-red-500">09:00 - 11:00</span> Entrada expo</li>
+                                <li><span class="text-red-500">11:00 - 20:00</span> Expo</li>
+                                <li><span class="text-red-500">10:30 - 20:00</span> Drift Show</li>
+                                <li><span class="text-red-500">11:00</span> Taxi Drift</li>
+                                <li><span class="text-red-500">11:30</span> Stunt y batallas drift</li>
+                                <li><span class="text-red-500">12:00</span> Show</li>
+                                <li><span class="text-red-500">12:30</span> Karts</li>
+                                <li><span class="text-red-500">13:00</span> Drift School y sesión DJ</li>
+                                <li><span class="text-red-500">15:00</span> Drift Show</li>
+                                <li><span class="text-red-500">16:00</span> Stunt</li>
+                                <li><span class="text-red-500">17:00</span> Drift Show</li>
+                                <li><span class="text-red-500">18:00</span> Batallas drift</li>
+                                <li><span class="text-red-500">19:00 - 20:00</span> Drift Show hasta el cierre</li>
+                            </ul>
+                        </div>
+                        <div class="bg-black/55 border border-white/10 p-5 rounded-lg">
+                            <h4 class="text-2xl font-black uppercase italic text-white">Domingo 13</h4>
+                            <ul class="mt-3 space-y-2 text-sm text-zinc-300 font-bold italic">
+                                <li><span class="text-red-500">09:00 - 11:00</span> Entrada expo</li>
+                                <li><span class="text-red-500">09:00 - 15:00</span> Expo</li>
+                                <li><span class="text-red-500">10:00</span> Drift Show</li>
+                                <li><span class="text-red-500">10:30</span> Taxi Drift</li>
+                                <li><span class="text-red-500">11:30</span> Atila Drift Show</li>
+                                <li><span class="text-red-500">12:00</span> Stunt</li>
+                                <li><span class="text-red-500">12:30</span> Drag Show</li>
+                                <li><span class="text-red-500">13:00</span> II Campeonato de Escapes</li>
+                                <li><span class="text-red-500">14:00</span> Entrega de trofeos</li>
+                                <li><span class="text-red-500">15:00</span> Fin de Drift Show</li>
+                            </ul>
                         </div>
                     </div>
                 </div>

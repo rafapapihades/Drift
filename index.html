@@ -12,7 +12,21 @@
         
         #logo-hero { transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
         .fade-out { opacity: 0; transform: scale(0.8); pointer-events: none; }
-        .logo-glow { filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.4)); }
+        .logo-glow {
+            filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.4));
+            animation: logoPulse 3.6s ease-in-out infinite;
+            transform-origin: center;
+        }
+        @keyframes logoPulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.32)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.25));
+            }
+            50% {
+                transform: scale(1.025);
+                filter: drop-shadow(0 0 24px rgba(255, 0, 0, 0.62)) drop-shadow(0 0 7px rgba(255, 255, 255, 0.42));
+            }
+        }
         
         /* Acordeón Pilotos */
         .piloto-content { 
@@ -68,8 +82,7 @@
             <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
         </div>
         <div id="logo-hero" class="relative z-10 text-center px-4">
-            <img src="logo.png" class="w-72 md:w-[500px] mx-auto mb-6 logo-glow">
-            <h2 class="text-xl md:text-3xl font-black italic uppercase tracking-[0.3em] text-white animate-pulse">Quema Rueda</h2>
+            <img src="logo.png" alt="Drift Show" class="w-72 md:w-[500px] mx-auto logo-glow">
         </div>
     </header>
 

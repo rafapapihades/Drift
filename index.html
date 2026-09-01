@@ -23,6 +23,10 @@
         }
         .piloto-item:focus-within .piloto-content { max-height: 2000px; }
         .piloto-item:focus-within { border-color: #ef4444; }
+        details.piloto-item[open] { border-color: #ef4444; }
+        details.piloto-item[open] .piloto-content { max-height: 2000px; }
+        details.piloto-item summary { list-style: none; }
+        details.piloto-item summary::-webkit-details-marker { display: none; }
 
         /* Galería */
         .img-zoom { overflow: hidden; border-radius: 4px; cursor: pointer; background: #111; aspect-ratio: 16/9; border: 1px solid rgba(255,255,255,0.05); }
@@ -52,6 +56,8 @@
                 <a href="#servicios" class="hover:text-red-600 transition">Servicios</a>
                 <a href="#taxidrift" class="hover:text-red-600 transition">TaxiDrift</a>
                 <a href="#pilotos" class="hover:text-red-600 transition">Pilotos</a>
+                <a href="#galeria" class="hover:text-red-600 transition">Galería</a>
+                <a href="#contacto" class="bg-red-600 px-4 py-2 rounded-sm hover:bg-red-700 transition">Contacto</a>
             </div>
         </div>
     </nav>
@@ -108,61 +114,66 @@
                     Equipo Drift Show con pilotos de drift, stunt y show motor. Cada ficha resume vehículo, preparación y trayectoria para que el público conozca quién hay detrás del humo.
                 </p>
             </div>
-            <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-6 text-white">
-                <article class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                    <img src="coche-atila.jpg" alt="Atila - Corvette C6" class="w-full aspect-video object-cover">
-                    <div class="p-6">
-                        <p class="text-red-500 text-xs font-black uppercase italic">Drift Show</p>
-                        <h3 class="text-2xl font-black uppercase italic mt-1">Atila</h3>
-                        <p class="text-yellow-500 font-bold italic">Corvette C6 · 2JZ-GTE · 500 CV</p>
-                        <p class="text-zinc-400 mt-3 text-sm italic">Piloto y showman del equipo, referencia visual de Drift Show en pista y parte clave del espectáculo.</p>
-                    </div>
-                </article>
-                <article class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                    <img src="pilotos/javi-nieves.jpg" alt="Javi Nieves - BMW E36" class="w-full aspect-video object-cover">
-                    <div class="p-6">
-                        <p class="text-red-500 text-xs font-black uppercase italic">#2 · @javi_super_gandia</p>
-                        <h3 class="text-2xl font-black uppercase italic mt-1">Javier Nieves</h3>
-                        <p class="text-yellow-500 font-bold italic">BMW E36 · 2.5i · 192 CV</p>
-                        <p class="text-zinc-400 mt-3 text-sm italic">Más de 10 años de experiencia, presidente de Meet&Drift y piloto semipro del Campeonato de España 2023/2024.</p>
-                    </div>
-                </article>
-                <article class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                    <img src="pilotos/mike.jpg" alt="Mike Racing - Kart Sodi RX250" class="w-full aspect-video object-cover">
-                    <div class="p-6">
-                        <p class="text-red-500 text-xs font-black uppercase italic">#7 · @Mikeracingoficial</p>
-                        <h3 class="text-2xl font-black uppercase italic mt-1">Mike Racing</h3>
-                        <p class="text-yellow-500 font-bold italic">Kart Sodi RX250 · 250 cc 4T · 42 CV</p>
-                        <p class="text-zinc-400 mt-3 text-sm italic">Piloto de kart con experiencia internacional, top 10 en KWC y récords en varios circuitos nacionales.</p>
-                    </div>
-                </article>
-                <article class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                    <img src="coche-valero.jpg" alt="Valero - Rieju MRT" class="w-full aspect-video object-cover">
-                    <div class="p-6">
-                        <p class="text-red-500 text-xs font-black uppercase italic">Stunt</p>
-                        <h3 class="text-2xl font-black uppercase italic mt-1">Valero</h3>
-                        <p class="text-yellow-500 font-bold italic">Rieju MRT · 49 cc · 12 CV</p>
-                        <p class="text-zinc-400 mt-3 text-sm italic">Show sobre dos ruedas, control y estilo dentro de la parte más cercana y explosiva del evento.</p>
-                    </div>
-                </article>
-                <article class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                    <img src="pilotos/ivan.jpg" alt="Iván Rider - Yamaha R6" class="w-full aspect-video object-cover">
-                    <div class="p-6">
-                        <p class="text-red-500 text-xs font-black uppercase italic">Stunt</p>
-                        <h3 class="text-2xl font-black uppercase italic mt-1">Iván Rider</h3>
-                        <p class="text-yellow-500 font-bold italic">Yamaha R6 · 599 cc · 118 CV</p>
-                        <p class="text-zinc-400 mt-3 text-sm italic">Show sobre dos ruedas y presencia de stunt dentro del formato Drift Show.</p>
-                    </div>
-                </article>
-                <article class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                    <img src="pilotos/hades.jpg" alt="Hades - Mercedes C63s AMG" class="w-full aspect-video object-cover">
-                    <div class="p-6">
-                        <p class="text-red-500 text-xs font-black uppercase italic">En proceso</p>
-                        <h3 class="text-2xl font-black uppercase italic mt-1">Hades</h3>
-                        <p class="text-yellow-500 font-bold italic">Mercedes C63s AMG · 2x 40.000 rpm · 12V 28Ah</p>
-                        <p class="text-zinc-400 mt-3 text-sm italic">El piloto más joven del equipo, con coche preparado, modos de velocidad y parada de emergencia por WiFi.</p>
-                    </div>
-                </article>
+            <div class="space-y-5 text-white">
+                <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
+                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Atila <i class="fas fa-chevron-down text-red-600"></i></summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="coche-atila.jpg" alt="Atila - Corvette C6" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Drift Show</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Corvette C6</h5><p class="font-bold text-yellow-500 mt-3">2JZ-GTE · 500 CV</p><p class="text-zinc-400 mt-3 italic">Piloto y showman del equipo, referencia visual de Drift Show en pista y parte clave del espectáculo.</p></div></div></div>
+                </details>
+                <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
+                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Javi Nieves <i class="fas fa-chevron-down text-red-600"></i></summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/javi-nieves.jpg" alt="Javi Nieves - BMW E36" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">@javi_super_gandia</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">BMW E36</h5><p class="font-bold text-yellow-500 mt-3">2.5i · 192 CV</p><p class="text-zinc-400 mt-3 italic">Más de 10 años de experiencia, presidente de Meet&Drift y piloto semipro del Campeonato de España 2023/2024.</p></div></div></div>
+                </details>
+                <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
+                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Mike Racing <i class="fas fa-chevron-down text-red-600"></i></summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/mike.jpg" alt="Mike Racing - Kart Sodi RX250" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">@Mikeracingoficial</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Kart Sodi RX250</h5><p class="font-bold text-yellow-500 mt-3">250 cc 4T · 42 CV</p><p class="text-zinc-400 mt-3 italic">Piloto de kart con experiencia internacional, top 10 en KWC y récords en varios circuitos nacionales.</p></div></div></div>
+                </details>
+                <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
+                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Valero <i class="fas fa-chevron-down text-red-600"></i></summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="coche-valero.jpg" alt="Valero - Rieju MRT" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Stunt</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Rieju MRT</h5><p class="font-bold text-yellow-500 mt-3">49 cc · 12 CV</p><p class="text-zinc-400 mt-3 italic">Show sobre dos ruedas, control y estilo dentro de la parte más cercana y explosiva del evento.</p></div></div></div>
+                </details>
+                <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
+                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Iván Rider <i class="fas fa-chevron-down text-red-600"></i></summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/ivan.jpg" alt="Iván Rider - Yamaha R6" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Stunt</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Yamaha R6</h5><p class="font-bold text-yellow-500 mt-3">599 cc · 118 CV</p><p class="text-zinc-400 mt-3 italic">Show sobre dos ruedas y presencia de stunt dentro del formato Drift Show.</p></div></div></div>
+                </details>
+                <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
+                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Hades <span class="text-red-500 text-xs ml-3">En proceso</span><i class="fas fa-chevron-down text-red-600"></i></summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/hades.jpg" alt="Hades - Mercedes C63s AMG" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">El pequeño de la casa</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Mercedes C63s AMG</h5><p class="font-bold text-yellow-500 mt-3">Todavía eléctrico · en proceso</p><p class="text-zinc-400 mt-3 italic">Aunque todavía lleva un eléctrico, es el pequeño de la casa y ya vive el motor como uno más del equipo.</p></div></div></div>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <section id="galeria" class="py-24 px-6 bg-black">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-black italic uppercase mb-12 text-center">Galería <span class="text-red-600">Pro</span></h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div class="img-zoom" onclick="openLightbox('1-0.jpg')"><img src="1-0.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('2-0.jpg')"><img src="2-0.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('3-0.jpg')"><img src="3-0.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('4-0.jpg')"><img src="4-0.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('5-0.jpg')"><img src="5-0.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('1-1.jpg')"><img src="1-1.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('2-1.jpg')"><img src="2-1.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('3-1.jpg')"><img src="3-1.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('4-1.jpg')"><img src="4-1.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('5-1.jpg')"><img src="5-1.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('1-2.jpg')"><img src="1-2.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('2-2.jpg')"><img src="2-2.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('3-2.jpg')"><img src="3-2.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('4-2.jpg')"><img src="4-2.jpg" alt=""></div>
+                <div class="img-zoom" onclick="openLightbox('5-2.jpg')"><img src="5-2.jpg" alt=""></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contacto" class="py-24 bg-zinc-950 px-6">
+        <div class="max-w-4xl mx-auto bg-zinc-900/50 p-10 rounded-lg border border-red-600/30">
+            <h3 class="text-4xl font-black uppercase italic mb-8 text-center tracking-tighter">Contacto y <span class="text-red-600">Contratación</span></h3>
+            <div class="bg-black/60 border border-zinc-800 p-8 rounded-sm text-center">
+                <p class="text-zinc-500 text-xs uppercase font-black tracking-widest italic mb-3">Contacto profesional</p>
+                <p class="text-3xl font-black text-yellow-500 italic">Por correo electrónico</p>
+                <p class="text-zinc-400 mt-4 italic">Contratación de Drift Show, experiencias TaxiDrift, eventos de motor y campeonatos de escapes.</p>
+                <p class="text-zinc-500 mt-3 text-sm italic">Dirección de contacto disponible próximamente.</p>
             </div>
         </div>
     </section>

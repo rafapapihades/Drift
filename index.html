@@ -9,8 +9,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; background: black; color: white; overflow-x: hidden; }
         
-        #logo-hero { transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
-        .fade-out { opacity: 0; transform: scale(0.8); pointer-events: none; }
         .logo-glow {
             filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.4));
             animation: logoPulse 3.6s ease-in-out infinite;
@@ -47,9 +45,14 @@
             letter-spacing: 0.12em;
         }
         details.piloto-item[open] summary::after { content: "CERRAR"; }
-        .hero-photo { object-fit: contain; object-position: center; }
-        @media (min-width: 768px) {
-            .hero-photo { object-fit: cover; }
+        .hero-photo {
+            object-fit: cover;
+            object-position: 18% center;
+            animation: heroSweep 22s ease-in-out infinite alternate;
+        }
+        @keyframes heroSweep {
+            from { object-position: 12% center; }
+            to { object-position: 88% center; }
         }
 
         /* Galería */
@@ -72,9 +75,8 @@
 
     <div id="lightbox" onclick="this.style.display='none'"><img id="lightbox-img" src=""></div>
 
-    <nav class="fixed w-full z-50 bg-black/90 border-b border-red-900/50 p-3 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <img src="logo.png" alt="Drift Show Logo" class="h-10 md:h-14 logo-glow">
+    <nav class="hidden lg:block fixed w-full z-50 bg-black/90 border-b border-red-900/50 p-3 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex justify-end items-center">
             <div class="hidden lg:flex space-x-6 font-black uppercase text-[10px] tracking-widest italic">
                 <a href="#inicio" class="hover:text-red-600 transition">Inicio</a>
                 <a href="#servicios" class="hover:text-red-600 transition">Servicios</a>
@@ -88,11 +90,8 @@
 
     <header id="inicio" class="h-screen flex items-center justify-center relative overflow-hidden">
         <div class="absolute inset-0 z-0">
-            <img src="inicio.jpg" alt="Drift Show en pista" class="hero-photo w-full h-full opacity-70 md:opacity-60">
+            <img src="inicio.jpg" alt="Drift Show en pista" class="hero-photo w-full h-full opacity-75 md:opacity-60">
             <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-        </div>
-        <div id="logo-hero" class="relative z-10 text-center px-4">
-            <img src="logo.png" alt="Drift Show" class="w-72 md:w-[500px] mx-auto logo-glow">
         </div>
     </header>
 
@@ -119,7 +118,6 @@
         <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
             <img src="taxidrift-logo.jpg" alt="TaxiDrift" class="w-full max-w-md mx-auto drop-shadow-2xl logo-glow">
             <div class="space-y-6">
-                <h3 class="text-6xl font-black uppercase italic tracking-tighter text-white">TaxiDrift</h3>
                 <p class="text-xl font-black italic uppercase bg-white text-black inline-block px-4 py-1">Atracción Estrella</p>
                 <p class="text-lg leading-relaxed text-white font-bold italic">
                     ¿Quieres saber qué siente un piloto profesional? El TaxiDrift permite que el público sea partícipe directo de la exhibición. Sentir la aceleración lateral, el humo y la precisión desde el cockpit es una experiencia inigualable.
@@ -206,11 +204,6 @@
     </footer>
 
     <script>
-        window.addEventListener('scroll', function() {
-            const logo = document.getElementById('logo-hero');
-            if (window.scrollY > 200) logo.classList.add('fade-out');
-            else logo.classList.remove('fade-out');
-        });
         function openLightbox(src) {
             const lb = document.getElementById('lightbox');
             const img = document.getElementById('lightbox-img');

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drift Show ® | Web Oficial</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; background: black; color: white; overflow-x: hidden; }
@@ -41,6 +40,17 @@
         details.piloto-item[open] .piloto-content { max-height: 2000px; }
         details.piloto-item summary { list-style: none; }
         details.piloto-item summary::-webkit-details-marker { display: none; }
+        details.piloto-item summary::after {
+            content: "VER FICHA";
+            color: #ef4444;
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+        }
+        details.piloto-item[open] summary::after { content: "CERRAR"; }
+        .hero-photo { object-fit: contain; object-position: center; }
+        @media (min-width: 768px) {
+            .hero-photo { object-fit: cover; }
+        }
 
         /* Galería */
         .img-zoom { overflow: hidden; border-radius: 4px; cursor: pointer; background: #111; aspect-ratio: 16/9; border: 1px solid rgba(255,255,255,0.05); }
@@ -78,7 +88,7 @@
 
     <header id="inicio" class="h-screen flex items-center justify-center relative overflow-hidden">
         <div class="absolute inset-0 z-0">
-            <img src="inicio.jpg" class="w-full h-full object-cover opacity-60">
+            <img src="inicio.jpg" alt="Drift Show en pista" class="hero-photo w-full h-full opacity-70 md:opacity-60">
             <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
         </div>
         <div id="logo-hero" class="relative z-10 text-center px-4">
@@ -107,9 +117,9 @@
     <section id="taxidrift" class="py-32 relative overflow-hidden bg-black">
         <div class="absolute inset-0 bg-gradient-to-b from-black via-red-600/60 to-black"></div>
         <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
-            <img src="taxidrift.png" class="w-full max-w-md mx-auto drop-shadow-2xl logo-glow">
+            <img src="taxidrift-logo.jpg" alt="TaxiDrift" class="w-full max-w-md mx-auto drop-shadow-2xl logo-glow">
             <div class="space-y-6">
-                <h3 class="text-6xl font-black uppercase italic tracking-tighter text-white">TaxiDrift 🔥</h3>
+                <h3 class="text-6xl font-black uppercase italic tracking-tighter text-white">TaxiDrift</h3>
                 <p class="text-xl font-black italic uppercase bg-white text-black inline-block px-4 py-1">Atracción Estrella</p>
                 <p class="text-lg leading-relaxed text-white font-bold italic">
                     ¿Quieres saber qué siente un piloto profesional? El TaxiDrift permite que el público sea partícipe directo de la exhibición. Sentir la aceleración lateral, el humo y la precisión desde el cockpit es una experiencia inigualable.
@@ -129,28 +139,28 @@
             </div>
             <div class="space-y-5 text-white">
                 <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
-                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Atila <i class="fas fa-chevron-down text-red-600"></i></summary>
-                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="coche-atila.jpg" alt="Atila - Corvette C6" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Drift Show</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Corvette C6</h5><p class="font-bold text-yellow-500 mt-3">2JZ-GTE · 500 CV</p><p class="text-zinc-400 mt-3 italic">Piloto y showman del equipo, referencia visual de Drift Show en pista y parte clave del espectáculo.</p></div></div></div>
+                    <summary class="bg-zinc-900 p-6 flex justify-between gap-4 items-center cursor-pointer font-black italic uppercase">Atila</summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="coche-atila.jpg" alt="Atila - Corvette C6" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">@atiladrifter</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Corvette C6</h5><p class="font-bold text-yellow-500 mt-3">2JZ-GTE · 500 CV</p><p class="text-zinc-400 mt-3 italic">Piloto y showman del equipo, referencia visual de Drift Show en pista y parte clave del espectáculo.</p></div></div></div>
                 </details>
                 <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
-                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Javi Nieves <i class="fas fa-chevron-down text-red-600"></i></summary>
+                    <summary class="bg-zinc-900 p-6 flex justify-between gap-4 items-center cursor-pointer font-black italic uppercase">Javi Nieves</summary>
                     <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/javi-nieves.jpg" alt="Javi Nieves - BMW E36" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">@javi_super_gandia</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">BMW E36</h5><p class="font-bold text-yellow-500 mt-3">2.5i · 192 CV</p><p class="text-zinc-400 mt-3 italic">Más de 10 años de experiencia, presidente de Meet&Drift y piloto semipro del Campeonato de España 2023/2024.</p></div></div></div>
                 </details>
                 <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
-                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Mike Racing <i class="fas fa-chevron-down text-red-600"></i></summary>
+                    <summary class="bg-zinc-900 p-6 flex justify-between gap-4 items-center cursor-pointer font-black italic uppercase">Mike Racing</summary>
                     <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/mike.jpg" alt="Mike Racing - Kart Sodi RX250" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">@Mikeracingoficial</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Kart Sodi RX250</h5><p class="font-bold text-yellow-500 mt-3">250 cc 4T · 42 CV</p><p class="text-zinc-400 mt-3 italic">Piloto de kart con experiencia internacional, top 10 en KWC y récords en varios circuitos nacionales.</p></div></div></div>
                 </details>
                 <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
-                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Valero <i class="fas fa-chevron-down text-red-600"></i></summary>
-                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="coche-valero.jpg" alt="Valero - Rieju MRT" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Stunt</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Rieju MRT</h5><p class="font-bold text-yellow-500 mt-3">49 cc · 12 CV</p><p class="text-zinc-400 mt-3 italic">Show sobre dos ruedas, control y estilo dentro de la parte más cercana y explosiva del evento.</p></div></div></div>
+                    <summary class="bg-zinc-900 p-6 flex justify-between gap-4 items-center cursor-pointer font-black italic uppercase">Valero</summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="coche-valero.jpg" alt="Valero - Rieju MRT" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Instagram pendiente</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Rieju MRT</h5><p class="font-bold text-yellow-500 mt-3">49 cc · 12 CV</p><p class="text-zinc-400 mt-3 italic">Show sobre dos ruedas, control y estilo dentro de la parte más cercana y explosiva del evento.</p></div></div></div>
                 </details>
                 <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
-                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Iván Rider <i class="fas fa-chevron-down text-red-600"></i></summary>
-                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/ivan.jpg" alt="Iván Rider - Yamaha R6" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Stunt</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Yamaha R6</h5><p class="font-bold text-yellow-500 mt-3">599 cc · 118 CV</p><p class="text-zinc-400 mt-3 italic">Show sobre dos ruedas y presencia de stunt dentro del formato Drift Show.</p></div></div></div>
+                    <summary class="bg-zinc-900 p-6 flex justify-between gap-4 items-center cursor-pointer font-black italic uppercase">Iván Rider</summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/ivan.jpg" alt="Iván Rider - Yamaha R6" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Instagram pendiente</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Yamaha R6</h5><p class="font-bold text-yellow-500 mt-3">599 cc · 118 CV</p><p class="text-zinc-400 mt-3 italic">Show sobre dos ruedas y presencia de stunt dentro del formato Drift Show.</p></div></div></div>
                 </details>
                 <details class="piloto-item border border-zinc-800 rounded-lg overflow-hidden transition">
-                    <summary class="bg-zinc-900 p-6 flex justify-between items-center cursor-pointer font-black italic uppercase">Hades <span class="text-red-500 text-xs ml-3">En proceso</span><i class="fas fa-chevron-down text-red-600"></i></summary>
-                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/hades.jpg" alt="Hades - Mercedes C63s AMG" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">El pequeño de la casa</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">Mercedes C63s AMG</h5><p class="font-bold text-yellow-500 mt-3">Todavía eléctrico · en proceso</p><p class="text-zinc-400 mt-3 italic">Aunque todavía lleva un eléctrico, es el pequeño de la casa y ya vive el motor como uno más del equipo.</p></div></div></div>
+                    <summary class="bg-zinc-900 p-6 flex justify-between gap-4 items-center cursor-pointer font-black italic uppercase">Hades <span class="text-red-500 text-xs ml-3">En proceso</span></summary>
+                    <div class="piloto-content"><div class="p-6 md:p-8 grid md:grid-cols-2 gap-8 items-center"><img src="pilotos/hades.jpg" alt="Hades - Mercedes C63s AMG" class="w-full rounded shadow-2xl"><div><p class="text-red-500 text-xs font-black uppercase italic">Instagram pendiente</p><h5 class="text-red-600 font-black uppercase text-xl italic border-b border-red-600 pb-2 mt-2">El pequeño de la casa</h5><p class="font-bold text-yellow-500 mt-3">Todavía eléctrico · en proceso</p><p class="text-zinc-400 mt-3 italic">Aunque todavía lleva un eléctrico, es el pequeño de la casa y ya vive el motor como uno más del equipo.</p></div></div></div>
                 </details>
             </div>
         </div>

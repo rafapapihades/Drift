@@ -62,6 +62,8 @@
 
         .service-card {
             position: relative;
+            display: flex;
+            flex-direction: column;
             min-height: 180px;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.08);
@@ -69,32 +71,21 @@
             background: #18181b;
         }
         .service-card img {
-            position: absolute;
-            inset: 0;
+            display: block;
             width: 100%;
-            height: 100%;
+            height: auto;
+            aspect-ratio: 4 / 3;
             object-fit: cover;
-            opacity: 0.42;
-            filter: saturate(1.12) contrast(1.08);
-            transition: transform .55s ease, opacity .55s ease;
-        }
-        .service-card::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.82));
-        }
-        .service-card:hover img {
-            transform: scale(1.08);
-            opacity: 0.58;
+            flex-shrink: 0;
         }
         .service-card-content {
             position: relative;
             z-index: 1;
             min-height: 180px;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
+            justify-content: flex-start;
             padding: 22px;
         }
         .service-card small {
@@ -105,19 +96,9 @@
             text-transform: uppercase;
             margin-bottom: 8px;
         }
-        .service-card.service-photo::after { display: none; }
-        .service-card.service-photo img {
-            position: relative;
-            display: block;
-            height: auto;
-            aspect-ratio: 4 / 3;
-            opacity: 1;
-            filter: none;
-            transform: none;
-        }
-        .service-photo .service-card-content { min-height: 0; }
-        .service-photo .staff-photo { object-position: center 65%; }
-        .service-photo .app-photo { object-fit: contain; background: #e5e5e5; }
+        .service-card h4 { min-height: 2em; }
+        .service-card .staff-photo { object-position: center 65%; }
+        .service-card .app-photo { object-fit: contain; background: #e5e5e5; }
 
         /* Lightbox */
         #lightbox {
@@ -186,7 +167,7 @@
                         <p class="text-zinc-300 text-sm italic mt-3">Entradas, salidas, avisos al equipo y seguimiento del show en tiempo real.</p>
                     </div>
                 </article>
-                <article class="service-card service-photo">
+                <article class="service-card">
                     <img src="app-publico-movil.png" class="app-photo" alt="Móvil con la página del público de Drift Show y la votación de Atila" width="1448" height="1086" loading="lazy">
                     <div class="service-card-content">
                         <small>Público conectado</small>
@@ -194,7 +175,7 @@
                         <p class="text-zinc-300 text-sm italic mt-3">Votaciones, registros, sorteos, escapes y datos del evento desde el móvil.</p>
                     </div>
                 </article>
-                <article class="service-card service-photo">
+                <article class="service-card">
                     <img src="staff-driftshow.jpg" class="staff-photo" alt="Equipo de staff de Drift Show atendiendo a los participantes en la carpa del evento" width="1080" height="1350" loading="lazy">
                     <div class="service-card-content">
                         <small>Seguridad y ritmo</small>

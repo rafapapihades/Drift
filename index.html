@@ -105,6 +105,19 @@
             text-transform: uppercase;
             margin-bottom: 8px;
         }
+        .service-card.service-photo::after { display: none; }
+        .service-card.service-photo img {
+            position: relative;
+            display: block;
+            height: auto;
+            aspect-ratio: 4 / 3;
+            opacity: 1;
+            filter: none;
+            transform: none;
+        }
+        .service-photo .service-card-content { min-height: 0; }
+        .service-photo .staff-photo { object-position: center 65%; }
+        .service-photo .app-photo { object-fit: contain; background: #e5e5e5; }
 
         /* Lightbox */
         #lightbox {
@@ -173,16 +186,16 @@
                         <p class="text-zinc-300 text-sm italic mt-3">Entradas, salidas, avisos al equipo y seguimiento del show en tiempo real.</p>
                     </div>
                 </article>
-                <article class="service-card">
-                    <img src="taxidrift.png" alt="Aplicación Drift Show">
+                <article class="service-card service-photo">
+                    <img src="app-publico-movil.png" class="app-photo" alt="Móvil con la página del público de Drift Show y la votación de Atila" width="1448" height="1086" loading="lazy">
                     <div class="service-card-content">
                         <small>Público conectado</small>
                         <h4 class="font-black uppercase italic text-xl leading-none">App en directo</h4>
                         <p class="text-zinc-300 text-sm italic mt-3">Votaciones, registros, sorteos, escapes y datos del evento desde el móvil.</p>
                     </div>
                 </article>
-                <article class="service-card">
-                    <img src="4-0.jpg" alt="Staff Drift Show">
+                <article class="service-card service-photo">
+                    <img src="staff-driftshow.jpg" class="staff-photo" alt="Equipo de staff de Drift Show atendiendo a los participantes en la carpa del evento" width="1080" height="1350" loading="lazy">
                     <div class="service-card-content">
                         <small>Seguridad y ritmo</small>
                         <h4 class="font-black uppercase italic text-xl leading-none">Staff cualificado</h4>
